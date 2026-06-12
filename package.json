@@ -1,0 +1,16 @@
+{
+  "name": "liquid-sync-mac",
+  "version": "1.0.0",
+  "description": "Comarch e-Sklep Liquid Sync — reimplementacja na macOS (hot-reload szablonów Liquid przez SOAP iSklep24)",
+  "type": "module",
+  "bin": {
+    "liquid-sync": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

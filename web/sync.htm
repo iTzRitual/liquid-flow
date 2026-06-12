@@ -1,0 +1,86 @@
+<div class="sync" data-ng-controller="SyncCtrl">
+    <h2>
+        <a href="#/shop/templates">{{ shop.Name }}</a>
+        - {{ template.Name }} [{{ template.Id }}]
+        <a class="url" href="{{ shop.Url }}" target="_blank">{{ shop.Url }}</a>
+        <a class="url" data-ng-click="openFolder()" style="cursor:pointer">{{ translations.OpenLocalFolder }}</a>
+    </h2>
+    <div class="logH">
+        <h3>
+            {{ translations.Log }}</h3>
+        <div class="log">
+            <ul>
+                <li class="smcard" data-ng-repeat="entry in log">
+                    <span>{{ entry.TS | date:'yyyy-MM-dd HH:mm:ss' }}</span>
+                    <span data-ng-style="{ color: entry.Color };">{{ entry.Text }}</span></li>
+            </ul>
+        </div>
+    </div>
+    <div class="consoleH">
+        <h3>
+            {{ translations.Files }}
+        </h3>
+        <div class="ctrls">
+            <button data-comm="downloadAll" data-ng-confirm-click="downloadAll()" data-ng-confirm-message="{{ translations.AreYouSure }}">
+                {{ translations.DownloadAll }}</button>
+            <button data-comm="uploadAll" data-ng-confirm-click="uploadAll()" data-ng-confirm-message="{{ translations.AreYouSure }}">
+                {{ translations.UploadAll }}</button>
+            <button data-comm="refresh" data-ng-click="refreshConsole()">
+                {{ translations.Refresh }}</button>
+        </div>
+        <div class="console">
+            <ul>
+                <li class="smcard" data-ng-repeat="entry in console">
+                    <h4>
+                        {{ entry.File.TemplateId }}/{{ entry.File.Mode }}/{{ entry.File.Name }}
+                    </h4>
+                    <h4 data-ng-if="entry.Type == 'Timestamp'">
+                        {{ translations.FileMismatch }}
+                    </h4>
+                    <h4 data-ng-if="entry.Type == 'RemoteMissing'">
+                        {{ translations.FileRemoteMissing }}
+                    </h4>
+                    <h4 data-ng-if="entry.Type == 'LocalMissing'">
+                        {{ translations.FileLocalMissing }}
+                    </h4>
+                    <div class="btns">
+                        <button data-ng-if="entry.Type=='Timestamp' || entry.Type == 'LocalMissing'" data-ng-confirm-click="download(entry.File)" data-ng-confirm-message="{{ translations.AreYouSure }}">
+                            {{ translations.Download }}</button>
+                        <button data-ng-if="entry.Type == 'Timestamp' || entry.Type == 'RemoteMissing'" data-ng-confirm-click="upload(entry.File, entry.Type)" data-ng-confirm-message="{{ translations.AreYouSure }}">
+                            {{ translations.Upload }}</button>
+                        <button data-ng-if="entry.Type == 'RemoteMissing'" class="secondary" data-ng-confirm-click="removeLocal(entry.File)" data-ng-confirm-message="{{ translations.AreYouSure }}">
+                            {{ translations.Delete }}</button>
+                        <button data-ng-if="entry.Type == 'LocalMissing'" class="secondary" data-ng-confirm-click="removeRemote(entry.File)" data-ng-confirm-message="{{ translations.AreYouSure }}">
+                            {{ translations.Delete }}</button>
+                    </div>
+                    <table>
+                        <tr>
+                            <td>
+                                {{ translations.FileTsFs }}
+                            </td>
+                            <td>
+                                {{ entry.FileTs | date:'yyyy-MM-dd HH:mm:ss' }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                {{ translations.FileTsLocal }}
+                            </td>
+                            <td>
+                                {{ entry.LocalTs | date:'yyyy-MM-dd HH:mm:ss' }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                {{ translations.FileTsRemote }}
+                            </td>
+                            <td>
+                                {{ entry.RemoteTs | date:'yyyy-MM-dd HH:mm:ss' }}
+                            </td>
+                        </tr>
+                    </table>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>

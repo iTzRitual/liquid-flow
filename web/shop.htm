@@ -1,0 +1,55 @@
+<div class="view shop_add" data-ng-controller="ShopCtrl">
+    <div>
+        <h2 data-ng-if="id===undefined">
+            {{ translations.ShopAdd }}</h2>
+        <h2 data-ng-if="id!==undefined">
+            {{ shop.Name }}
+        </h2>
+        <a class="secondary" data-ng-if="id!==undefined" data-ng-confirm-click="remove()" data-ng-confirm-message="{{ translations.AreYouSure }}">
+                        {{ translations.Delete }}</a>
+        <div>
+            <form name="form" novalidate>
+            <ul>
+                <li>
+                    <label>
+                        {{ translations.ShopName }} <span class="ng-invalid" data-ng-if="form.name.$error.pattern">{{ translations.InvalidName_AllowedChars }} A-Za-z0-9</span></label>
+                    <input name="name" type="text" maxlength="20" required data-ng-pattern="/^[A-Za-z0-9]+$/i" data-ng-model="shop.Name" data-ng-disabled="id!==undefined"
+                        data-ng-readonly="id!==undefined" />
+                </li>
+                <li>
+                    <label>
+                        {{ translations.Url }} <span class="ng-invalid" data-ng-if="form.url.$error.pattern">{{ translations.SSL_Required }} </span></label>
+                    <input name="url" type="url" required data-ng-model="shop.Url" data-ng-pattern="/^https://.+$|^http://localhost:\d+.*$/i" />
+                </li>
+                <li>
+                    <label>
+                        {{ translations.Login }}</label>
+                    <input name="login" type="text" required value="webmaster" readonly disabled />
+                </li>
+                <li>
+                    <label>
+                        {{ translations.Password }}</label>
+                    <input name="pwd" type="password" required data-ng-model="shop.Password" />
+                </li>
+                <li>
+                    <input name="savePwd" type="checkbox" id="cbLoginSav" data-ng-model="shop.SavePassword" />
+                    <label for="cbLoginSav">
+                        {{ translations.SavePassword }}</label>
+                </li>
+                <li class="btns">
+                    <button data-ng-click="signIn()">
+                        {{ translations.SignIn }}</button>
+                    <button class="secondary" data-ng-click="cancel()">
+                        {{ translations.Cancel }}</button>
+                </li>
+            </ul>
+            </form>
+        </div>
+    </div>
+    <style type="text/css">
+        .shop_add div.templates a { display: inline-block; width: 272px; height: 168px; cursor: pointer; }
+        .shop_add div.templates a:hover { }
+        .shop_add div.templates a h4 { text-align: center; }
+    </style>
+    <div data-ng-spinner class="ngSpinner"></div>
+</div>

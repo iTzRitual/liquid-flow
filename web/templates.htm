@@ -1,0 +1,12 @@
+<div class="view shops" data-ng-controller="TemplatesCtrl">
+    <div>
+        <h2>
+            {{ shop.Name }}</h2>
+        <div>
+            <a class="card" data-ng-repeat="tpl in templates" data-ng-click="select(tpl.Id)">
+                <label>
+                    {{ tpl.Name }}</label><span> [{{ tpl.Id }}] </span></a>
+        </div>
+    </div>
+    <div data-ng-spinner class="ngSpinner"></div>
+</div>

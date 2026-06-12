@@ -1,0 +1,28 @@
+<div class="view edit_tpl" data-ng-controller="TemplateCtrl">
+    <div>
+        <h2>
+            {{ template.Name }}</h2>
+        <div>
+            <form name="form" novalidate>
+            <ul>
+                <li>
+                    <label>
+                        {{ translations.Password }}</label>
+                    <input name="pwd" type="password" required data-ng-model="template.Password" />
+                </li>
+                <li>
+                    <input name="savePwd" type="checkbox" id="cbLoginSav" data-ng-model="template.SavePassword" />
+                    <label for="cbLoginSav">
+                        {{ translations.SavePassword }}</label>
+                </li>
+                <li class="btns">
+                    <button data-ng-click="save()">
+                        {{ translations.SignIn }}</button>
+                    <button class="secondary" data-ng-click="cancel()">
+                        {{ translations.Cancel }}</button>
+                </li>
+            </ul>
+            </form>
+        </div>
+    </div>
+</div>

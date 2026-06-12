@@ -1,0 +1,11 @@
+<div class="view shops" data-ng-controller="ViewShopListCtrl">
+    <div>
+        <h2>
+            {{ translations.Shops }}</h2>
+        <div>
+            <a data-ng-repeat="shop in shops" class="card shop" data-ng-class="{'act': currentShop.Id == shop.Id}" data-ng-href="{{ (currentShop.Id == shop.Id) ? '#/shop/templates' :'#/shop/'+shop.Id }}"><label>
+                        {{ shop.Name }}</label>
+                    <span>{{ shop.Url }}</span> </a>
+        </div>
+    </div>
+</div>
