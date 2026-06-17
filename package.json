@@ -1,16 +1,74 @@
 {
-  "name": "liquid-sync-mac",
-  "version": "1.0.0",
-  "description": "Comarch e-Sklep Liquid Sync — reimplementacja na macOS (hot-reload szablonów Liquid przez SOAP iSklep24)",
+  "name": "liquid-sync",
+  "version": "2.0.0",
+  "description": "Comarch e-Sklep Liquid Sync — wieloplatformowa aplikacja desktopowa (hot-reload szablonów Liquid przez SOAP iSklep24)",
   "type": "module",
-  "bin": {
-    "liquid-sync": "src/index.js"
-  },
+  "main": "electron/main.js",
+  "author": "",
+  "license": "MIT",
   "scripts": {
-    "start": "node src/index.js"
+    "dev:renderer": "vite",
+    "dev:electron": "wait-on tcp:5173 && cross-env LIQUID_DEV=1 electron .",
+    "dev": "concurrently -k -n VITE,ELECTRON -c cyan,magenta \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "build:renderer": "vite build",
+    "build": "vite build && electron-builder",
+    "build:mac": "vite build && electron-builder --mac",
+    "build:win": "vite build && electron-builder --win",
+    "build:linux": "vite build && electron-builder --linux"
   },
   "engines": {
     "node": ">=18"
   },
-  "license": "MIT"
+  "build": {
+    "appId": "pl.local.liquidsync",
+    "productName": "Liquid Sync",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "dist/renderer/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Development"
+    }
+  },
+  "devDependencies": {
+    "@radix-ui/react-dialog": "^1.1.4",
+    "@radix-ui/react-dropdown-menu": "^2.1.4",
+    "@radix-ui/react-label": "^2.1.1",
+    "@radix-ui/react-select": "^2.1.4",
+    "@radix-ui/react-slot": "^1.1.1",
+    "@radix-ui/react-switch": "^1.1.2",
+    "@radix-ui/react-tabs": "^1.1.2",
+    "@radix-ui/react-tooltip": "^1.1.6",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8",
+    "lucide-react": "^0.469.0",
+    "postcss": "^8.4.49",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sonner": "^1.7.1",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss": "^3.4.17",
+    "tailwindcss-animate": "^1.0.7",
+    "vite": "^6.0.7",
+    "wait-on": "^8.0.1"
+  }
 }

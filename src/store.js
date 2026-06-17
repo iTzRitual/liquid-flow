@@ -9,9 +9,20 @@ import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
 
-const APP_DIR =
-  process.env.LIQUID_SYNC_HOME ||
-  path.join(os.homedir(), 'Library', 'Application Support', 'LiquidSyncMac');
+// Katalog danych — wieloplatformowy. W aplikacji Electron nadpisywany przez
+// LIQUID_SYNC_HOME (= app.getPath('userData')). Domyślne wartości per-OS:
+function defaultAppDir() {
+  const home = os.homedir();
+  if (process.platform === 'win32') {
+    return path.join(process.env.APPDATA || path.join(home, 'AppData', 'Roaming'), 'LiquidSync');
+  }
+  if (process.platform === 'darwin') {
+    return path.join(home, 'Library', 'Application Support', 'LiquidSync');
+  }
+  return path.join(process.env.XDG_CONFIG_HOME || path.join(home, '.config'), 'liquid-sync');
+}
+
+const APP_DIR = process.env.LIQUID_SYNC_HOME || defaultAppDir();
 
 const CONFIG_PATH = path.join(APP_DIR, 'config.json');
 const KEY_PATH = path.join(APP_DIR, '.key');

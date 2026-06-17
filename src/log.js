@@ -8,10 +8,16 @@ export const COLORS = {
   white: '#FFF',  // domyślny
 };
 
+import { EventEmitter } from 'node:events';
+
 let nextId = 1;
 const entries = [];
 const MAX = 1000;
 const waiters = new Set(); // long-poll: { lastId, resolve }
+
+// Emiter zdarzeń: 'entry' przy każdym nowym wpisie (dla Electron/IPC push).
+export const events = new EventEmitter();
+events.setMaxListeners(50);
 
 export function log(text, color = COLORS.gray) {
   const e = { Id: nextId++, TS: new Date().toISOString(), Text: text, Color: color };
@@ -22,6 +28,7 @@ export function log(text, color = COLORS.gray) {
     const fresh = since(w.lastId);
     if (fresh.length) { waiters.delete(w); w.resolve(fresh); }
   }
+  events.emit('entry', e);
   return e;
 }
 

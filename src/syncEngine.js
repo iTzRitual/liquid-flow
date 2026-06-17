@@ -55,6 +55,8 @@ export class SyncSession {
     this.watcherActive = false;
     this._debounce = new Map(); // path -> timer
     this._queue = Promise.resolve(); // serializacja operacji SOAP
+    this.onSynced = opts.onSynced || null; // hook po każdej udanej operacji (np. git)
+    this.onMismatchChange = opts.onMismatchChange || null; // hook po przeliczeniu konfliktów
   }
 
   get shopName() { return this.shop.Name; }
@@ -150,6 +152,7 @@ export class SyncSession {
         await this.client.liquidFileDelete({ TemplateId: this.templateId, Mode: mode, Name: name });
         store.removeMetaEntry(this.shopName, this.templateId, mode, name);
         logOk(this.t.FileDeleted + ' — ' + this._label(mode, name));
+        this._notify('delete', mode, name);
       }
       return;
     }
@@ -171,6 +174,7 @@ export class SyncSession {
     const remote = metaList[0];
     const localts = store.mtimeUtc(abs);
     store.setMetaEntry(this.shopName, this.templateId, mode, name, localts, remote ? remote.Date : null);
+    this._notify(known ? 'change' : 'add', mode, name);
   }
 
   _readValidated(abs, name) {
@@ -188,6 +192,12 @@ export class SyncSession {
 
   _label(mode, name) {
     return `${this.templateId}/${mode}/${name}`;
+  }
+
+  _notify(action, mode, name) {
+    if (this.onSynced) {
+      try { this.onSynced({ action, mode, name, label: this._label(mode, name) }); } catch {}
+    }
   }
 
   // ---- wykrywanie konfliktów ----
@@ -248,6 +258,7 @@ export class SyncSession {
 
     result.sort((a, b) => a.File.Name.localeCompare(b.File.Name));
     this.mismatches = result;
+    if (this.onMismatchChange) { try { this.onMismatchChange(result); } catch {} }
     return result;
   }
 
@@ -303,6 +314,7 @@ export class SyncSession {
     const localts = store.writeLocalFile(this.shopName, this.templateId, f.Mode, f.Name, f.Template || Buffer.alloc(0));
     store.setMetaEntry(this.shopName, this.templateId, f.Mode, f.Name, localts, f.Date);
     logOk(this.t.Download + ' ✓ — ' + this._label(f.Mode, f.Name));
+    this._notify('download', f.Mode, f.Name);
   }
 
   async _upload(file, type) {
@@ -320,17 +332,20 @@ export class SyncSession {
     const remote = metaList[0];
     store.setMetaEntry(this.shopName, this.templateId, file.Mode, file.Name, store.mtimeUtc(abs), remote ? remote.Date : null);
     logOk(this.t.Upload + ' ✓ — ' + this._label(file.Mode, file.Name));
+    this._notify('upload', file.Mode, file.Name);
   }
 
   async _removeLocal(file) {
     store.deleteLocalFile(this.shopName, this.templateId, file.Mode, file.Name);
     store.removeMetaEntry(this.shopName, this.templateId, file.Mode, file.Name);
     logOk(this.t.FileDeleted + ' (lokalnie) — ' + this._label(file.Mode, file.Name));
+    this._notify('removeLocal', file.Mode, file.Name);
   }
 
   async _removeRemote(file) {
     await this.client.liquidFileDelete({ TemplateId: this.templateId, Mode: file.Mode, Name: file.Name });
     store.removeMetaEntry(this.shopName, this.templateId, file.Mode, file.Name);
     logOk(this.t.FileDeleted + ' (zdalnie) — ' + this._label(file.Mode, file.Name));
+    this._notify('removeRemote', file.Mode, file.Name);
   }
 }

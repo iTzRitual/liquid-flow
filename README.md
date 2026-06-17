@@ -1,89 +1,96 @@
-# Comarch e-Sklep Liquid Sync — wersja na macOS
+# Liquid Sync — desktopowa aplikacja do Comarch e-Sklep
 
-Natywna (Node.js) reimplementacja narzędzia **Comarch e-Sklep Liquid Sync**,
-działająca bezpośrednio na macOS — bez Parallels i bez Windowsa.
+Wieloplatformowa (macOS / Windows / Linux) aplikacja desktopowa zastępująca
+oryginalne narzędzie **Comarch e-Sklep Liquid Sync** (Windows-only, .NET).
+Odtworzona metodą inżynierii wstecznej, z nowym interfejsem i dodatkowymi
+funkcjami.
 
-Odtworzona metodą inżynierii wstecznej oryginalnej aplikacji
-`COMARCHeShopLiquidSync.exe` (.NET 4.8). Zachowuje ten sam protokół, ten sam
-interfejs i to samo zachowanie:
+- **Hot-reload** — obserwuje lokalny folder szablonu; każdy zapis pliku trafia
+  natychmiast do sklepu (SOAP `Liquid_FileSet` / `Liquid_FileAdd`).
+- **Wykrywanie konfliktów** — gdy ktoś zmieni plik w panelu administracyjnym,
+  aplikacja to wykryje i pozwoli **pobrać** najnowszą wersję lub **nadpisać**
+  wersję w sklepie.
+- **Wersjonowanie i kopie zapasowe (Git)** — folder szablonu jako repozytorium
+  Git: auto-commit po każdej synchronizacji, historia, cofanie do dowolnej
+  wersji i opcjonalny push na GitHub.
+- **Nowy interfejs** — React + shadcn/ui, tryb ciemny, ikona w pasku menu (tray),
+  synchronizacja działa w tle nawet po zamknięciu okna.
 
-- **Hot-reload** — obserwuje lokalny katalog projektu; gdy zapiszesz plik,
-  natychmiast wysyła go do sklepu (SOAP `Liquid_FileSet` / `Liquid_FileAdd`).
-- **Wykrywanie konfliktów** — jeśli ktoś zmieni plik w panelu administracyjnym
-  sklepu, aplikacja wykryje rozbieżność i pozwoli **pobrać** najnowszą wersję
-  lokalnie albo **wysłać (nadpisać)** wersję ze sklepu.
-- **Ten sam interfejs** — oryginalny UI (AngularJS) wyodrębniony z `.exe`.
+## Architektura
+
+```
+electron/        proces główny (okno, tray, IPC) + preload (bezpieczny mostek)
+src/             backend (Node, reużyty z reverse engineeringu):
+  soap.js          klient SOAP iSklep24Service.asmx (+ cookie sesji)
+  syncEngine.js    obserwator plików, hot-reload, wykrywanie konfliktów
+  store.js         konfiguracja, metadane, ścieżki (wieloplatformowe)
+  git.js           wersjonowanie / backup / push
+  controller.js    orkiestracja stanu (używana przez IPC)
+  log.js, xml.js, translations.js
+renderer/        interfejs React + Vite + Tailwind + shadcn/ui
+```
+
+Renderer rozmawia z backendem wyłącznie przez IPC (`window.api` z preload).
+Wywołania do sklepu (SOAP) i operacje na plikach dzieją się w procesie głównym.
 
 ## Wymagania
 
-- macOS
-- [Node.js](https://nodejs.org) w wersji 18+ (`node --version`)
-  Brak innych zależności — używa wyłącznie wbudowanych modułów Node.
+- [Node.js](https://nodejs.org) 18+
+- [Git](https://git-scm.com) — opcjonalnie, tylko dla funkcji wersjonowania/backupu
 
-## Uruchomienie
+## Uruchomienie (tryb deweloperski)
 
 ```bash
-cd liquid-sync-mac
-node src/index.js
+npm install     # raz
+npm run dev     # Vite + Electron z hot-reloadem interfejsu
 ```
 
-albo dwuklik na **`run.command`** w Finderze (pierwszy raz: prawy przycisk → *Otwórz*).
+## Budowanie aplikacji (instalator / paczka)
 
-Aplikacja wystartuje lokalny serwer i otworzy interfejs w przeglądarce pod
-adresem `http://127.0.0.1:45678/`.
+```bash
+npm run build         # bieżący system
+npm run build:mac     # .dmg + .zip (macOS)
+npm run build:win     # instalator .exe (Windows)
+npm run build:linux   # .AppImage (Linux)
+```
 
-### Opcje
-
-- `--no-browser` — nie otwieraj automatycznie przeglądarki.
-- `--insecure` — pomiń weryfikację certyfikatu TLS (gdy sklep ma certyfikat
-  self-signed na środowisku testowym). Można też ustawić `LIQUID_SYNC_INSECURE=1`.
+Wynik trafia do katalogu `release/`. Powstaje pełnoprawna aplikacja z ikoną
+(Dock / pasek zadań) i ikoną w tray — bez `run.command` i bez Parallels.
 
 ## Jak używać
 
-1. **Dodaj sklep** — podaj nazwę, adres URL sklepu (`https://...` lub
-   `http://localhost:port` dla środowiska lokalnego) oraz hasło webmastera.
-   Login to zawsze `webmaster` (jak w oryginale).
-2. **Wybierz szablon (skórkę)** z listy. Jeśli szablon jest zablokowany hasłem,
-   pojawi się ekran odblokowania.
-3. Aplikacja pobierze wszystkie pliki szablonu do lokalnego katalogu i **zacznie
-   synchronizację**. Edytuj pliki w swoim edytorze — każdy zapis trafia od razu
-   do sklepu.
-4. W sekcji **Pliki** zobaczysz konflikty. Dla każdego możesz:
-   - **Pobierz** — ściągnij wersję ze sklepu do projektu lokalnego,
-   - **Wyślij** — nadpisz wersję w sklepie wersją lokalną,
-   - **Usuń** — usuń plik lokalnie lub w sklepie.
-   Przyciski **Pobierz wszystko / Wyślij wszystko** działają zbiorczo.
-5. **Otwórz folder lokalny** (link w nagłówku) otwiera katalog projektu w Finderze.
+1. **Dodaj sklep** (+ w panelu bocznym) — nazwa, URL (`https://...` lub
+   `http://localhost:port`), hasło webmastera. Login zawsze `webmaster`.
+2. **Wybierz szablon (skórkę)**. Zablokowane hasłem poprosi o odblokowanie.
+3. Pliki szablonu zostaną pobrane lokalnie i ruszy **synchronizacja na żywo**.
+   Przycisk **„Otwórz folder lokalny"** otwiera katalog w menedżerze plików.
+4. Zakładka **Pliki** pokazuje konflikty — dla każdego: Pobierz / Wyślij / Usuń,
+   oraz zbiorcze Pobierz wszystko / Wyślij wszystko.
+5. Zakładka **Log** — podgląd zdarzeń na żywo.
+6. Zakładka **Git / Backup** — włącz wersjonowanie, ustaw auto-commit / auto-push,
+   podłącz repozytorium GitHub, przeglądaj historię i przywracaj wersje.
 
 ## Gdzie są pliki
 
-```
-~/Library/Application Support/LiquidSyncMac/
-├── config.json                         # sklepy, język, port
-├── .key                                # klucz do szyfrowania zapisanych haseł
-└── Shops/<NazwaSklepu>/
-    ├── files/<TemplateId>/<Mode>/...   # ← TUTAJ edytujesz pliki szablonu
-    └── meta/<TemplateId>.json          # znaczniki czasu do wykrywania konfliktów
-```
+Katalog danych aplikacji (wieloplatformowy):
 
-Katalog `files/<TemplateId>/<Mode>/` to ten, który obserwuje hot-reload.
-`Mode` to numer trybu szablonu (jak w oryginale). Ścieżki plików odpowiadają
-strukturze szablonu w sklepie.
+- **macOS**: `~/Library/Application Support/Liquid Sync/`
+- **Windows**: `%APPDATA%\Liquid Sync\`
+- **Linux**: `~/.config/liquid-sync/` (lub `$XDG_CONFIG_HOME`)
 
-## Architektura (co odtworzono z oryginału)
+Struktura: `Shops/<NazwaSklepu>/files/<TemplateId>/<Mode>/...` — to tutaj
+edytujesz pliki szablonu. `meta/` przechowuje znaczniki czasu do wykrywania
+konfliktów, a (po włączeniu) `.git/` historię wersji.
 
-| Element | Oryginał (.exe) | Ta aplikacja |
-|---|---|---|
-| Web-service | SOAP `iSklep24Service.asmx`, ns `http://www.icomarch24.pl/iSklep24` | `src/soap.js` |
-| Uwierzytelnianie | `SignIn` + `CookieContainer`, re-login co 8 h | `ISklep24Client` (cookie jar) |
-| Obserwacja plików | `FileSystemWatcher`, debounce 333 ms | `fs.watch` + debounce 333 ms |
-| Operacje | `Liquid_Get / FilesGet / FilesMetaGet / FileSet / FileAdd / FileDelete / FileRename / FileIsValid / Unlock` | identyczne |
-| Wykrywanie konfliktów | porównanie `localts` / `remotets` | `src/syncEngine.js` |
-| Limity | nazwa ≤ 64 zn., plik ≤ 519168 B, walidacja tekstu | identyczne |
-| Interfejs | AngularJS (zasoby z `.exe`) | `web/` (te same pliki) |
-| Serwer lokalny | `HttpListener`, port 45678 | `src/server.js` |
+## Git / GitHub — uwierzytelnianie
 
-## Uwaga
+Push korzysta z systemowej konfiguracji Git: klucza SSH (`git@github.com:...`)
+albo menedżera poświadczeń / tokenu w URL HTTPS. Aplikacja nie przechowuje
+poświadczeń GitHub.
 
-Narzędzie do użytku własnego. Komunikuje się wyłącznie z Twoim sklepem Comarch
-e-Sklep przez jego oficjalny web-service (ten sam, którego używa oryginał).
+## Protokół (odtworzony 1:1 z oryginału)
+
+SOAP `iSklep24Service.asmx`, namespace `http://www.icomarch24.pl/iSklep24`,
+uwierzytelnianie `SignIn` + cookie sesji, operacje `Liquid_Get / FilesGet /
+FilesMetaGet / FileSet / FileAdd / FileDelete / FileRename / FileIsValid /
+Unlock`. Limity: nazwa ≤ 64 znaki, plik ≤ 519168 B, walidacja plików tekstowych.
