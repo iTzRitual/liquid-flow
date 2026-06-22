@@ -21,7 +21,6 @@ export default function LogPane({ log, rows = 10 }) {
   const visible = log.slice(-rows);
   return (
     <Box flexDirection="column" paddingX={1}>
-      <Text color="gray" bold>LOG NA ŻYWO</Text>
       {visible.length === 0
         ? <Text color="gray" dimColor>— brak zdarzeń —</Text>
         : visible.map((e) => (
