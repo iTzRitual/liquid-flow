@@ -140,8 +140,7 @@ export function buildCommands(ctx) {
         const s = state || {};
         log.logInfo(`Sklep: ${s.currentShop ? s.currentShop.Name + ' (' + s.currentShop.Url + ')' : 'brak'} · Szablon: ${s.currentTemplate ? s.currentTemplate.Name + ' [' + s.currentTemplate.Id + ']' : 'brak'} · Konflikty: ${mismatches.length}`);
       } },
-    { name: '/exit', desc: 'zakończ', run: () => exit() },
-    { name: '/quit', desc: 'zakończ', run: () => exit() },
+    { name: '/exit(quit)', desc: 'zakończ', run: () => exit() },
   ];
 
   return commands;
