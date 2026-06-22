@@ -1,7 +1,7 @@
-import { Box, Text, useApp, useInput } from 'ink';
+import { Box, Text, Static, useApp, useInput, useStdout } from 'ink';
 import TextInput from 'ink-text-input';
 import React, { useEffect, useMemo, useState } from 'react';
-import { log as corelog, translationsFor } from '@liquidflow/core';
+import { log as corelog } from '@liquidflow/core';
 
 import { BANNER, TAGLINE } from './banner.js';
 import { useController } from './useController.js';
@@ -12,14 +12,28 @@ import CommandPalette from './components/CommandPalette.jsx';
 import Picker from './components/Picker.jsx';
 import Form from './components/Form.jsx';
 
+// Banner drukowany jednorazowo przez <Static> — nie wchodzi do żywej ramki,
+// więc nie powiększa obszaru, który Ink przerysowuje przy każdej zmianie.
+const BANNER_ITEMS = ['banner'];
+
 export default function App() {
   const { exit } = useApp();
+  const { stdout } = useStdout();
   const { ctrl, state, mismatches, log, git, shops, refreshShops, clearLog } = useController();
 
   // mode: { type: 'input' } | { type: 'picker', ... } | { type: 'form', ... }
   const [mode, setMode] = useState({ type: 'input' });
   const [query, setQuery] = useState('');
   const [highlight, setHighlight] = useState(0);
+  const [termRows, setTermRows] = useState(stdout?.rows || 24);
+
+  // Reaguj na zmianę rozmiaru terminala, by żywa ramka zawsze mieściła się na ekranie.
+  useEffect(() => {
+    if (!stdout) return undefined;
+    const onResize = () => setTermRows(stdout.rows || 24);
+    stdout.on('resize', onResize);
+    return () => stdout.off('resize', onResize);
+  }, [stdout]);
 
   const version = useMemo(() => ctrl.getTranslations().Version, [ctrl]);
 
@@ -66,16 +80,25 @@ export default function App() {
     if (target) target.run();
   };
 
+  // Wysokość logu dobrana tak, by status + paleta + input + log mieściły się w
+  // terminalu (inaczej Ink dokleja kolejną klatkę = zdublowany layout).
+  const reserve = 12 + (filtered.length ? filtered.length + 2 : 0);
+  const logRows = Math.max(3, Math.min(14, termRows - reserve));
+
   return (
     <Box flexDirection="column">
-      <Box flexDirection="column" marginBottom={1}>
-        <Text color="#ff5a1f">{BANNER}</Text>
-        <Text color="gray">{TAGLINE}</Text>
-      </Box>
+      <Static items={BANNER_ITEMS}>
+        {(item) => (
+          <Box key={item} flexDirection="column" marginBottom={1}>
+            <Text color="#ff5a1f">{BANNER}</Text>
+            <Text color="gray">{TAGLINE}</Text>
+          </Box>
+        )}
+      </Static>
 
       <StatusBar state={state} mismatches={mismatches} git={git} version={version} />
 
-      <LogPane log={log} rows={10} />
+      {mode.type === 'input' && <LogPane log={log} rows={logRows} />}
 
       {mode.type === 'picker' && (
         <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onCancel={() => setMode({ type: 'input' })} />
