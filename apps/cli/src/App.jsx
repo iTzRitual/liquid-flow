@@ -3,9 +3,9 @@ import TextInput from 'ink-text-input';
 import React, { useEffect, useMemo, useState } from 'react';
 import { log as corelog } from '@liquidflow/core';
 
-import { BANNER, TAGLINE } from './banner.js';
 import { useController } from './useController.js';
 import { buildCommands } from './commands.js';
+import Banner from './components/Banner.jsx';
 import StatusBar from './components/StatusBar.jsx';
 import LogPane from './components/LogPane.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
@@ -90,8 +90,7 @@ export default function App() {
       <Static items={BANNER_ITEMS}>
         {(item) => (
           <Box key={item} flexDirection="column" marginBottom={1}>
-            <Text color="#ff5a1f">{BANNER}</Text>
-            <Text color="gray">{TAGLINE}</Text>
+            <Banner />
           </Box>
         )}
       </Static>

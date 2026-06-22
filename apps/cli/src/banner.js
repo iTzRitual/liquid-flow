@@ -1,11 +1,14 @@
-// Placeholder bannera ASCII dla CLI. Docelowo zostanie zastąpiony właściwym
-// obrazkiem ASCII (logo Liquid Flow). Trzymany w jednym miejscu, by łatwo
-// było podmienić.
+// Blokowy art (ASCII) logo Liquid Flow. Kolor nakładany jest proceduralnie
+// w components/Banner.jsx (tęczowy gradient). Tutaj trzymamy sam kształt —
+// podmiana logo = edycja tej tablicy.
 
-export const BANNER = [
-  '╦  ╦╔═╗ ╦ ╦╦╔╦╗   ╔═╗╦  ╔═╗╦ ╦',
-  '║  ║║═╬╗║ ║║ ║║   ╠╣ ║  ║ ║║║║',
-  '╩═╝╩╚═╝╚╚═╝╩═╩╝   ╚  ╩═╝╚═╝╚╩╝',
-].join('\n');
+export const ART = [
+  '   ▄████████▄',
+  '  ▄███▀▀  ▀▀████▄',
+  ' ███▀        ▀███',
+  '███            ██',
+  '▀██   ▄███▄    █▀',
+  ' ▀███████▀',
+];
 
 export const TAGLINE = 'Synchronizacja szablonów Liquid — Comarch e-Sklep';
