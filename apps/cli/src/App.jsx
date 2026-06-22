@@ -1,4 +1,4 @@
-import { Box, Text, Static, useApp, useInput, useStdout } from 'ink';
+import { Box, Text, useApp, useInput, useStdout } from 'ink';
 import TextInput from 'ink-text-input';
 import React, { useEffect, useMemo, useState } from 'react';
 import { log as corelog } from '@liquidflow/core';
@@ -11,10 +11,6 @@ import LogPane from './components/LogPane.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Picker from './components/Picker.jsx';
 import Form from './components/Form.jsx';
-
-// Banner drukowany jednorazowo przez <Static> — nie wchodzi do żywej ramki,
-// więc nie powiększa obszaru, który Ink przerysowuje przy każdej zmianie.
-const BANNER_ITEMS = ['banner'];
 
 export default function App() {
   const { exit } = useApp();
@@ -34,8 +30,6 @@ export default function App() {
     stdout.on('resize', onResize);
     return () => stdout.off('resize', onResize);
   }, [stdout]);
-
-  const version = useMemo(() => ctrl.getTranslations().Version, [ctrl]);
 
   // Pomocnicy przekazywani do komend — otwieranie nakładek i bezpieczne akcje.
   const ctx = useMemo(() => {
@@ -80,22 +74,20 @@ export default function App() {
     if (target) target.run();
   };
 
-  // Wysokość logu dobrana tak, by status + paleta + input + log mieściły się w
-  // terminalu (inaczej Ink dokleja kolejną klatkę = zdublowany layout).
-  const reserve = 12 + (filtered.length ? filtered.length + 2 : 0);
-  const logRows = Math.max(3, Math.min(14, termRows - reserve));
+  // Wysokość logu dobrana tak, by nagłówek + paleta + input + log mieściły się
+  // w terminalu (inaczej Ink dokleja kolejną klatkę = zdublowany layout).
+  const reserve = 13 + (filtered.length ? filtered.length + 1 : 0);
+  const logRows = Math.max(3, Math.min(16, termRows - reserve));
 
   return (
     <Box flexDirection="column">
-      <Static items={BANNER_ITEMS}>
-        {(item) => (
-          <Box key={item} flexDirection="column" marginTop={1} marginBottom={1} paddingLeft={1}>
-            <Banner />
-          </Box>
-        )}
-      </Static>
-
-      <StatusBar state={state} mismatches={mismatches} git={git} version={version} />
+      {/* Logo po lewej, nagłówek (nazwa + status) po prawej */}
+      <Box marginTop={1} marginBottom={1}>
+        <Box paddingLeft={1}><Banner /></Box>
+        <Box marginLeft={3} marginTop={1} flexDirection="column">
+          <StatusBar state={state} mismatches={mismatches} git={git} />
+        </Box>
+      </Box>
 
       {mode.type === 'input' && <LogPane log={log} rows={logRows} />}
 
@@ -110,7 +102,7 @@ export default function App() {
       {mode.type === 'input' && (
         <>
           {filtered.length > 0 && <CommandPalette items={filtered} index={highlight} />}
-          <Box borderStyle="round" borderColor="gray" paddingX={1}>
+          <Box paddingLeft={1}>
             <Text color="#ff5a1f">› </Text>
             <TextInput
               value={query}

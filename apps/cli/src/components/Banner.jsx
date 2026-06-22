@@ -1,6 +1,6 @@
 import React from 'react';
-import { Text } from 'ink';
-import { ART, TAGLINE } from '../banner.js';
+import { Box, Text } from 'ink';
+import { ART } from '../banner.js';
 
 // HSL -> hex (algorytm referencyjny). h: 0-360, s/l: 0-100.
 function hslToHex(h, s, l) {
@@ -25,7 +25,7 @@ function hueFor(x, width) {
 export default function Banner() {
   const width = Math.max(...ART.map((l) => l.length));
   return (
-    <>
+    <Box flexDirection="column">
       {ART.map((line, y) => (
         <Text key={y}>
           {[...line].map((ch, x) =>
@@ -34,7 +34,6 @@ export default function Banner() {
               : <Text key={x} color={hslToHex(hueFor(x, width), 95, 60)}>{ch}</Text>)}
         </Text>
       ))}
-      <Text color="gray">{TAGLINE}</Text>
-    </>
+    </Box>
   );
 }
