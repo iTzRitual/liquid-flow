@@ -16,15 +16,13 @@ export default function StatusBar({ state, git }) {
       <Text color="#4da3ff" bold>Liquid Flow CLI 0.9</Text>
 
       {shop
-        ? <Box><Text color="gray">Sklep:   </Text><Text color="green">● {shop.Name}  <Text color="gray">{shop.Url}</Text></Text></Box>
+        ? <Box><Text color="gray">Sklep:   </Text><Text color="green" wrap="truncate-end">● {shop.Name}  <Text color="gray">{shop.Url}</Text></Text></Box>
         : <Text color="gray">~</Text>}
 
       {tpl && (
         <Box>
           <Text color="gray">Szablon: </Text>
-          <Text color="cyan">{tpl.Name}</Text>
-          <Text color="gray"> [{tpl.Id}]  </Text>
-          <Text color="green">⏺ sync żywy</Text>
+          <Text wrap="truncate-end"><Text color="cyan">{tpl.Name}</Text><Text color="gray"> [{tpl.Id}]  </Text><Text color="green">⏺ sync żywy</Text></Text>
         </Box>
       )}
 

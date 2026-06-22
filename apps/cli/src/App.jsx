@@ -131,7 +131,7 @@ export default function App() {
               value={query}
               onChange={setQuery}
               onSubmit={onSubmit}
-              placeholder="wpisz / aby zobaczyć komendy (np. /login, /templates, /git) · Ctrl+C wyjście"
+              placeholder="wpisz / aby zobaczyć komendy · Ctrl+C wyjście"
             />
           </Box>
         </>

@@ -16,7 +16,10 @@ function hhmmss(ts) {
   catch { return ''; }
 }
 
-// Panel logu na żywo — pokazuje ostatnie `rows` wpisów.
+// Panel logu na żywo — pokazuje ostatnie `rows` wpisów. Każdy wpis jest
+// obcinany do szerokości terminala (wrap="truncate"), aby zajmował dokładnie
+// jeden wiersz — inaczej długie linie (np. ścieżki) zawijają się, ramka
+// przerasta ekran i Ink dokleja jej kopię.
 export default function LogPane({ log, rows = 10 }) {
   const visible = log.slice(-rows);
   return (
@@ -24,7 +27,7 @@ export default function LogPane({ log, rows = 10 }) {
       {visible.length === 0
         ? <Text color="gray" dimColor>— pusto —</Text>
         : visible.map((e) => (
-            <Text key={e.Id} color={inkColor(e.Color)}>
+            <Text key={e.Id} color={inkColor(e.Color)} wrap="truncate-end">
               <Text color="gray">{hhmmss(e.TS)} </Text>{e.Text}
             </Text>
           ))}
