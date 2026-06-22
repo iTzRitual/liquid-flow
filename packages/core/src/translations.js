@@ -1,5 +1,4 @@
-// Tłumaczenia interfejsu (zaczerpnięte z zasobów oryginalnej aplikacji).
-// Domyślny język: polski.
+// Tłumaczenia interfejsu. Domyślny język: polski.
 
 export const LANGUAGES = [
   { Id: 'pl', Name: 'Polski' },
@@ -7,7 +6,7 @@ export const LANGUAGES = [
 ];
 
 const pl = {
-  AppName: 'Liquid Sync',
+  AppName: 'Liquid Flow',
   eShop: 'Comarch e-Sklep',
   Shops: 'Twoje sklepy',
   ShopAdd: 'Dodaj sklep',

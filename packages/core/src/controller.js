@@ -1,6 +1,7 @@
 // Centralny kontroler aplikacji — cała logika stanu (sklepy, szablony, sesja
-// synchronizacji, git) niezależna od warstwy prezentacji. Używany przez IPC
-// Electrona; emituje zdarzenia 'log', 'mismatches', 'state', 'git'.
+// synchronizacji, git) niezależna od warstwy prezentacji. Używany zarówno przez
+// aplikację desktopową (Electron/IPC), jak i CLI; emituje zdarzenia 'log',
+// 'mismatches', 'state', 'git'.
 
 import { EventEmitter } from 'node:events';
 import * as store from './store.js';

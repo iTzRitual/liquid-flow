@@ -44,9 +44,9 @@ export async function init(dir) {
   }
   // lokalna tożsamość (gdy globalna nieustawiona) — by commit się powiódł
   const name = await run(dir, ['config', 'user.name'], { allowFail: true });
-  if (!name.stdout) await run(dir, ['config', 'user.name', 'Liquid Sync']);
+  if (!name.stdout) await run(dir, ['config', 'user.name', 'Liquid Flow']);
   const email = await run(dir, ['config', 'user.email'], { allowFail: true });
-  if (!email.stdout) await run(dir, ['config', 'user.email', 'liquid-sync@local']);
+  if (!email.stdout) await run(dir, ['config', 'user.email', 'liquid-flow@local']);
   await commitAll(dir, 'Initial snapshot');
   return status(dir);
 }

@@ -9,7 +9,7 @@ export default function TopBar() {
     <header className="drag-region flex h-12 shrink-0 items-center gap-3 border-b border-border bg-card/60 px-4 pl-20 backdrop-blur">
       <img src="logo.png" alt="" className="h-6 w-6" />
       <div className="flex items-baseline gap-2">
-        <span className="font-semibold tracking-tight">Liquid Sync</span>
+        <span className="font-semibold tracking-tight">Liquid Flow</span>
         <span className="text-[10px] text-muted-foreground">{version}</span>
       </div>
 

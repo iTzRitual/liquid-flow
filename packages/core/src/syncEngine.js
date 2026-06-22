@@ -1,5 +1,4 @@
 // Silnik synchronizacji jednego szablonu (template) wybranego sklepu.
-// Odpowiada klasie Hdvn6y68NlMInJyDttU + rNLuUa6hrlMmMGWawfi z oryginału.
 //
 //  - obserwuje katalog lokalny (fs.watch, rekurencyjnie) z debounce 333 ms
 //  - przy zapisie pliku natychmiast wysyła go do sklepu (hot-reload)

@@ -1,94 +1,132 @@
-# Liquid Sync — desktopowa aplikacja do Comarch e-Sklep
+# Liquid Flow
 
-Wieloplatformowa (macOS / Windows / Linux) aplikacja desktopowa zastępująca
-oryginalne narzędzie **Comarch e-Sklep Liquid Sync** (Windows-only, .NET).
-Odtworzona metodą inżynierii wstecznej, z nowym interfejsem i dodatkowymi
-funkcjami.
+Narzędzie do synchronizacji i **hot-reloadu** szablonów Liquid w sklepach
+**Comarch e-Sklep**. Edytujesz pliki szablonu lokalnie, a Liquid Flow
+natychmiast wysyła zmiany do sklepu, wykrywa konflikty z panelem
+administracyjnym i (opcjonalnie) wersjonuje folder przez Git.
+
+Dostępne w dwóch wersjach z jednym wspólnym rdzeniem:
+
+- **Aplikacja desktopowa** (macOS / Windows / Linux) — uruchamiana z ikony,
+  interfejs graficzny, ikona w pasku menu (tray), synchronizacja w tle.
+- **CLI** — komenda `liquidflow` uruchamia interaktywny interfejs w terminalu
+  z własnym promptem i paletą slash-komend.
+
+## Funkcje
 
 - **Hot-reload** — obserwuje lokalny folder szablonu; każdy zapis pliku trafia
   natychmiast do sklepu (SOAP `Liquid_FileSet` / `Liquid_FileAdd`).
 - **Wykrywanie konfliktów** — gdy ktoś zmieni plik w panelu administracyjnym,
-  aplikacja to wykryje i pozwoli **pobrać** najnowszą wersję lub **nadpisać**
-  wersję w sklepie.
-- **Wersjonowanie i kopie zapasowe (Git)** — folder szablonu jako repozytorium
-  Git: auto-commit po każdej synchronizacji, historia, cofanie do dowolnej
-  wersji i opcjonalny push na GitHub.
-- **Nowy interfejs** — React + shadcn/ui, tryb ciemny, ikona w pasku menu (tray),
-  synchronizacja działa w tle nawet po zamknięciu okna.
+  Liquid Flow to wykryje i pozwoli **pobrać** najnowszą wersję lub **nadpisać**
+  wersję w sklepie (pojedynczo lub zbiorczo).
+- **Wersjonowanie i backup (Git)** — folder szablonu jako repozytorium Git:
+  auto-commit po każdej synchronizacji, historia, przywracanie dowolnej wersji,
+  opcjonalny push na GitHub.
 
-## Architektura
+## Struktura (monorepo)
 
 ```
-electron/        proces główny (okno, tray, IPC) + preload (bezpieczny mostek)
-src/             backend (Node, reużyty z reverse engineeringu):
-  soap.js          klient SOAP iSklep24Service.asmx (+ cookie sesji)
-  syncEngine.js    obserwator plików, hot-reload, wykrywanie konfliktów
-  store.js         konfiguracja, metadane, ścieżki (wieloplatformowe)
-  git.js           wersjonowanie / backup / push
-  controller.js    orkiestracja stanu (używana przez IPC)
-  log.js, xml.js, translations.js
-renderer/        interfejs React + Vite + Tailwind + shadcn/ui
+packages/
+  core/          @liquidflow/core — logika wspólna (niezależna od UI):
+                   soap.js        klient SOAP iSklep24Service.asmx (+ sesja)
+                   syncEngine.js  obserwator plików, hot-reload, konflikty
+                   store.js       konfiguracja, metadane, ścieżki
+                   git.js         wersjonowanie / backup / push
+                   controller.js  orkiestracja stanu (emiter zdarzeń)
+                   log.js, xml.js, translations.js
+apps/
+  desktop/       @liquidflow/desktop — Electron (okno, tray, IPC) + renderer
+                 React + Vite + Tailwind + shadcn/ui
+  cli/           @liquidflow/cli — interaktywne CLI `liquidflow` (Ink/React)
 ```
 
-Renderer rozmawia z backendem wyłącznie przez IPC (`window.api` z preload).
-Wywołania do sklepu (SOAP) i operacje na plikach dzieją się w procesie głównym.
+Obie aplikacje to dwie warstwy prezentacji nad tym samym `Controller` z
+`@liquidflow/core`.
 
 ## Wymagania
 
 - [Node.js](https://nodejs.org) 18+
-- [Git](https://git-scm.com) — opcjonalnie, tylko dla funkcji wersjonowania/backupu
+- [Git](https://git-scm.com) — opcjonalnie, tylko dla wersjonowania/backupu
 
-## Uruchomienie (tryb deweloperski)
-
-```bash
-npm install     # raz
-npm run dev     # Vite + Electron z hot-reloadem interfejsu
-```
-
-## Budowanie aplikacji (instalator / paczka)
+## Instalacja
 
 ```bash
-npm run build         # bieżący system
-npm run build:mac     # .dmg + .zip (macOS)
-npm run build:win     # instalator .exe (Windows)
-npm run build:linux   # .AppImage (Linux)
+npm install     # instaluje wszystkie workspaces (raz)
 ```
 
-Wynik trafia do katalogu `release/`. Powstaje pełnoprawna aplikacja z ikoną
-(Dock / pasek zadań) i ikoną w tray — bez `run.command` i bez Parallels.
+## Aplikacja desktopowa
 
-## Jak używać
+```bash
+npm run dev         # tryb deweloperski (Vite + Electron, hot-reload UI)
 
-1. **Dodaj sklep** (+ w panelu bocznym) — nazwa, URL (`https://...` lub
-   `http://localhost:port`), hasło webmastera. Login zawsze `webmaster`.
-2. **Wybierz szablon (skórkę)**. Zablokowane hasłem poprosi o odblokowanie.
-3. Pliki szablonu zostaną pobrane lokalnie i ruszy **synchronizacja na żywo**.
-   Przycisk **„Otwórz folder lokalny"** otwiera katalog w menedżerze plików.
-4. Zakładka **Pliki** pokazuje konflikty — dla każdego: Pobierz / Wyślij / Usuń,
-   oraz zbiorcze Pobierz wszystko / Wyślij wszystko.
-5. Zakładka **Log** — podgląd zdarzeń na żywo.
-6. Zakładka **Git / Backup** — włącz wersjonowanie, ustaw auto-commit / auto-push,
-   podłącz repozytorium GitHub, przeglądaj historię i przywracaj wersje.
+npm run build       # paczka dla bieżącego systemu
+npm run build:mac   # .dmg + .zip (macOS)
+npm run build:win   # instalator .exe (Windows)
+npm run build:linux # .AppImage (Linux)
+```
+
+Wynik trafia do `apps/desktop/release/`. Powstaje pełnoprawna aplikacja z ikoną
+(Dock / pasek zadań) oraz ikoną w tray.
+
+**Jak używać:** dodaj sklep (nazwa, URL `https://…` lub `http://localhost:port`,
+hasło webmastera — login zawsze `webmaster`) → wybierz szablon → pliki pobiorą
+się lokalnie i ruszy synchronizacja na żywo. Zakładki: **Pliki** (konflikty),
+**Log** (zdarzenia), **Git / Backup** (wersjonowanie).
+
+## CLI (`liquidflow`)
+
+```bash
+npm run cli                       # uruchom z repo
+# lub po zbudowaniu/zlinkowaniu pakietu:
+npm link --workspace @liquidflow/cli && liquidflow
+```
+
+Uruchomienie otwiera interaktywny interfejs: górny pasek statusu (sklep,
+szablon, konflikty, Git), panel logu na żywo oraz prompt. Wpisz `/`, aby
+otworzyć **paletę komend** z autouzupełnianiem.
+
+**Nawigacja:** `/` paleta · `↑`/`↓` wybór · `Enter` zatwierdź · `Tab`
+autouzupełnij · `Esc` wróć · `Ctrl+C` wyjście.
+
+**Slash-komendy:**
+
+| Komenda | Działanie |
+|---|---|
+| `/help` | lista komend |
+| `/login` | zaloguj / dodaj sklep |
+| `/shops` | przełącz sklep |
+| `/templates` | wybierz szablon |
+| `/files` | konflikty i akcje (pobierz / wyślij / usuń) |
+| `/download-all`, `/upload-all`, `/refresh` | operacje zbiorcze i przeliczenie |
+| `/git` | wersjonowanie i backup (auto-commit, push, historia, przywróć, remote) |
+| `/open` | otwórz folder lokalny szablonu |
+| `/lang` | zmień język |
+| `/status` | szczegóły bieżącej sesji |
+| `/remove` | usuń sklep |
+| `/clear` | wyczyść panel logu |
+| `/exit` (`/quit`) | zakończ |
 
 ## Gdzie są pliki
 
 Katalog danych aplikacji (wieloplatformowy):
 
-- **macOS**: `~/Library/Application Support/Liquid Sync/`
-- **Windows**: `%APPDATA%\Liquid Sync\`
-- **Linux**: `~/.config/liquid-sync/` (lub `$XDG_CONFIG_HOME`)
+- **macOS**: `~/Library/Application Support/LiquidFlow/`
+- **Windows**: `%APPDATA%\LiquidFlow\`
+- **Linux**: `~/.config/liquid-flow/` (lub `$XDG_CONFIG_HOME`)
 
-Struktura: `Shops/<NazwaSklepu>/files/<TemplateId>/<Mode>/...` — to tutaj
+Struktura: `Shops/<NazwaSklepu>/files/<TemplateId>/<Mode>/…` — to tutaj
 edytujesz pliki szablonu. `meta/` przechowuje znaczniki czasu do wykrywania
 konfliktów, a (po włączeniu) `.git/` historię wersji.
 
+> Wersja desktopowa i CLI dzielą ten sam katalog danych i konfigurację.
+
 ## Git / GitHub — uwierzytelnianie
 
-Push korzysta z systemowej konfiguracji Git: klucza SSH (`git@github.com:...`)
-albo menedżera poświadczeń / tokenu w URL HTTPS. Aplikacja nie przechowuje
+Push korzysta z systemowej konfiguracji Git: klucza SSH (`git@github.com:…`)
+albo menedżera poświadczeń / tokenu w URL HTTPS. Liquid Flow nie przechowuje
 poświadczeń GitHub.
 
-## Protokół (odtworzony 1:1 z oryginału)
+## Protokół
 
 SOAP `iSklep24Service.asmx`, namespace `http://www.icomarch24.pl/iSklep24`,
 uwierzytelnianie `SignIn` + cookie sesji, operacje `Liquid_Get / FilesGet /

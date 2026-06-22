@@ -9,7 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 
 // Katalog danych aplikacji (zanim załadujemy backend, który go odczytuje).
-process.env.LIQUID_SYNC_HOME = process.env.LIQUID_SYNC_HOME || app.getPath('userData');
+process.env.LIQUID_FLOW_HOME = process.env.LIQUID_FLOW_HOME || app.getPath('userData');
 
 const DEV = process.env.LIQUID_DEV === '1';
 const DEV_URL = 'http://localhost:5173';
@@ -20,8 +20,8 @@ let tray = null;
 
 async function getController() {
   if (!controller) {
-    const { Controller } = await import('../src/controller.js');
-    controller = new Controller({ insecureTLS: process.env.LIQUID_SYNC_INSECURE === '1' });
+    const { Controller } = await import('@liquidflow/core');
+    controller = new Controller({ insecureTLS: process.env.LIQUID_FLOW_INSECURE === '1' });
     // przekaż zdarzenia kontrolera do renderera
     for (const type of ['log', 'mismatches', 'state', 'git']) {
       controller.on(type, (payload) => {
@@ -40,10 +40,10 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    title: 'Liquid Sync',
+    title: 'Liquid Flow',
     backgroundColor: '#0b0b0c',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    icon: path.join(ROOT, 'web', 'logo.png'),
+    icon: path.join(ROOT, 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -70,10 +70,10 @@ function createWindow() {
 
 function createTray() {
   try {
-    let img = nativeImage.createFromPath(path.join(ROOT, 'web', 'logo.png'));
+    let img = nativeImage.createFromPath(path.join(ROOT, 'assets', 'icon.png'));
     if (!img.isEmpty()) img = img.resize({ width: 18, height: 18 });
     tray = new Tray(img.isEmpty() ? nativeImage.createEmpty() : img);
-    tray.setToolTip('Liquid Sync');
+    tray.setToolTip('Liquid Flow');
     const menu = Menu.buildFromTemplate([
       { label: 'Pokaż okno', click: () => { if (!mainWindow) createWindow(); else mainWindow.show(); } },
       { type: 'separator' },

@@ -1,0 +1,15 @@
+{
+  "name": "@liquidflow/core",
+  "version": "2.0.0",
+  "description": "Liquid Flow — wspólna logika (klient SOAP, silnik synchronizacji, store, git) niezależna od warstwy prezentacji",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./*": "./src/*"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

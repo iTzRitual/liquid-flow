@@ -12,7 +12,7 @@ export default function EmptyState({ loading }) {
     <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
       <img src="logo.png" alt="" className="h-16 w-16 opacity-80" />
       <div>
-        <h2 className="text-xl font-semibold">Liquid Sync</h2>
+        <h2 className="text-xl font-semibold">Liquid Flow</h2>
         <p className="max-w-sm text-sm text-muted-foreground">
           {shops.length ? 'Wybierz sklep z listy po lewej, aby rozpocząć synchronizację.' : 'Dodaj swój pierwszy sklep Comarch e-Sklep, aby rozpocząć.'}
         </p>

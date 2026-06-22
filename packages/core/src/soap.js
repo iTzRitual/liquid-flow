@@ -1,5 +1,4 @@
-// Klient SOAP dla web-service'u Comarch iSklep24 (iSklep24Service.asmx).
-// Odtworzony z dekompilacji oryginalnej aplikacji COMARCHeShopLiquidSync.exe.
+// Klient SOAP web-service'u Comarch e-Sklep (iSklep24Service.asmx).
 //
 //   Namespace        : http://www.icomarch24.pl/iSklep24
 //   Endpoint         : <urlSklepu>/iSklep24Service.asmx
@@ -14,7 +13,7 @@ import { escapeXml, parseXml, findDeep, findAll, find, text, localName } from '.
 const NS = 'http://www.icomarch24.pl/iSklep24';
 const SOAP_ENV = 'http://schemas.xmlsoap.org/soap/envelope/';
 
-// Odpowiednik CM7ScEmraY: url.Trim().TrimEnd('/') + '/' + 'iSklep24Service.asmx'
+// Endpoint usługi: <url sklepu> bez końcowych '/' + '/iSklep24Service.asmx'
 export function endpointFor(shopUrl) {
   return shopUrl.trim().replace(/\/+$/, '') + '/iSklep24Service.asmx';
 }
@@ -50,7 +49,7 @@ function templateXml(tpl, tag = 'tpl') {
   return `<${tag}>${x}</${tag}>`;
 }
 
-// Prosty „cookie jar” — przechowuje sesję uwierzytelnienia (jak CookieContainer w oryginale).
+// Prosty „cookie jar” — przechowuje sesję uwierzytelnienia między żądaniami.
 class CookieJar {
   constructor() { this.cookies = new Map(); }
   store(setCookieHeaders) {
@@ -76,7 +75,7 @@ function rawRequest(endpoint, soapAction, body, { insecureTLS = false, timeout =
       'Content-Type': 'text/xml; charset=utf-8',
       'Content-Length': data.length,
       SOAPAction: `"${soapAction}"`,
-      'User-Agent': 'LiquidSyncMac/1.0',
+      'User-Agent': 'LiquidFlow/1.0',
     };
     const cookieHeader = jar && jar.header();
     if (cookieHeader) headers.Cookie = cookieHeader;
@@ -133,7 +132,7 @@ function parseFault(root) {
   return new SoapError(detailMsg || faultstring, { code: faultcode, faultCodeName: codeName });
 }
 
-const REAUTH_MS = 8 * 60 * 60 * 1000; // re-login co 8h, jak w oryginale
+const REAUTH_MS = 8 * 60 * 60 * 1000; // ponowne logowanie co 8h
 
 export class ISklep24Client {
   constructor(shopUrl, opts = {}) {

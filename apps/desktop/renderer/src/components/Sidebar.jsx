@@ -12,7 +12,7 @@ export default function Sidebar() {
       navigate(currentTemplate ? 'sync' : 'templates');
       return;
     }
-    // przełączenie sklepu wymaga ponownego logowania (jak w oryginale)
+    // przełączenie sklepu wymaga ponownego logowania
     navigate('shopForm', { editing: shop });
   };
 

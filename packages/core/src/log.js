@@ -1,5 +1,5 @@
 // Bufor logu zdarzeń synchronizacji. UI odpytuje /log?lastId=N.
-// Wpis: { Id, TS, Text, Color }. Kolory jak w oryginale.
+// Wpis: { Id, TS, Text, Color }.
 
 export const COLORS = {
   red: '#F00',    // błąd
