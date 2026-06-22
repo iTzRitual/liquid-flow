@@ -22,7 +22,7 @@ export default function StatusBar({ state, git }) {
       {tpl && (
         <Box>
           <Text color="gray">Szablon: </Text>
-          <Text wrap="truncate-end"><Text color="cyan">{tpl.Name}</Text><Text color="gray"> [{tpl.Id}]  </Text><Text color="green">⏺ sync żywy</Text></Text>
+          <Text wrap="truncate-end"><Text color="cyan">{tpl.Name}</Text><Text color="gray"> [{tpl.Id}]</Text></Text>
         </Box>
       )}
 
