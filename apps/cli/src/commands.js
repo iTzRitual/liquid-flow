@@ -130,6 +130,10 @@ export function buildCommands(ctx) {
     { name: '/git', desc: 'wersjonowanie i backup', run: () => gitMenu() },
     { name: '/open', desc: 'otwórz folder lokalny', run: () => { const d = ctrl.currentFolder(); if (d) { openExternal(d); log.logInfo('Otwieram: ' + d); } else log.logErr('Brak aktywnego szablonu'); } },
     { name: '/lang', desc: 'zmień język', run: () => openPicker('Język', LANGUAGES.map((l) => ({ label: l.Name, value: l })), (it) => { ctrl.setLanguage(it.value.Id); log.logInfo('Język: ' + it.value.Name); }) },
+    { name: '/logout', desc: 'rozłącz (wyloguj)', run: () => {
+        if (!hasShop) { log.logInfo('Nie jesteś połączony z żadnym sklepem'); return; }
+        ctrl.logout();
+      } },
     { name: '/remove', desc: 'usuń sklep', run: () => {
         if (!shops.length) { log.logInfo('Brak sklepów do usunięcia'); return; }
         openPicker('Usuń sklep', shops.map((s) => ({ label: s.Name, hint: s.Url, value: s })),

@@ -158,6 +158,23 @@ export class Controller extends EventEmitter {
     return this.shopPublic(shop);
   }
 
+  // Rozłączenie (wylogowanie) bez usuwania sklepu z konfiguracji: zatrzymuje
+  // synchronizację i czyści bieżącą sesję/klienta. Sklep i zapisane hasło
+  // zostają — można połączyć się ponownie.
+  logout() {
+    if (!this.state.currentShopId) return this.getState();
+    const name = this.currentShop() ? this.currentShop().Name : '';
+    if (this.state.session) { this.state.session.dispose(); this.state.session = null; }
+    this.activeGit = null;
+    this.state.currentShopId = null;
+    this.state.client = null;
+    this.state.templates = [];
+    this.state.pendingTemplate = null;
+    logbuf.logOk('Rozłączono' + (name ? ' ze sklepu: ' + name : ''));
+    this.emitState();
+    return this.getState();
+  }
+
   removeShop(id) {
     id = Number(id);
     const shop = this.shopById(id);

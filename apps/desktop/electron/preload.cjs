@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   currentShop: () => invoke('shops.current'),
   signInShop: (data) => invoke('shops.signIn', data),
   signInSaved: (id) => invoke('shops.signInSaved', id),
+  logout: () => invoke('shops.logout'),
   removeShop: (id) => invoke('shops.remove', id),
 
   // szablony
