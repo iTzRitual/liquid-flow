@@ -1,47 +1,96 @@
-import { Box, Text, useInput } from 'ink';
 import React, { useState } from 'react';
+import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 
-// Sekwencyjny formularz. fields: [{ name, label, mask?, initial?, optional? }].
+// Sekwencyjny formularz. Pola:
+//   tekst:  { name, label, mask?, initial?, optional? }
+//   wybór:  { name, label, type:'choice', initial?, options:[{label,value}] }
 // Enter zatwierdza pole i przechodzi dalej; po ostatnim wywołuje onSubmit(values).
-// Esc anuluje cały formularz.
+// W polu wyboru strzałki ←/→ (lub ↑/↓) zmieniają opcję. Esc anuluje formularz.
 export default function Form({ title, fields, onSubmit, onCancel }) {
+  const initialValue = (f) =>
+    f.initial !== undefined ? f.initial : (f.type === 'choice' ? f.options?.[0]?.value : '');
+
   const [idx, setIdx] = useState(0);
   const [values, setValues] = useState(() =>
-    Object.fromEntries(fields.map((f) => [f.name, f.initial || ''])));
-  const [cur, setCur] = useState(fields[0]?.initial || '');
-
-  useInput((input, key) => { if (key.escape) onCancel?.(); });
+    Object.fromEntries(fields.map((f) => [f.name, initialValue(f)])));
+  const [cur, setCur] = useState(() => {
+    const v = initialValue(fields[0]);
+    return typeof v === 'string' ? v : '';
+  });
 
   const f = fields[idx];
 
-  const submitField = (val) => {
-    const v = val ?? '';
-    if (!v && !f.optional) return; // wymagane pole — nie idź dalej
-    const next = { ...values, [f.name]: v };
+  const advance = (val) => {
+    const next = { ...values, [f.name]: val };
     setValues(next);
     if (idx + 1 < fields.length) {
+      const nf = fields[idx + 1];
       setIdx(idx + 1);
-      setCur(fields[idx + 1].initial || '');
+      const nv = initialValue(nf);
+      setCur(typeof nv === 'string' ? nv : '');
     } else {
       onSubmit?.(next);
     }
   };
 
+  useInput((input, key) => {
+    if (key.escape) { onCancel?.(); return; }
+    if (f.type !== 'choice') return; // pola tekstowe obsługuje TextInput
+    const opts = f.options;
+    const i = Math.max(0, opts.findIndex((o) => o.value === values[f.name]));
+    if (key.leftArrow || key.upArrow) {
+      setValues((v) => ({ ...v, [f.name]: opts[(i - 1 + opts.length) % opts.length].value }));
+    } else if (key.rightArrow || key.downArrow) {
+      setValues((v) => ({ ...v, [f.name]: opts[(i + 1) % opts.length].value }));
+    } else if (key.return) {
+      advance(values[f.name]);
+    }
+  });
+
+  const submitText = (val) => {
+    const v = val ?? '';
+    if (!v && !f.optional) return; // wymagane pole — nie idź dalej
+    advance(v);
+  };
+
+  const renderValue = (ff) => {
+    if (ff.type === 'choice') {
+      const opt = ff.options.find((o) => o.value === values[ff.name]);
+      return <Text color="gray">{opt ? opt.label : ''}</Text>;
+    }
+    if (ff.mask) return <Text color="gray">••••</Text>;
+    return <Text color="gray">{values[ff.name] || <Text dimColor>(puste)</Text>}</Text>;
+  };
+
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="magenta" paddingX={1}>
+    <Box flexDirection="column" paddingX={1}>
       <Text color="magenta" bold>{title}</Text>
       {fields.map((ff, j) => (
         <Box key={ff.name}>
-          <Text color={j === idx ? 'white' : 'gray'}>{j < idx ? '✓ ' : j === idx ? '› ' : '  '}{ff.label}: </Text>
+          <Text color={j === idx ? 'white' : 'gray'}>
+            {j < idx ? '✓ ' : j === idx ? '› ' : '  '}{ff.label}: </Text>
           {j < idx
-            ? <Text color="gray">{ff.mask ? '••••' : values[ff.name] || <Text dimColor>(puste)</Text>}</Text>
+            ? renderValue(ff)
             : j === idx
-              ? <TextInput value={cur} onChange={setCur} onSubmit={submitField} mask={ff.mask} placeholder={ff.optional ? '(opcjonalne)' : ''} />
+              ? (ff.type === 'choice'
+                  ? <Box>
+                      {ff.options.map((o) => {
+                        const sel = values[ff.name] === o.value;
+                        return (
+                          <Text key={String(o.value)} color={sel ? 'black' : 'gray'} backgroundColor={sel ? 'cyan' : undefined}>
+                            {' '}{o.label}{' '}
+                          </Text>
+                        );
+                      })}
+                    </Box>
+                  : <TextInput value={cur} onChange={setCur} onSubmit={submitText} mask={ff.mask} placeholder={ff.optional ? '(opcjonalne)' : ''} />)
               : <Text color="gray" dimColor>…</Text>}
         </Box>
       ))}
-      <Text color="gray" dimColor>Enter dalej · Esc anuluj</Text>
+      <Text color="gray" dimColor>
+        {f.type === 'choice' ? '←/→ wybór · Enter dalej · Esc anuluj' : 'Enter dalej · Esc anuluj'}
+      </Text>
     </Box>
   );
 }
