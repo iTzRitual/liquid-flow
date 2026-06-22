@@ -3,11 +3,12 @@ import React, { useState } from 'react';
 
 // Generyczna lista wyboru. items: [{ label, hint?, value }].
 // ↑/↓ nawigacja, Enter wybór, Esc anulowanie.
-export default function Picker({ title, items, onSelect, onCancel }) {
+export default function Picker({ title, items, onSelect, onCancel, onSlash }) {
   const [i, setI] = useState(0);
 
   useInput((input, key) => {
     if (key.escape) { onCancel?.(); return; }
+    if (onSlash && input === '/') { onSlash(); return; }
     if (!items.length) return;
     if (key.upArrow) setI((p) => (p - 1 + items.length) % items.length);
     else if (key.downArrow) setI((p) => (p + 1) % items.length);
@@ -25,7 +26,7 @@ export default function Picker({ title, items, onSelect, onCancel }) {
               {it.hint ? <Text color={idx === i ? 'black' : 'gray'}>  {it.hint}</Text> : null}
             </Text>
           ))}
-      <Text color="gray" dimColor>↑/↓ wybór · Enter zatwierdź · Esc wróć</Text>
+      <Text color="gray" dimColor>↑/↓ wybór · Enter zatwierdź · Esc wróć{onSlash ? ' · / komenda' : ''}</Text>
     </Box>
   );
 }

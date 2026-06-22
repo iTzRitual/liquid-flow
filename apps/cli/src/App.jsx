@@ -1,6 +1,6 @@
 import { Box, Text, useApp, useInput, useStdout } from 'ink';
 import TextInput from 'ink-text-input';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { log as corelog } from '@liquidflow/core';
 
 import { useController } from './useController.js';
@@ -38,14 +38,26 @@ export default function App() {
     const safe = (fn) => Promise.resolve().then(fn).catch((e) => corelog.logErr(e?.message || String(e)));
     return {
       ctrl, state, mismatches, git, shops, refreshShops, clearLog, exit, safe,
-      openPicker: (title, items, onSelect) =>
-        setMode({ type: 'picker', title, items, onSelect: (it, i) => { back(); onSelect?.(it, i); } }),
+      openPicker: (title, items, onSelect, opts = {}) =>
+        setMode({ type: 'picker', title, items, onSlash: opts.onSlash, onSelect: (it, i) => { back(); onSelect?.(it, i); } }),
       openForm: (title, fields, onSubmit) =>
         setMode({ type: 'form', title, fields, onSubmit: (vals) => { back(); onSubmit?.(vals); } }),
+      // wyjście z listy startowej do zwykłego inputu z otwartą paletą
+      skipToInput: () => { setMode({ type: 'input' }); setQuery('/'); },
     };
   }, [ctrl, state, mismatches, git, shops, refreshShops, clearLog, exit]);
 
   const commands = useMemo(() => buildCommands(ctx), [ctx]);
+
+  // Na starcie (gdy niepołączony) od razu otwórz listę sklepów do połączenia.
+  const booted = useRef(false);
+  useEffect(() => {
+    if (booted.current) return;
+    if (state && !state.currentShop) {
+      booted.current = true;
+      commands.find((c) => c.name === '/connect')?.run();
+    }
+  }, [state, commands]);
 
   // Filtrowanie palety na podstawie wpisanego tekstu (po wiodącym '/').
   const palette = query.startsWith('/') ? query.slice(1).toLowerCase() : null;
@@ -96,7 +108,7 @@ export default function App() {
       {mode.type === 'input' && <Divider />}
 
       {mode.type === 'picker' && (
-        <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onCancel={() => setMode({ type: 'input' })} />
+        <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => setMode({ type: 'input' })} />
       )}
 
       {mode.type === 'form' && (

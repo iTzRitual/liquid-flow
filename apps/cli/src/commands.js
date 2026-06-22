@@ -12,7 +12,7 @@ const MISMATCH_LABEL = {
 };
 
 export function buildCommands(ctx) {
-  const { ctrl, state, mismatches, git, shops, refreshShops, clearLog, openPicker, openForm, exit, safe } = ctx;
+  const { ctrl, state, mismatches, git, shops, refreshShops, clearLog, openPicker, openForm, exit, safe, skipToInput } = ctx;
   const hasShop = !!state?.currentShop;
   const hasTemplate = !!state?.currentTemplate;
 
@@ -45,6 +45,26 @@ export function buildCommands(ctx) {
       }
     }));
   });
+
+  // --- łączenie ze sklepem (lista + dodanie nowego) ---
+  const connect = () => {
+    const items = shops.map((s) => ({
+      label: s.Name,
+      hint: s.isCurrent ? '● bieżący' : s.Url,
+      value: { kind: 'shop', shop: s },
+    }));
+    items.push({ label: '＋ Dodaj nowe połączenie (dodaj sklep)', value: { kind: 'add' } });
+    openPicker('Połącz ze sklepem', items, (it) => {
+      const v = it.value;
+      if (v.kind === 'add') { loginForm(); return; }
+      const s = v.shop;
+      if (s.SavePassword) {
+        safe(async () => { await ctrl.signInSaved(s.Id); refreshShops(); await listTemplates(); });
+      } else {
+        loginForm({ Name: s.Name, Url: s.Url });
+      }
+    }, { onSlash: skipToInput });
+  };
 
   // --- konflikty ---
   const showConflicts = () => {
@@ -105,6 +125,7 @@ export function buildCommands(ctx) {
   // --- definicje komend ---
   const commands = [
     { name: '/help', desc: 'lista komend', run: () => openPicker('Komendy', commands.filter((c) => c.name !== '/help').map((c) => ({ label: c.name, hint: c.desc, value: c })), (it) => it.value.run()) },
+    { name: '/connect', desc: 'połącz ze sklepem (lista)', run: () => connect() },
     { name: '/login', desc: 'zaloguj / dodaj sklep', run: () => loginForm() },
     { name: '/shops', desc: 'przełącz sklep', run: () => {
         if (!shops.length) { log.logInfo('Brak zapisanych sklepów — użyj /login'); return; }
