@@ -56,23 +56,37 @@ export class SyncSession {
     this._queue = Promise.resolve(); // serializacja operacji SOAP
     this.onSynced = opts.onSynced || null; // hook po każdej udanej operacji (np. git)
     this.onMismatchChange = opts.onMismatchChange || null; // hook po przeliczeniu konfliktów
+    this.onProgress = opts.onProgress || null; // hook etapów startu (loader w UI)
   }
 
   get shopName() { return this.shop.Name; }
   get templateId() { return this.template.Id; }
 
+  _progress(p) {
+    if (this.onProgress) { try { this.onProgress(p); } catch {} }
+  }
+
   // ---- cykl życia ----
+  // Sekwencja startu prezentowana użytkownikowi jako kolejne, jasne kroki:
+  //   pobieranie plików (z paskiem postępu) LUB folder już gotowy
+  //   → sprawdzanie niezgodności (loader) → synchronizacja aktywna (hot-reload).
   async start() {
     const dir = store.templateDir(this.shopName, this.templateId);
-    logInfo('📁 Folder lokalny: ' + dir);
-    if (!fs.existsSync(dir) || store.listLocalFiles(this.shopName, this.templateId).length === 0) {
+    const fresh = !fs.existsSync(dir) || store.listLocalFiles(this.shopName, this.templateId).length === 0;
+    if (fresh) {
       await this._initialDownload();
     } else {
-      logInfo('Folder już istnieje — pomijam pobieranie początkowe.');
+      logOk('Folder lokalny gotowy — pliki już pobrane');
     }
-    await this.refreshMismatches();
+
+    this._progress({ phase: 'check', state: 'start' });
+    await this.refreshMismatches({ silent: true });
+    this._progress({ phase: 'check', state: 'done', conflicts: this.mismatches.length });
+    logOk('Sprawdzono niezgodności — konflikty: ' + this.mismatches.length);
+
     this._startWatcher();
-    logOk(this.t.SyncStarted + ' — ' + this.template.Name + ' [' + this.templateId + ']');
+    this._progress({ phase: 'ready', template: this.template.Name });
+    logOk('Synchronizacja aktywna — hot-reload (' + this.template.Name + ')');
   }
 
   dispose() {
@@ -83,16 +97,26 @@ export class SyncSession {
   }
 
   // Pierwsze pobranie wszystkich plików szablonu do katalogu lokalnego.
+  // Emituje postęp (start → kolejne pliki → koniec), by UI pokazało pasek 0-100%.
   async _initialDownload() {
-    logInfo(this.t.FileCreating + '… (pobieram pliki ze sklepu)');
+    this._progress({ phase: 'download', state: 'start' });
     const files = await this.client.liquidFilesGet({ TemplateId: this.templateId });
+    const total = files.length;
     const meta = {};
+    let done = 0;
     for (const f of files) {
       const localts = store.writeLocalFile(this.shopName, this.templateId, f.Mode, f.Name, f.Template || Buffer.alloc(0));
       meta[`${f.Mode}/${f.Name}`] = { localts, remotets: f.Date };
+      done++;
+      if (done === total || done % 5 === 0) {
+        this._progress({ phase: 'download', state: 'progress', done, total });
+        // ustąp pętli, by UI zdążyło przerysować pasek postępu (inaczej skok 0→100%)
+        await new Promise((r) => setImmediate(r));
+      }
     }
     store.saveMeta(this.shopName, this.templateId, meta);
-    logOk(this.t.FileCreated + ' — pobrano ' + files.length + ' plików do: ' + store.templateDir(this.shopName, this.templateId));
+    this._progress({ phase: 'download', state: 'done', count: total });
+    logOk('Pobrano ' + total + ' plików ze sklepu');
   }
 
   // ---- watcher ----
@@ -200,8 +224,8 @@ export class SyncSession {
   }
 
   // ---- wykrywanie konfliktów ----
-  async refreshMismatches() {
-    logInfo(this.t.CheckingMismatch);
+  async refreshMismatches(opts = {}) {
+    if (!opts.silent) logInfo(this.t.CheckingMismatch);
     const remote = await this.client.liquidFilesMetaGet({ TemplateId: this.templateId });
     const local = store.listLocalFiles(this.shopName, this.templateId);
     const meta = store.loadMeta(this.shopName, this.templateId);

@@ -23,7 +23,7 @@ async function getController() {
     const { Controller } = await import('@liquidflow/core');
     controller = new Controller({ insecureTLS: process.env.LIQUID_FLOW_INSECURE === '1' });
     // przekaż zdarzenia kontrolera do renderera
-    for (const type of ['log', 'mismatches', 'state', 'git']) {
+    for (const type of ['log', 'mismatches', 'state', 'git', 'progress']) {
       controller.on(type, (payload) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('event', { type, payload });

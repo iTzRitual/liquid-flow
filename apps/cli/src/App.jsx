@@ -8,6 +8,7 @@ import { buildCommands } from './commands.js';
 import Banner from './components/Banner.jsx';
 import StatusBar from './components/StatusBar.jsx';
 import Divider from './components/Divider.jsx';
+import ProgressView from './components/ProgressView.jsx';
 import LogPane from './components/LogPane.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Picker from './components/Picker.jsx';
@@ -16,7 +17,7 @@ import Form from './components/Form.jsx';
 export default function App() {
   const { exit } = useApp();
   const { stdout } = useStdout();
-  const { ctrl, state, mismatches, log, git, shops, refreshShops, clearLog } = useController();
+  const { ctrl, state, mismatches, log, git, shops, progress, refreshShops, clearLog } = useController();
 
   // mode: { type: 'input' } | { type: 'picker', ... } | { type: 'form', ... }
   const [mode, setMode] = useState({ type: 'input' });
@@ -112,7 +113,8 @@ export default function App() {
       <Divider />
 
       {mode.type === 'input' && log.length > 0 && <LogPane log={log} rows={logRows} />}
-      {mode.type === 'input' && log.length > 0 && <Divider />}
+      {mode.type === 'input' && progress && <ProgressView progress={progress} />}
+      {mode.type === 'input' && (log.length > 0 || progress) && <Divider />}
 
       {mode.type === 'picker' && (
         <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => setMode({ type: 'input' })} />

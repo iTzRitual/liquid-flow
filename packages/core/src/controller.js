@@ -124,7 +124,7 @@ export class Controller extends EventEmitter {
     this.state.client = client;
     this.state.templates = [];
     if (this.state.session) { this.state.session.dispose(); this.state.session = null; this.activeGit = null; }
-    logbuf.logOk('Zalogowano do sklepu: ' + shop.Name);
+    logbuf.logOk('Połączono ze sklepem: ' + shop.Name);
     this.emitState();
     return this.shopPublic(shop);
   }
@@ -153,7 +153,7 @@ export class Controller extends EventEmitter {
     this.state.client = client;
     this.state.templates = [];
     if (this.state.session) { this.state.session.dispose(); this.state.session = null; this.activeGit = null; }
-    logbuf.logOk('Zalogowano do sklepu: ' + shop.Name + ' (zapisane hasło)');
+    logbuf.logOk('Połączono ze sklepem: ' + shop.Name + ' (zapisane hasło)');
     this.emitState();
     return this.shopPublic(shop);
   }
@@ -245,12 +245,14 @@ export class Controller extends EventEmitter {
       Id: shop.Id, Name: shop.Name, Url: shop.Url,
       Login: shop.Login || 'webmaster', Password: this.shopPassword(shop),
     };
+    logbuf.logOk('Wybrano szablon: ' + template.Name + ' [' + template.Id + ']');
     const session = new SyncSession(sessShop, template, {
       insecureTLS: this.insecureTLS,
       language: this.config.Language,
       client: this.state.client,
       onSynced: (info) => this._onSynced(info),
       onMismatchChange: (m) => this.emit('mismatches', m),
+      onProgress: (p) => this.emit('progress', p),
     });
     this.state.session = session;
 
