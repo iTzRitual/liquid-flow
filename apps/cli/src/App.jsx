@@ -89,7 +89,7 @@ export default function App() {
     <Box flexDirection="column">
       <Static items={BANNER_ITEMS}>
         {(item) => (
-          <Box key={item} flexDirection="column" marginBottom={1}>
+          <Box key={item} flexDirection="column" marginTop={1} marginBottom={1} paddingLeft={1}>
             <Banner />
           </Box>
         )}
