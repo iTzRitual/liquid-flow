@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   listShops: () => invoke('shops.list'),
   currentShop: () => invoke('shops.current'),
   signInShop: (data) => invoke('shops.signIn', data),
+  signInSaved: (id) => invoke('shops.signInSaved', id),
   removeShop: (id) => invoke('shops.remove', id),
 
   // szablony

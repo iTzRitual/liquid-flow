@@ -22,8 +22,10 @@ export function buildCommands(ctx) {
       { name: 'Name', label: 'Nazwa (A-Za-z0-9)', initial: prefill.Name || '' },
       { name: 'Url', label: 'URL (https://… lub http://localhost:port)', initial: prefill.Url || '' },
       { name: 'Password', label: 'Hasło webmastera', mask: '*' },
+      { name: 'Save', label: 'Zapisz hasło? (t/n)', initial: 't', optional: true },
     ], (vals) => safe(async () => {
-      await ctrl.signInShop({ ...vals, SavePassword: true });
+      const SavePassword = /^(t|y|1|tak|yes)/i.test((vals.Save || '').trim());
+      await ctrl.signInShop({ Name: vals.Name, Url: vals.Url, Password: vals.Password, SavePassword });
       refreshShops();
       await listTemplates();
     }));
@@ -107,8 +109,19 @@ export function buildCommands(ctx) {
     { name: '/login', desc: 'zaloguj / dodaj sklep', run: () => loginForm() },
     { name: '/shops', desc: 'przełącz sklep', run: () => {
         if (!shops.length) { log.logInfo('Brak zapisanych sklepów — użyj /login'); return; }
-        openPicker('Twoje sklepy', shops.map((s) => ({ label: s.Name, hint: s.isCurrent ? '● bieżący' : s.Url, value: s })),
-          (it) => loginForm({ Name: it.value.Name, Url: it.value.Url }));
+        openPicker('Twoje sklepy', shops.map((s) => ({
+          label: s.Name,
+          hint: s.isCurrent ? '● bieżący' : (s.SavePassword ? '🔑 zapisane hasło' : s.Url),
+          value: s,
+        })), (it) => {
+          const s = it.value;
+          if (s.SavePassword) {
+            // auto-login zapisanym hasłem, bez ponownego wpisywania
+            safe(async () => { await ctrl.signInSaved(s.Id); refreshShops(); await listTemplates(); });
+          } else {
+            loginForm({ Name: s.Name, Url: s.Url });
+          }
+        });
       } },
     { name: '/templates', desc: 'wybierz szablon', run: () => listTemplates() },
     { name: '/files', desc: 'konflikty i akcje', run: () => showConflicts() },

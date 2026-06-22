@@ -5,14 +5,25 @@ import { Plus, Store, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Sidebar() {
-  const { t, shops, currentShop, currentTemplate, navigate, api, setCurrentShop } = useApp();
+  const { t, shops, currentShop, currentTemplate, navigate, api, call, refreshShops, setCurrentTemplate } = useApp();
 
   const openShop = async (shop) => {
     if (currentShop && currentShop.Id === shop.Id) {
       navigate(currentTemplate ? 'sync' : 'templates');
       return;
     }
-    // przełączenie sklepu wymaga ponownego logowania
+    // jeśli hasło jest zapisane — zaloguj automatycznie, bez ponownego wpisywania
+    if (shop.SavePassword) {
+      try {
+        await call(() => api.signInSaved(shop.Id), { errorToast: false });
+        await refreshShops();
+        setCurrentTemplate(null);
+        navigate('templates');
+        return;
+      } catch {
+        /* nie udało się zapisanym hasłem — pokaż formularz logowania */
+      }
+    }
     navigate('shopForm', { editing: shop });
   };
 

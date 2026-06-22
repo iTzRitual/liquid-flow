@@ -96,6 +96,7 @@ function registerIpc(ctrl) {
     'shops.list': () => ctrl.listShops(),
     'shops.current': () => ctrl.getCurrentShop(),
     'shops.signIn': (data) => ctrl.signInShop(data),
+    'shops.signInSaved': (id) => ctrl.signInSaved(id),
     'shops.remove': (id) => ctrl.removeShop(id),
 
     'templates.list': () => ctrl.listTemplates(),

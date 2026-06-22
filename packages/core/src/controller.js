@@ -129,6 +129,35 @@ export class Controller extends EventEmitter {
     return this.shopPublic(shop);
   }
 
+  // Logowanie do istniejącego sklepu przy użyciu zapisanego (zaszyfrowanego)
+  // hasła — bez ponownego wpisywania. Wymaga shop.SavePassword + shop.Password.
+  async signInSaved(id) {
+    const t = translationsFor(this.config.Language);
+    const shop = this.shopById(Number(id));
+    if (!shop) throw new Error('Nie znaleziono sklepu');
+    const pwd = this.shopPassword(shop);
+    if (!pwd) throw new Error(t.SavePassword + ': brak zapisanego hasła');
+
+    const client = new ISklep24Client(shop.Url, { insecureTLS: this.insecureTLS });
+    let ok;
+    try {
+      ok = await client.signIn(shop.Login || 'webmaster', pwd);
+    } catch (e) {
+      if (e instanceof SoapError && e.faultCodeName === 'Client') throw new Error(t.WrongSystemVersion);
+      throw e;
+    }
+    if (!ok) throw new Error(t.InvalidLoginOrPassword);
+
+    this.passwords.set(shop.Id, pwd);
+    this.state.currentShopId = shop.Id;
+    this.state.client = client;
+    this.state.templates = [];
+    if (this.state.session) { this.state.session.dispose(); this.state.session = null; this.activeGit = null; }
+    logbuf.logOk('Zalogowano do sklepu: ' + shop.Name + ' (zapisane hasło)');
+    this.emitState();
+    return this.shopPublic(shop);
+  }
+
   removeShop(id) {
     id = Number(id);
     const shop = this.shopById(id);
