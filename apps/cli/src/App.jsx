@@ -98,9 +98,16 @@ export default function App() {
       <Box marginTop={1} marginBottom={1}>
         <Box paddingLeft={1}><Banner /></Box>
         <Box marginLeft={3} marginTop={1} flexDirection="column">
-          <StatusBar state={state} mismatches={mismatches} git={git} />
+          <StatusBar state={state} git={git} />
         </Box>
       </Box>
+
+      {/* Konflikty: pojawiają się tylko gdy istnieją — dolna linia, do prawej, czerwone */}
+      {mismatches.length > 0 && (
+        <Box justifyContent="flex-end" paddingRight={1}>
+          <Text color="red">⚠ Konflikty: {mismatches.length} (/files)</Text>
+        </Box>
+      )}
 
       <Divider />
 

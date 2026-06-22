@@ -22,7 +22,7 @@ export default function LogPane({ log, rows = 10 }) {
   return (
     <Box flexDirection="column" paddingX={1}>
       {visible.length === 0
-        ? <Text color="gray" dimColor>— brak zdarzeń —</Text>
+        ? <Text color="gray" dimColor>— pusto —</Text>
         : visible.map((e) => (
             <Text key={e.Id} color={inkColor(e.Color)}>
               <Text color="gray">{hhmmss(e.TS)} </Text>{e.Text}
