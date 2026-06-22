@@ -20,7 +20,7 @@ export function buildCommands(ctx) {
   const loginForm = (prefill = {}) =>
     openForm('Zaloguj sklep', [
       { name: 'Name', label: 'Nazwa (A-Za-z0-9)', initial: prefill.Name || '' },
-      { name: 'Url', label: 'URL (https://… lub http://localhost:port)', initial: prefill.Url || '' },
+      { name: 'Url', label: 'URL', initial: prefill.Url || 'https://' },
       { name: 'Password', label: 'Hasło webmastera', mask: '*' },
       { name: 'Save', label: 'Zapisz hasło?', type: 'choice', initial: true, options: [{ label: 'Tak', value: true }, { label: 'Nie', value: false }] },
     ], (vals) => safe(async () => {

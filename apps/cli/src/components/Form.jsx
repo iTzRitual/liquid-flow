@@ -64,7 +64,7 @@ export default function Form({ title, fields, onSubmit, onCancel }) {
   };
 
   return (
-    <Box flexDirection="column" paddingX={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor="magenta" paddingX={1}>
       <Text color="magenta" bold>{title}</Text>
       {fields.map((ff, j) => (
         <Box key={ff.name}>
