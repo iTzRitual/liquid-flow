@@ -124,7 +124,6 @@ export function buildCommands(ctx) {
 
   // --- definicje komend ---
   const commands = [
-    { name: '/help', desc: 'lista komend', run: () => openPicker('Komendy', commands.filter((c) => c.name !== '/help').map((c) => ({ label: c.name, hint: c.desc, value: c })), (it) => it.value.run()) },
     { name: '/connect', desc: 'połącz ze sklepem (lista)', run: () => connect() },
     { name: '/login', desc: 'zaloguj / dodaj sklep', run: () => loginForm() },
     { name: '/shops', desc: 'przełącz sklep', run: () => {
@@ -161,10 +160,6 @@ export function buildCommands(ctx) {
           (it) => { ctrl.removeShop(it.value.Id); refreshShops(); log.logOk('Usunięto sklep: ' + it.value.Name); });
       } },
     { name: '/clear', desc: 'wyczyść panel logu', run: () => clearLog() },
-    { name: '/status', desc: 'szczegóły bieżącej sesji', run: () => {
-        const s = state || {};
-        log.logInfo(`Sklep: ${s.currentShop ? s.currentShop.Name + ' (' + s.currentShop.Url + ')' : 'brak'} · Szablon: ${s.currentTemplate ? s.currentTemplate.Name + ' [' + s.currentTemplate.Id + ']' : 'brak'} · Konflikty: ${mismatches.length}`);
-      } },
     { name: '/exit(quit)', desc: 'zakończ', run: () => exit() },
   ];
 

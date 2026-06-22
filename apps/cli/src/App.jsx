@@ -111,8 +111,8 @@ export default function App() {
 
       <Divider />
 
-      {mode.type === 'input' && <LogPane log={log} rows={logRows} />}
-      {mode.type === 'input' && <Divider />}
+      {mode.type === 'input' && log.length > 0 && <LogPane log={log} rows={logRows} />}
+      {mode.type === 'input' && log.length > 0 && <Divider />}
 
       {mode.type === 'picker' && (
         <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => setMode({ type: 'input' })} />
