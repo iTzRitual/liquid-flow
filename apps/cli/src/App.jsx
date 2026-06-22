@@ -7,6 +7,7 @@ import { useController } from './useController.js';
 import { buildCommands } from './commands.js';
 import Banner from './components/Banner.jsx';
 import StatusBar from './components/StatusBar.jsx';
+import Divider from './components/Divider.jsx';
 import LogPane from './components/LogPane.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Picker from './components/Picker.jsx';
@@ -76,7 +77,7 @@ export default function App() {
 
   // Wysokość logu dobrana tak, by nagłówek + paleta + input + log mieściły się
   // w terminalu (inaczej Ink dokleja kolejną klatkę = zdublowany layout).
-  const reserve = 13 + (filtered.length ? filtered.length + 1 : 0);
+  const reserve = 15 + (filtered.length ? filtered.length + 1 : 0);
   const logRows = Math.max(3, Math.min(16, termRows - reserve));
 
   return (
@@ -89,7 +90,10 @@ export default function App() {
         </Box>
       </Box>
 
+      <Divider />
+
       {mode.type === 'input' && <LogPane log={log} rows={logRows} />}
+      {mode.type === 'input' && <Divider />}
 
       {mode.type === 'picker' && (
         <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onCancel={() => setMode({ type: 'input' })} />
