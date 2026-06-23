@@ -9,6 +9,7 @@ import Banner from './components/Banner.jsx';
 import StatusBar from './components/StatusBar.jsx';
 import Divider from './components/Divider.jsx';
 import ProgressView from './components/ProgressView.jsx';
+import Spinner from './components/Spinner.jsx';
 import LogPane from './components/LogPane.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Picker from './components/Picker.jsx';
@@ -45,6 +46,16 @@ export default function App() {
         setMode({ type: 'form', title, fields, onSubmit: (vals) => { back(); onSubmit?.(vals); } }),
       // wyjście z listy startowej do zwykłego inputu z otwartą paletą
       skipToInput: () => { setMode({ type: 'input' }); setQuery('/'); },
+      // pokaż ekran ładowania na czas operacji (np. pobierania listy szablonów),
+      // a po niej fn otwiera właściwy widok; przy błędzie wróć do inputu
+      withLoading: (label, fn) => {
+        setMode({ type: 'loading', label });
+        Promise.resolve().then(fn).catch((e) => {
+          corelog.logErr(e?.message || String(e));
+          setMode({ type: 'input' });
+          setQuery('');
+        });
+      },
     };
   }, [ctrl, state, mismatches, git, shops, refreshShops, clearLog, exit]);
 
@@ -123,6 +134,13 @@ export default function App() {
       {mode.type === 'input' && !paletteOpen && log.length > 0 && <LogPane log={log} rows={logRows} />}
       {mode.type === 'input' && !paletteOpen && progress && <ProgressView progress={progress} />}
       {mode.type === 'input' && !paletteOpen && (log.length > 0 || progress) && <Divider />}
+
+      {mode.type === 'loading' && (
+        <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
+          <Text color="cyan" bold>Wybierz szablon</Text>
+          <Box><Spinner color="cyan" /><Text> {mode.label || 'Ładowanie…'}</Text></Box>
+        </Box>
+      )}
 
       {mode.type === 'picker' && (
         <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => setMode({ type: 'input' })} maxRows={pickerMax} />

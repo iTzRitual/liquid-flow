@@ -12,7 +12,7 @@ const MISMATCH_LABEL = {
 };
 
 export function buildCommands(ctx) {
-  const { ctrl, state, mismatches, git, shops, refreshShops, clearLog, openPicker, openForm, exit, safe, skipToInput } = ctx;
+  const { ctrl, state, mismatches, git, shops, refreshShops, clearLog, openPicker, openForm, exit, safe, skipToInput, withLoading } = ctx;
   const hasShop = !!state?.currentShop;
   const hasTemplate = !!state?.currentTemplate;
 
@@ -23,15 +23,16 @@ export function buildCommands(ctx) {
       { name: 'Url', label: 'URL', initial: prefill.Url || 'https://' },
       { name: 'Password', label: 'Hasło webmastera', mask: '*' },
       { name: 'Save', label: 'Zapisz hasło?', type: 'choice', initial: true, options: [{ label: 'Tak', value: true }, { label: 'Nie', value: false }] },
-    ], (vals) => safe(async () => {
+    ], (vals) => withLoading('Łączenie ze sklepem…', async () => {
       await ctrl.signInShop({ Name: vals.Name, Url: vals.Url, Password: vals.Password, SavePassword: !!vals.Save });
       refreshShops();
-      await listTemplates();
+      await openTemplatesPicker();
     }));
 
   // --- wybór szablonu ---
-  const listTemplates = () => safe(async () => {
-    if (!ctrl.getCurrentShop()) { log.logErr('Najpierw zaloguj sklep: /login'); return; }
+  // Pobiera listę szablonów i otwiera picker. Zakłada zalogowany sklep.
+  // Wywoływane wewnątrz withLoading, więc czas pobierania pokrywa loader.
+  const openTemplatesPicker = async () => {
     const tpls = await ctrl.listTemplates();
     openPicker('Wybierz szablon', tpls.map((t) => ({
       label: `${t.Name} [${t.Id}]`,
@@ -44,7 +45,13 @@ export function buildCommands(ctx) {
           (vals) => safe(() => ctrl.unlockTemplate({ tplId: r.Id, Password: vals.Password, SavePassword: true })));
       }
     }));
-  });
+  };
+
+  // /templates: od razu pokaż loader, potem listę.
+  const goTemplates = () => {
+    if (!ctrl.getCurrentShop()) { log.logErr('Najpierw zaloguj sklep: /login'); return; }
+    withLoading('Ładowanie szablonów…', openTemplatesPicker);
+  };
 
   // --- łączenie ze sklepem (lista + dodanie nowego) ---
   const connect = () => {
@@ -59,7 +66,11 @@ export function buildCommands(ctx) {
       if (v.kind === 'add') { loginForm(); return; }
       const s = v.shop;
       if (s.SavePassword) {
-        safe(async () => { await ctrl.signInSaved(s.Id); refreshShops(); await listTemplates(); });
+        withLoading('Łączenie ze sklepem…', async () => {
+          await ctrl.signInSaved(s.Id);
+          refreshShops();
+          await openTemplatesPicker();
+        });
       } else {
         loginForm({ Name: s.Name, Url: s.Url });
       }
@@ -148,13 +159,17 @@ export function buildCommands(ctx) {
           const s = it.value;
           if (s.SavePassword) {
             // auto-login zapisanym hasłem, bez ponownego wpisywania
-            safe(async () => { await ctrl.signInSaved(s.Id); refreshShops(); await listTemplates(); });
+            withLoading('Łączenie ze sklepem…', async () => {
+              await ctrl.signInSaved(s.Id);
+              refreshShops();
+              await openTemplatesPicker();
+            });
           } else {
             loginForm({ Name: s.Name, Url: s.Url });
           }
         });
       } },
-    { name: '/templates', desc: 'wybierz szablon', run: () => listTemplates() },
+    { name: '/templates', desc: 'wybierz szablon', run: () => goTemplates() },
     { name: '/files', desc: 'konflikty i akcje', run: () => showConflicts() },
     { name: '/download-all', desc: 'pobierz wszystkie różnice', run: () => safe(() => ctrl.runCommand({ comm: 'downloadAll' })) },
     { name: '/upload-all', desc: 'wyślij wszystkie różnice', run: () => safe(() => ctrl.runCommand({ comm: 'uploadAll' })) },
