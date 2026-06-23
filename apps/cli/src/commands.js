@@ -16,6 +16,13 @@ export function buildCommands(ctx) {
   const hasShop = !!state?.currentShop;
   const hasTemplate = !!state?.currentTemplate;
 
+  // Potwierdzenie tak/nie przed operacją nieodwracalną (styl picker).
+  const confirm = (title, onYes) =>
+    openPicker(title, [
+      { label: 'Tak, kontynuuj', value: true },
+      { label: 'Nie / anuluj', value: false },
+    ], (it) => { if (it.value) onYes(); });
+
   // --- formularz logowania (współdzielony przez /login i /shops) ---
   const loginForm = (prefill = {}) =>
     openForm('Zaloguj sklep', [
@@ -78,15 +85,39 @@ export function buildCommands(ctx) {
   };
 
   // --- konflikty ---
+  // Jeden ekran do rozwiązywania konfliktów: pojedyncze pliki (pobierz/wyślij/
+  // usuń) + na końcu operacje seryjne („wszystkie”) z potwierdzeniem. Wejście
+  // przez wskaźnik konfliktów w nagłówku → /conflicts.
   const showConflicts = () => {
     if (!hasTemplate) { log.logErr('Brak aktywnego szablonu: /templates'); return; }
     if (!mismatches.length) { log.logOk('Brak konfliktów — wszystko zsynchronizowane ✓'); return; }
-    openPicker('Konflikty plików', mismatches.map((m) => ({
+
+    // ile plików obejmie każda operacja seryjna (te same filtry co w syncEngine)
+    const nDownload = mismatches.filter((m) => m.Type === MismatchType.LocalMissing || m.Type === MismatchType.Timestamp).length;
+    const nUpload = mismatches.filter((m) => m.Type === MismatchType.RemoteMissing || m.Type === MismatchType.Timestamp).length;
+
+    const items = mismatches.map((m) => ({
       label: `${m.File.Name}`,
       hint: MISMATCH_LABEL[m.Type] || m.Type,
-      value: m,
-    })), (item) => {
-      const m = item.value;
+      value: { kind: 'file', m },
+    }));
+    // pozycje seryjne na końcu listy (jak „przyciski”)
+    if (nDownload) items.push({ label: `↓ Pobierz wszystkie (${nDownload})`, hint: 'zdalne → lokalne', value: { kind: 'downloadAll' } });
+    if (nUpload) items.push({ label: `↑ Wyślij wszystkie (${nUpload})`, hint: 'lokalne → sklep', value: { kind: 'uploadAll' } });
+
+    openPicker('Konflikty plików', items, (item) => {
+      const v = item.value;
+      if (v.kind === 'downloadAll') {
+        confirm(`Pobrać ${nDownload} plik(ów) ze sklepu? Nadpisze lokalne wersje.`,
+          () => safe(() => ctrl.runCommand({ comm: 'downloadAll' })));
+        return;
+      }
+      if (v.kind === 'uploadAll') {
+        confirm(`Wysłać ${nUpload} plik(ów) do sklepu? Nadpisze zdalne wersje.`,
+          () => safe(() => ctrl.runCommand({ comm: 'uploadAll' })));
+        return;
+      }
+      const m = v.m;
       const actions = [];
       if (m.Type !== MismatchType.RemoteMissing) actions.push({ label: '↓ Pobierz (zdalna → lokalna)', value: 'download' });
       if (m.Type !== MismatchType.LocalMissing) actions.push({ label: '↑ Wyślij (lokalna → sklep)', value: 'upload' });
@@ -170,9 +201,7 @@ export function buildCommands(ctx) {
         });
       } },
     { name: '/templates', desc: 'wybierz szablon', run: () => goTemplates() },
-    { name: '/files', desc: 'konflikty i akcje', run: () => showConflicts() },
-    { name: '/download-all', desc: 'pobierz wszystkie różnice', run: () => safe(() => ctrl.runCommand({ comm: 'downloadAll' })) },
-    { name: '/upload-all', desc: 'wyślij wszystkie różnice', run: () => safe(() => ctrl.runCommand({ comm: 'uploadAll' })) },
+    { name: '/conflicts', desc: 'rozwiąż konflikty (pojedynczo + seryjnie)', run: () => showConflicts() },
     { name: '/refresh', desc: 'przelicz konflikty', run: () => safe(() => ctrl.runCommand({ comm: 'refresh' })) },
     { name: '/git', desc: 'wersjonowanie i backup', run: () => gitMenu() },
     { name: '/open', desc: 'otwórz folder lokalny', run: () => { const d = ctrl.currentFolder(); if (d) { openExternal(d); log.logInfo('Otwieram: ' + d); } else log.logErr('Brak aktywnego szablonu'); } },

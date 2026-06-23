@@ -124,7 +124,7 @@ export default function App() {
       {/* Konflikty: pojawiają się tylko gdy istnieją — dolna linia, do prawej, czerwone */}
       {mismatches.length > 0 && (
         <Box justifyContent="flex-end" paddingRight={1}>
-          <Text color="red">⚠ Konflikty: {mismatches.length} (/files)</Text>
+          <Text color="red">⚠ Konflikty: {mismatches.length} (/conflicts)</Text>
         </Box>
       )}
 
