@@ -23,7 +23,7 @@ function hueFor(x, y, cx, cy) {
   a = (a + 360) % 360;                          // 0..360
   // Szew (t=0) przesunięty z pionu w prawo do przerwy między ogonami spirali,
   // żeby czubek startu był w całości granatowy (a nie pół granat/pół magenta).
-  const t = (a - 72 + 360) % 360;               // 0 = przerwa, rośnie przez lewą/górę/prawą
+  const t = (a - 67 + 360) % 360;               // 0 = przerwa, rośnie przez lewą/górę/prawą
   // Start = granat ~245°, dalej przez błękit/zieleń/żółć do czerwieni na końcu.
   return ((245 - (t / 360) * 300) % 360 + 360) % 360;
 }
