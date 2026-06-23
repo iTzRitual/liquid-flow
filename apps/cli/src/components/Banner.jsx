@@ -22,9 +22,8 @@ function hueFor(x, y, cx, cy) {
   let a = Math.atan2(dy, dx) * 180 / Math.PI; // -180..180, dół = +90°
   a = (a + 360) % 360;                          // 0..360
   const t = (a - 90 + 360) % 360;               // 0 = dół, rośnie przez lewą/górę/prawą
-  // Start (dół) = granat ~245°, płynnie przez błękit/zieleń/żółć do czerwieni
-  // na końcu. Bez zawijania poza 0°, więc nie pojawia się róż/magenta.
-  return 245 * (1 - t / 360);
+  // Start (dół) = granat ~245°, dalej zawija przez błękit/zieleń/żółć do magenty.
+  return ((245 - (t / 360) * 300) % 360 + 360) % 360;
 }
 
 // Banner: blokowy art z proceduralnym gradientem tęczowym (kolor per znak).
