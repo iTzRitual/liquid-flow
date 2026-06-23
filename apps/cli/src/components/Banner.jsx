@@ -22,7 +22,7 @@ function hueFor(x, y, cx, cy) {
   let a = Math.atan2(dy, dx) * 180 / Math.PI; // -180..180, dół = +90°
   a = (a + 360) % 360;                          // 0..360
   const t = (a - 90 + 360) % 360;               // 0 = dół, rośnie przez lewą/górę/prawą
-  return (t / 360) * 300;                        // czerwień 0° -> fiolet 300°
+  return 300 - (t / 360) * 300;                  // fiolet 300° -> czerwień 0°
 }
 
 // Banner: blokowy art z proceduralnym gradientem tęczowym (kolor per znak).
