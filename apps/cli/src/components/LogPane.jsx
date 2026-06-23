@@ -26,13 +26,21 @@ export function buildVlines(log, wrap, cols) {
   const w = Math.max(8, (cols || 80) - 2); // Box ma paddingX={1} → -2 kolumny
   const out = [];
   for (const e of log) {
+    // Separator (np. granica sesji) — linia działowa „── tekst ─────".
+    if (e.kind === 'separator') {
+      const label = `── ${e.Text} `;
+      const fill = Math.max(0, w - [...label].length);
+      out.push({ text: label + '─'.repeat(fill), color: '#82bbff', key: String(e.Id), trunc: true });
+      continue;
+    }
     const color = inkColor(e.Color);
+    const dim = !!e.historic; // wpisy z poprzedniej sesji — wyszarzone
     const text = `${hhmmss(e.TS)} ${e.Text}`;
     if (wrap) {
       wrapAnsi(text, w, { trim: false, hard: true }).split('\n')
-        .forEach((t, i) => out.push({ text: t, color, key: `${e.Id}:${i}` }));
+        .forEach((t, i) => out.push({ text: t, color, dim, key: `${e.Id}:${i}` }));
     } else {
-      out.push({ text, color, key: String(e.Id), trunc: true });
+      out.push({ text, color, dim, key: String(e.Id), trunc: true });
     }
   }
   return out;
@@ -63,7 +71,7 @@ export default function LogPane({ vlines, rows = 10, scroll = 0 }) {
       {slice.length === 0
         ? <Text color="gray" dimColor>— pusto —</Text>
         : slice.map((l) => (
-            <Text key={l.key} color={l.color} wrap={l.trunc ? 'truncate-end' : 'wrap'}>{l.text}</Text>
+            <Text key={l.key} color={l.color} dimColor={l.dim} wrap={l.trunc ? 'truncate-end' : 'wrap'}>{l.text}</Text>
           ))}
       {hasBelow && <Text color="gray" dimColor>↓ {total - end} nowszych</Text>}
     </Box>

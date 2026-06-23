@@ -17,7 +17,7 @@ import Form from './components/Form.jsx';
 export default function App() {
   const { exit } = useApp();
   const { stdout } = useStdout();
-  const { ctrl, state, mismatches, log, git, shops, progress, refreshShops, clearLog } = useController();
+  const { ctrl, state, mismatches, log, logVersion, git, shops, progress, refreshShops, clearLog } = useController();
 
   // mode: { type: 'input' } | { type: 'picker', ... } | { type: 'form', ... }
   const [mode, setMode] = useState({ type: 'input' });
@@ -91,6 +91,9 @@ export default function App() {
   }, [commands, palette]);
 
   useEffect(() => { setHighlight(0); }, [query]);
+  // Po przełączeniu kanału logu (zmiana sklepu/szablonu) zjedź na dół, by
+  // pokazać najnowszy strumień (a nie zachować scroll z poprzedniego kanału).
+  useEffect(() => { setLogScroll(0); }, [logVersion]);
 
   // --- wymiary i pochodne (przed useInput, bo scroll ich używa) ---
   // Stałe „chrome" = nagłówek (logo+marginesy) + dividery + input + zapas.

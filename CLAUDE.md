@@ -26,7 +26,7 @@ packages/core/   @liquidflow/core — cała logika, niezależna od UI
     syncEngine.js  watcher plików, hot-reload, wykrywanie konfliktów, postęp
     store.js       konfiguracja, metadane, ścieżki, szyfrowanie haseł
     git.js         wersjonowanie/backup (opakowanie poleceń `git`)
-    log.js         bufor logu (EventEmitter 'entry'); kolory hex
+    log.js         bufor logu z kanałami/scope (EventEmitter 'entry'+'reset'); kolory hex
     translations.js  pl/en (UI), xml.js (parser SOAP)
   index.js         publiczny barrel export
 apps/desktop/    @liquidflow/desktop — electron/ (main.js, preload.cjs) + renderer/ (Vite+Tailwind+shadcn)
@@ -37,7 +37,8 @@ apps/cli/        @liquidflow/cli — bin/liquidflow.js + src/ (Ink)
 trzyma cały stan i emituje zdarzenia, a obie apki to „skóry" subskrybujące te
 zdarzenia:
 
-- `log` — nowy wpis logu `{ Id, TS, Text, Color }`
+- `log` — nowy wpis logu `{ Id, TS, Text, Color, kind?, historic? }`
+- `log:reset` — pełna podmiana bufora po przełączeniu kanału logu (poniżej)
 - `mismatches` — lista konfliktów
 - `state` — `{ currentShop, currentTemplate, language, insecureTLS }`
 - `git` — status repo (gitStatus)
@@ -72,6 +73,32 @@ szablonu). Wszystkie ścieżki z kropką (`.git`, `.DS_Store`) są pomijane prze
 synchronizację (`store.parseLocalPath` zwraca `null`), więc wnętrze `.git` nie
 trafia do e‑Sklep. Historia współdzielona przez zdalne repo (GitHub), nie przez
 Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
+
+## Logi — kanały (scope) i trwała historia per‑szablon
+
+`log.js` nie jest już jednym globalnym buforem — trzyma **kanały** i ma jeden
+**aktywny** naraz (bo aktywna jest tylko jedna sesja synchronizacji). Producenci
+nadal wołają `logInfo/logOk/logErr` bez wiedzy o kanale; wpis trafia do bieżącego.
+`Controller` przełącza kanał (`logbuf.setActiveChannel(key, opts)`) w punktach
+życia:
+- `app` — przed połączeniem (efemeryczny),
+- `shop:<id>` — połączony sklep, brak szablonu (efemeryczny),
+- `tpl:<shopId>:<tplId>` — aktywny szablon (**trwały**: `opts.persist` dopisuje
+  każdy live‑wpis do pliku, `opts.history` wczytuje poprzednie wpisy).
+
+Przełączenie kanału emituje `'reset'` (Controller → `'log:reset'`) z pełnym
+buforem — UI podmienia cały log (CLI: `useController` ustawia `log` i bumpuje
+`logVersion`, a `App.jsx` zjeżdża scrollem na dół). Każdy kanał ma własną
+sekwencję `Id`.
+
+**Trwała historia per‑szablon**: `store.appendLogEntry` / `store.readLogTail`
+(plik `Shops/<Nazwa>/logs/<tplId>.jsonl`, JSON‑per‑linia, przycinany do 1000
+linii). Plik żyje **poza** `files/<id>/`, więc nie trafia do synchronizacji ani
+do repo git szablonu. Przy starcie sesji (`_startSession`) Controller: wczytuje
+ogon historii (wpisy dostają `historic:true` → wyszarzone w `LogPane`), dokłada
+`logbuf.separator('Nowa sesja • …')` (`kind:'separator'`, renderowany jako linia
+działowa „── … ─────"), dopiero potem płynie nowa sesja. `buildVlines` obsługuje
+oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic` (`dimColor`).
 
 ## CLI — szczegóły (apps/cli)
 

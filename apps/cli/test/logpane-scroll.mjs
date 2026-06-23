@@ -16,12 +16,18 @@ function fakeStdout(columns, rows = 40) {
 }
 
 const now = Date.now();
-const log = Array.from({ length: 12 }, (_, i) => ({
-  Id: i + 1, TS: now, Color: i % 4 === 0 ? '#F00' : '#2A2',
-  Text: i % 3 === 0
-    ? `Wyślij ✓ — 3/0/templates/snippets/component-${i}-with-a-fairly-long-name.liquid`
-    : `Zdarzenie ${i + 1}`,
-}));
+// Mieszanka: 2 wpisy historyczne (poprzednia sesja) + separator + 9 live.
+const log = [
+  { Id: 1, TS: now, Color: '#666', Text: 'Stary wpis z poprzedniej sesji', historic: true },
+  { Id: 2, TS: now, Color: '#2A2', Text: 'Wysłano plik (historia)', historic: true },
+  { Id: 3, TS: now, Color: '#82bbff', Text: 'Nowa sesja • 24.06.2026 14:33', kind: 'separator' },
+  ...Array.from({ length: 9 }, (_, i) => ({
+    Id: i + 4, TS: now, Color: i % 4 === 0 ? '#F00' : '#2A2',
+    Text: i % 3 === 0
+      ? `Wyślij ✓ — 3/0/templates/snippets/component-${i}-with-a-fairly-long-name.liquid`
+      : `Zdarzenie ${i + 1}`,
+  })),
+];
 
 const ROWS = 8;
 

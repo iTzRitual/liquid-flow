@@ -195,4 +195,44 @@ export function removeMetaEntry(shopName, templateId, mode, name) {
   saveMeta(shopName, templateId, meta);
 }
 
+// ---- trwała historia logu per-szablon ----
+// Każdy szablon ma własny plik historii (JSON-per-linia), dzięki czemu po
+// powrocie do szablonu wczytujemy „poprzednią sesję". Plik żyje poza
+// `files/<id>/` (w `Shops/<Nazwa>/logs/`), więc nie trafia do synchronizacji
+// ani do repo git szablonu.
+export function logsDir(shopName) {
+  return path.join(shopDir(shopName), 'logs');
+}
+function logPath(shopName, templateId) {
+  return path.join(logsDir(shopName), `${templateId}.jsonl`);
+}
+const LOG_MAX_LINES = 1000;
+
+// Dopisz jeden wpis logu do pliku historii szablonu.
+export function appendLogEntry(shopName, templateId, entry) {
+  try {
+    ensureDir(logsDir(shopName));
+    const line = JSON.stringify({ TS: entry.TS, Text: entry.Text, Color: entry.Color, kind: entry.kind }) + '\n';
+    fs.appendFileSync(logPath(shopName, templateId), line);
+  } catch {}
+}
+
+// Wczytaj końcówkę historii (ostatnie `n` wpisów) jako [{TS,Text,Color,kind}].
+// Przy okazji przycina plik, gdy urósł ponad LOG_MAX_LINES.
+export function readLogTail(shopName, templateId, n = 300) {
+  const p = logPath(shopName, templateId);
+  let raw;
+  try { raw = fs.readFileSync(p, 'utf8'); } catch { return []; }
+  const lines = raw.split('\n').filter((l) => l.trim().length);
+  if (lines.length > LOG_MAX_LINES) {
+    const trimmed = lines.slice(-LOG_MAX_LINES);
+    try { fs.writeFileSync(p, trimmed.join('\n') + '\n'); } catch {}
+  }
+  const out = [];
+  for (const l of lines.slice(-n)) {
+    try { out.push(JSON.parse(l)); } catch {}
+  }
+  return out;
+}
+
 export const paths = { APP_DIR, CONFIG_PATH, SHOPS_DIR };

@@ -17,12 +17,17 @@ export function useController() {
   const [state, setState] = useState(() => ctrl.getState());
   const [mismatches, setMismatches] = useState([]);
   const [log, setLog] = useState([]);
+  // Rośnie przy każdym przełączeniu kanału logu (zmiana sklepu/szablonu) — App
+  // używa go, by zjechać scrollem na dół świeżego strumienia.
+  const [logVersion, setLogVersion] = useState(0);
   const [git, setGit] = useState(null);
   const [shops, setShops] = useState(() => ctrl.listShops());
   const [progress, setProgress] = useState(null);
 
   useEffect(() => {
     const onLog = (e) => setLog((l) => [...l, e].slice(-LOG_LIMIT));
+    // Pełna podmiana bufora po przełączeniu kanału (osobny log per szablon/sklep).
+    const onLogReset = (entries) => { setLog(entries.slice(-LOG_LIMIT)); setLogVersion((v) => v + 1); };
     const onMis = (m) => setMismatches(m);
     const onState = (s) => setState(s);
     const onGit = (g) => setGit(g);
@@ -39,6 +44,7 @@ export function useController() {
     };
 
     ctrl.on('log', onLog);
+    ctrl.on('log:reset', onLogReset);
     ctrl.on('mismatches', onMis);
     ctrl.on('state', onState);
     ctrl.on('git', onGit);
@@ -50,6 +56,7 @@ export function useController() {
 
     return () => {
       ctrl.off('log', onLog);
+      ctrl.off('log:reset', onLogReset);
       ctrl.off('mismatches', onMis);
       ctrl.off('state', onState);
       ctrl.off('git', onGit);
@@ -61,5 +68,5 @@ export function useController() {
   const refreshShops = useCallback(() => setShops(ctrl.listShops()), [ctrl]);
   const clearLog = useCallback(() => setLog([]), []);
 
-  return { ctrl, state, mismatches, log, git, shops, progress, refreshShops, clearLog };
+  return { ctrl, state, mismatches, log, logVersion, git, shops, progress, refreshShops, clearLog };
 }

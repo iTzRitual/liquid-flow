@@ -30,8 +30,11 @@ export class Controller extends EventEmitter {
     this._commitTimer = null;
     this._pendingCommitFiles = new Set();
 
-    // przekazuj log do nasłuchujących (renderer)
+    // przekazuj log do nasłuchujących (renderer): 'log' = nowy wpis,
+    // 'log:reset' = pełna podmiana bufora po przełączeniu kanału (zmiana
+    // sklepu/szablonu — każdy ma osobny strumień logów).
     logbuf.events.on('entry', (e) => this.emit('log', e));
+    logbuf.events.on('reset', (entries) => this.emit('log:reset', entries));
   }
 
   // ---------- pomocnicze ----------
@@ -124,6 +127,7 @@ export class Controller extends EventEmitter {
     this.state.client = client;
     this.state.templates = [];
     if (this.state.session) { this.state.session.dispose(); this.state.session = null; this.activeGit = null; }
+    logbuf.setActiveChannel('shop:' + shop.Id);
     logbuf.logOk('Połączono ze sklepem: ' + shop.Name);
     this.emitState();
     return this.shopPublic(shop);
@@ -153,6 +157,7 @@ export class Controller extends EventEmitter {
     this.state.client = client;
     this.state.templates = [];
     if (this.state.session) { this.state.session.dispose(); this.state.session = null; this.activeGit = null; }
+    logbuf.setActiveChannel('shop:' + shop.Id);
     logbuf.logOk('Połączono ze sklepem: ' + shop.Name + ' (zapisane hasło)');
     this.emitState();
     return this.shopPublic(shop);
@@ -170,6 +175,7 @@ export class Controller extends EventEmitter {
     this.state.client = null;
     this.state.templates = [];
     this.state.pendingTemplate = null;
+    logbuf.setActiveChannel('app');
     logbuf.logOk('Rozłączono' + (name ? ' ze sklepu: ' + name : ''));
     this.emitState();
     return this.getState();
@@ -184,6 +190,7 @@ export class Controller extends EventEmitter {
       this.state.currentShopId = null;
       this.state.client = null;
       this.state.templates = [];
+      logbuf.setActiveChannel('app');
     }
     this.config.Shops = this.config.Shops.filter((s) => s.Id !== id);
     store.saveConfig(this.config);
@@ -245,6 +252,17 @@ export class Controller extends EventEmitter {
       Id: shop.Id, Name: shop.Name, Url: shop.Url,
       Login: shop.Login || 'webmaster', Password: this.shopPassword(shop),
     };
+    // Przełącz log na kanał tego szablonu: wczytaj zapisaną historię (poprzednie
+    // sesje, renderowane jako wyszarzone) i oddziel ją separatorem od nowej
+    // sesji. Live-wpisy są dopisywane do pliku, więc historia przeżywa restart.
+    const history = store.readLogTail(shop.Name, template.Id, 300);
+    logbuf.setActiveChannel('tpl:' + shop.Id + ':' + template.Id, {
+      persist: (e) => store.appendLogEntry(shop.Name, template.Id, e),
+      history,
+    });
+    if (history.length) {
+      logbuf.separator('Nowa sesja • ' + new Date().toLocaleString('pl-PL', { hour12: false }));
+    }
     logbuf.logOk('Wybrano szablon: ' + template.Name + ' [' + template.Id + ']');
     const session = new SyncSession(sessShop, template, {
       insecureTLS: this.insecureTLS,
