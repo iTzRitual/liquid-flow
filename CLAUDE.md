@@ -113,8 +113,10 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
 - **Styl**: dopasuj się do otaczającego kodu; zwięzłe funkcje; bez nadmiarowych
   zależności (np. spinner/okno napisane ręcznie, nie z paczek).
 - **Commity**: Conventional Commits po angielsku (`feat(cli): …`, `fix(git): …`,
-  `style(cli): …`). **Bez** stopki „Co-Authored-By". Pracujemy bezpośrednio na
-  `main`; po zmianach commit + `git push origin main`. Remote:
+  `style(cli): …`). **Bez** stopki „Co-Authored-By". **Workflow**: po każdym
+  prompcie/zadaniu — commit + `git push origin main`. Wiadomość: typ zmian
+  (feat/fix/style/etc.) + krótkie streszczenie (jedna linia, co się zmieniło).
+  Pracujemy bezpośrednio na `main`. Remote:
   `git@github.com:iTzRitual/comarch-liquid-sync-2026.git`.
 - **Weryfikacja CLI**: render testuje się pod pseudo‑terminalem, np.
   `script -q /dev/null node apps/cli/bin/liquidflow.js` (kolory: `FORCE_COLOR=3`).
