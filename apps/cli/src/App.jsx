@@ -129,7 +129,7 @@ export default function App() {
       <Divider />
 
       {/* Log/progress chowamy gdy otwarta paleta — by lista + input zmieściły się */}
-      {mode.type === 'input' && !paletteOpen && log.length > 0 && <LogPane log={log} rows={logRows} />}
+      {mode.type === 'input' && !paletteOpen && log.length > 0 && <LogPane log={log} rows={logRows} cols={termCols} />}
       {mode.type === 'input' && !paletteOpen && progress && <ProgressView progress={progress} />}
       {mode.type === 'input' && !paletteOpen && (log.length > 0 || progress) && <Divider />}
 

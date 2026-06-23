@@ -91,8 +91,11 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
   `Banner` (ASCII + gradient tęczowy per znak, 17×6), `StatusBar` (`~` gdy
   niepołączony; Sklep/Szablon/Git tylko gdy istnieją; każdy wiersz to jeden
   `<Text wrap="truncate-end">`, więc przy wąskim oknie przycina się jako całość
-  zamiast łamać etykiety/dokładać puste linie), `LogPane` (obcina linie
-  `wrap="truncate-end"`), `Divider` (znak `─`, kolor `#82bbff`), `Picker`
+  zamiast łamać etykiety/dokładać puste linie), `LogPane` (wpisy ZAWIJAJĄ się
+  `wrap="wrap"`, by długie linie były czytelne w całości; liczy realną wysokość
+  każdego wpisu po zawinięciu tą samą `wrap-ansi`+hard co Ink i dobiera od
+  najnowszego tyle, ile mieści się w budżecie `rows`; `height`+`overflow:hidden`
+  jako bezpiecznik), `Divider` (znak `─`, kolor `#82bbff`), `Picker`
   (pozycje akcji + pozycje `kind:'toggle'` przełączane `←/→`), `Form` (pola
   tekstowe i `type:'choice'` Tak/Nie strzałkami), `ProgressView`+`Spinner`
   (loader pobierania/sprawdzania), `CommandPalette`. Layout nagłówka testuje się
@@ -139,8 +142,10 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
   aktualizuje `termRows` **i** `termCols`, co wymusza pełny re-render. Dzięki temu
   dividery/spacery zawsze mają 100% bieżącej szerokości, a Header przelicza układ.
 - **Anty‑przepełnienie (ważne!)**: Ink renderuje inline — jeśli ramka przekroczy
-  wysokość okna, dokleja kopię („rozdwojenie"). Dlatego: (1) długie linie są
-  obcinane, (2) listy są „okienkowane” przez `window.js` (`windowList`) z
+  wysokość okna, dokleja kopię („rozdwojenie"). Dlatego: (1) `LogPane` zawija
+  wpisy, ale liczy ich realną wysokość i pokazuje tylko tyle, ile mieści się w
+  budżecie wierszy (inne komponenty obcinają długie linie `truncate-end`),
+  (2) listy są „okienkowane” przez `window.js` (`windowList`) z
   wysokością liczoną z `termRows` i wskaźnikami `↑/↓ więcej`, (3) log chowa się
   gdy otwarta paleta, (4) input zawsze na dole. Przy zmianach layoutu pilnować,
   by suma wysokości ≤ `termRows`.
