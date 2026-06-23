@@ -5,8 +5,7 @@ import { log as corelog } from '@liquidflow/core';
 
 import { useController } from './useController.js';
 import { buildCommands } from './commands.js';
-import Banner from './components/Banner.jsx';
-import StatusBar from './components/StatusBar.jsx';
+import Header from './components/Header.jsx';
 import Divider from './components/Divider.jsx';
 import ProgressView from './components/ProgressView.jsx';
 import Spinner from './components/Spinner.jsx';
@@ -112,27 +111,7 @@ export default function App() {
 
   return (
     <Box flexDirection="column">
-      {/* Logo po lewej, nagłówek (nazwa + status) po prawej. Bez marginBottom —
-          dolny wiersz headera (z wskaźnikiem konfliktów) ma przylegać do Dividera. */}
-      <Box marginTop={1}>
-        {/* flexShrink=0 — logo nigdy się nie kurczy ani nie zawija, choćby
-            wskaźnik konfliktów zabierał szerokość. */}
-        <Box paddingLeft={1} flexShrink={0}><Banner /></Box>
-        {/* Status rośnie (flexGrow) i zabiera wolną szerokość — spycha wskaźnik
-            konfliktów do prawej krawędzi; przy ciasnocie to on się kurczy
-            (URL ma truncate-end), nie logo. */}
-        <Box marginLeft={3} marginTop={1} flexGrow={1} flexShrink={1} flexDirection="column">
-          <StatusBar state={state} git={git} />
-        </Box>
-        {/* Konflikty: prawy-dolny róg headera. flexShrink=0 → nigdy się nie
-            zawija (jedna linia); alignItems flex-end → przyklejone do dołu, czyli
-            do Dividera. Niezależne od kolumny statusu i nie dokłada wiersza. */}
-        <Box flexShrink={0} alignItems="flex-end" paddingRight={1}>
-          {mismatches.length > 0 && (
-            <Text color="red">⚠ Konflikty: {mismatches.length} (/conflicts)</Text>
-          )}
-        </Box>
-      </Box>
+      <Header state={state} git={git} mismatches={mismatches} />
 
       <Divider />
 

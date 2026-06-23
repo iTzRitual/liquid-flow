@@ -85,13 +85,18 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
   (lista wyboru), `form` (sekwencyjny formularz), `loading` (spinner na czas
   pobierania). Helpery w `ctx`: `openPicker`, `openForm`, `withLoading`,
   `skipToInput`, `safe`.
-- **Komponenty**: `Banner` (ASCII + gradient tęczowy per znak), `StatusBar`
-  (nagłówek; `~` gdy niepołączony; Sklep/Szablon/Git tylko gdy istnieją;
-  konflikty osobno — czerwone, do prawej), `LogPane` (obcina linie
+- **Komponenty**: `Header` (nagłówek = 2 kolumny: logo i informacje; logo ma
+  `flexShrink=0`, kolumna informacji `flexGrow=1` + `justifyContent="space-between"`
+  — status u góry, wskaźnik konfliktów do prawej i przyklejony do dołu/Dividera),
+  `Banner` (ASCII + gradient tęczowy per znak, 17×6), `StatusBar` (`~` gdy
+  niepołączony; Sklep/Szablon/Git tylko gdy istnieją; każdy wiersz to jeden
+  `<Text wrap="truncate-end">`, więc przy wąskim oknie przycina się jako całość
+  zamiast łamać etykiety/dokładać puste linie), `LogPane` (obcina linie
   `wrap="truncate-end"`), `Divider` (znak `─`, kolor `#82bbff`), `Picker`
   (pozycje akcji + pozycje `kind:'toggle'` przełączane `←/→`), `Form` (pola
   tekstowe i `type:'choice'` Tak/Nie strzałkami), `ProgressView`+`Spinner`
-  (loader pobierania/sprawdzania), `CommandPalette`.
+  (loader pobierania/sprawdzania), `CommandPalette`. Layout nagłówka testuje się
+  na różnych szerokościach: `node apps/cli/test/header-widths.mjs`.
 - **Anty‑przepełnienie (ważne!)**: Ink renderuje inline — jeśli ramka przekroczy
   wysokość okna, dokleja kopię („rozdwojenie"). Dlatego: (1) długie linie są
   obcinane, (2) listy są „okienkowane” przez `window.js` (`windowList`) z

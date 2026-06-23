@@ -12,27 +12,26 @@ export default function StatusBar({ state, git }) {
   const shop = state?.currentShop;
   const tpl = state?.currentTemplate;
 
+  // Każdy wiersz to pojedynczy <Text wrap="truncate-end"> — przy wąskim oknie
+  // przycina się jako całość zamiast łamać etykiety/dokładać puste linie.
   return (
     <Box flexDirection="column">
-      <Text color="#4da3ff" bold>Liquid Flow CLI 0.9</Text>
+      <Text color="#4da3ff" bold wrap="truncate-end">Liquid Flow CLI 0.9</Text>
 
       {shop
-        ? <Box><Text color="gray">Sklep:   </Text><Text color="green" wrap="truncate-end">● {shop.Name}  <Text color="gray">{shop.Url}</Text></Text></Box>
+        ? <Text wrap="truncate-end"><Text color="gray">Sklep:   </Text><Text color="green">● {shop.Name}</Text><Text color="gray">  {shop.Url}</Text></Text>
         : <Text color="gray">~</Text>}
 
       {tpl && (
-        <Box>
-          <Text color="gray">Szablon: </Text>
-          <Text wrap="truncate-end"><Text color="cyan">{tpl.Name}</Text><Text color="gray"> [{tpl.Id}]</Text></Text>
-        </Box>
+        <Text wrap="truncate-end"><Text color="gray">Szablon: </Text><Text color="cyan">{tpl.Name}</Text><Text color="gray"> [{tpl.Id}]</Text></Text>
       )}
 
       {git?.active && (
-        <Box>
+        <Text wrap="truncate-end">
           <Text color="gray">Git:     </Text>
           {git.autoCommit ? <Text color="green">commit ✓ </Text> : <Text color="gray">commit ✗ </Text>}
           {git.autoPush ? <Text color="green">push ✓</Text> : <Text color="gray">push ✗</Text>}
-        </Box>
+        </Text>
       )}
     </Box>
   );
