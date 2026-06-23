@@ -112,13 +112,18 @@ export default function App() {
 
   return (
     <Box flexDirection="column">
-      {/* Logo po lewej, nagłówek (nazwa + status) po prawej */}
-      <Box marginTop={1} marginBottom={1}>
+      {/* Logo po lewej, nagłówek (nazwa + status) po prawej. Bez marginBottom —
+          dolny wiersz headera (z wskaźnikiem konfliktów) ma przylegać do Dividera. */}
+      <Box marginTop={1}>
         <Box paddingLeft={1}><Banner /></Box>
-        {/* Kolumna rozciąga się do wysokości logo; status u góry, konflikty
-            przypięte do dołu (puste pole) — pojawienie się nie spycha układu. */}
-        <Box marginLeft={3} marginTop={1} marginBottom={1} flexDirection="column" justifyContent="space-between">
+        <Box marginLeft={3} marginTop={1} flexDirection="column">
           <StatusBar state={state} git={git} />
+        </Box>
+        {/* Konflikty: prawy-dolny róg headera — dosunięte w prawo (flex-end) i
+            przyklejone do dołu (alignItems flex-end), niezależnie od kolumny
+            statusu. flexGrow zabiera resztę szerokości; wysokość headera
+            wyznacza logo, więc nie dokłada wiersza ani nie spycha układu. */}
+        <Box flexGrow={1} justifyContent="flex-end" alignItems="flex-end" paddingRight={1}>
           {mismatches.length > 0 && (
             <Text color="red">⚠ Konflikty: {mismatches.length} (/conflicts)</Text>
           )}
