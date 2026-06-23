@@ -149,8 +149,15 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
   który pilnuje własnego budżetu wierszy), (2) listy są „okienkowane” przez
   `window.js` (`windowList`) z
   wysokością liczoną z `termRows` i wskaźnikami `↑/↓ więcej`, (3) log chowa się
-  gdy otwarta paleta, (4) input zawsze na dole. Przy zmianach layoutu pilnować,
+  gdy otwarta paleta, (4) input przypięty do dołu. Przy zmianach layoutu pilnować,
   by suma wysokości ≤ `termRows`.
+- **Wypełnianie wysokości (input na dole)**: gdy okno jest sensownie wysokie
+  (`fillHeight = termRows >= 16`), root dostaje `height={termRows-1}`, a obszar
+  logu w trybie `input` ma `flexGrow={1}` + `justifyContent="flex-end"` — input
+  stoi stabilnie na dole, a log rośnie w górę i wypełnia okno (bez sztywnego
+  limitu; `logRows = termRows - HEADER - progress - 3`). Na niskim oknie
+  `height` jest `undefined` → naturalny przepływ (flexGrow zwija się do treści),
+  więc nic nie wystaje. Zasadę layoutu sprawdza `node apps/cli/test/fill-height.mjs`.
 - **Slash‑komendy** (`commands.js`, `buildCommands(ctx)`): `/connect /login
   /shops /templates /conflicts /git /open /lang /logout /log /clear /remove
   /exit(quit)`. Wpisanie `/` filtruje paletę; lista startowa „Połącz ze sklepem"

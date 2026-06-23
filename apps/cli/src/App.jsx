@@ -119,7 +119,13 @@ export default function App() {
   // informacje są pod sobą, więc nagłówek jest wyższy.
   const stackedHeader = termCols < HEADER_STACK_COLS;
   const HEADER = stackedHeader ? 14 : 9; // logo(6)+marginesy+status(+konflikty)+divider
-  const logRows = Math.max(3, Math.min(16, termRows - HEADER - 6));
+  // Log wypełnia całą dostępną wysokość (bez sztywnego limitu 16). Pasek postępu,
+  // gdy widoczny, zajmuje 1 wiersz — odejmujemy go z budżetu.
+  const progressRows = progress ? 1 : 0;
+  const logRows = Math.max(3, termRows - HEADER - progressRows - 3);
+  // Na sensownie wysokim oknie przypinamy input do dołu (flexGrow w obszarze
+  // logu); na niskim wracamy do naturalnego przepływu, by nic nie wystawało.
+  const fillHeight = termRows >= 16;
   // pełny log: cała przestrzeń pod nagłówkiem
   const logViewRows = Math.max(6, termRows - HEADER - 1);
   // paleta: pod nagłówkiem zostaje miejsce na input; log chowamy gdy paleta otwarta
@@ -128,15 +134,10 @@ export default function App() {
   const pickerMax = Math.max(3, termRows - HEADER - 5);
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" height={fillHeight ? termRows - 1 : undefined}>
       <Header state={state} git={git} mismatches={mismatches} cols={termCols} />
 
       <Divider />
-
-      {/* Log/progress chowamy gdy otwarta paleta — by lista + input zmieściły się */}
-      {mode.type === 'input' && !paletteOpen && log.length > 0 && <LogPane log={log} rows={logRows} />}
-      {mode.type === 'input' && !paletteOpen && progress && <ProgressView progress={progress} />}
-      {mode.type === 'input' && !paletteOpen && (log.length > 0 || progress) && <Divider />}
 
       {mode.type === 'logview' && (
         <LogView log={log} rows={logViewRows} cols={termCols} onCancel={() => setMode({ type: 'input' })} />
@@ -159,7 +160,20 @@ export default function App() {
 
       {mode.type === 'input' && (
         <>
-          {paletteOpen && <CommandPalette items={filtered} index={highlight} maxRows={paletteMax} />}
+          {/* Środek rośnie i wypycha input na sam dół; log/postęp/paleta hugują
+              dół (tuż nad inputem). Input stoi stabilnie na dole, a log rośnie w
+              górę, wypełniając wysokość. Gdy paleta otwarta — chowamy log. */}
+          <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
+            {paletteOpen
+              ? <CommandPalette items={filtered} index={highlight} maxRows={paletteMax} />
+              : (
+                <>
+                  {log.length > 0 && <LogPane log={log} rows={logRows} />}
+                  {progress && <ProgressView progress={progress} />}
+                </>
+              )}
+          </Box>
+          {!paletteOpen && (log.length > 0 || progress) && <Divider />}
           <Box paddingLeft={1}>
             <Text color="#ff5a1f">› </Text>
             <TextInput
