@@ -88,10 +88,17 @@ export default function App() {
     if (target) target.run();
   };
 
-  // Wysokość logu dobrana tak, by nagłówek + paleta + input + log mieściły się
-  // w terminalu (inaczej Ink dokleja kolejną klatkę = zdublowany layout).
-  const reserve = 15 + (filtered.length ? filtered.length + 1 : 0);
-  const logRows = Math.max(3, Math.min(16, termRows - reserve));
+  // Wysokości dynamiczne, by całość zawsze mieściła się w oknie (inaczej Ink
+  // dokleja kolejną klatkę = zdublowany layout). Stałe „chrome" = nagłówek
+  // (logo+marginesy) + dividery + input + zapas.
+  const paletteOpen = filtered.length > 0;
+  const HEADER = 9;             // logo (6) + marginTop/Bottom (2) + divider (1)
+  const conflictRows = mismatches.length > 0 ? 1 : 0;
+  const logRows = Math.max(3, Math.min(16, termRows - HEADER - conflictRows - 6));
+  // paleta: pod nagłówkiem zostaje miejsce na input; log chowamy gdy paleta otwarta
+  const paletteMax = Math.max(3, termRows - HEADER - conflictRows - 2);
+  // picker: ma ramkę (2) + tytuł (1) + stopkę (1) + zapas (1)
+  const pickerMax = Math.max(3, termRows - HEADER - conflictRows - 5);
 
   return (
     <Box flexDirection="column">
@@ -112,12 +119,13 @@ export default function App() {
 
       <Divider />
 
-      {mode.type === 'input' && log.length > 0 && <LogPane log={log} rows={logRows} />}
-      {mode.type === 'input' && progress && <ProgressView progress={progress} />}
-      {mode.type === 'input' && (log.length > 0 || progress) && <Divider />}
+      {/* Log/progress chowamy gdy otwarta paleta — by lista + input zmieściły się */}
+      {mode.type === 'input' && !paletteOpen && log.length > 0 && <LogPane log={log} rows={logRows} />}
+      {mode.type === 'input' && !paletteOpen && progress && <ProgressView progress={progress} />}
+      {mode.type === 'input' && !paletteOpen && (log.length > 0 || progress) && <Divider />}
 
       {mode.type === 'picker' && (
-        <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => setMode({ type: 'input' })} />
+        <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => setMode({ type: 'input' })} maxRows={pickerMax} />
       )}
 
       {mode.type === 'form' && (
@@ -126,7 +134,7 @@ export default function App() {
 
       {mode.type === 'input' && (
         <>
-          {filtered.length > 0 && <CommandPalette items={filtered} index={highlight} />}
+          {paletteOpen && <CommandPalette items={filtered} index={highlight} maxRows={paletteMax} />}
           <Box paddingLeft={1}>
             <Text color="#ff5a1f">› </Text>
             <TextInput
