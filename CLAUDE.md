@@ -90,7 +90,8 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
 - **Model trybów w `App.jsx`** (`mode.type`): `input` (prompt + paleta), `picker`
   (lista wyboru), `form` (sekwencyjny formularz), `loading` (spinner na czas
   pobierania). Helpery w `ctx`: `openPicker`, `openForm`, `withLoading`,
-  `skipToInput`, `safe`.
+  `skipToInput`, `safe`, oraz `logWrap`/`setLogWrap` (tryb zawijania logów dla
+  komendy `/wrap`).
 - **Komponenty**: `Header` (nagłówek = 2 kolumny: logo i informacje; logo ma
   `flexShrink=0`, kolumna informacji `flexGrow=1` + `justifyContent="space-between"`
   — status u góry, wskaźnik konfliktów do prawej i przyklejony do dołu/Dividera),
@@ -102,7 +103,10 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
   do „wizualnych wierszy": `wrap=false` → 1 wpis/wiersz `truncate-end`,
   `wrap=true` (`/wrap`) → długie wpisy zawijane przez `wrap-ansi`+hard. Render
   okienkuje vlines wg `scroll` (ile wierszy od dołu; 0 = najnowsze) i zawsze
-  mieści się w budżecie `rows` — wskaźniki „↑/↓ więcej" zabierają wiersz z okna),
+  mieści się w budżecie `rows` — wskaźniki „↑/↓ więcej" zabierają wiersz z okna.
+  **Inwariant scrolla:** `maxScroll = vlines - rows + 1` (górny wskaźnik „↓" zabiera
+  wiersz, więc bez `+1` najstarszych wpisów nie da się odsłonić) — `App.jsx`
+  i `LogPane` MUSZĄ liczyć tak samo. Test: `node apps/cli/test/logpane-scroll.mjs`),
   `Divider` (znak `─`, kolor `#82bbff`), `Picker`
   (pozycje akcji + pozycje `kind:'toggle'` przełączane `←/→`), `Form` (pola
   tekstowe i `type:'choice'` Tak/Nie strzałkami), `ProgressView`+`Spinner`
@@ -163,7 +167,11 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
   stoi stabilnie na dole, a log rośnie w górę i wypełnia okno (bez sztywnego
   limitu; `logRows = termRows - HEADER - progress - 3`). Na niskim oknie
   `height` jest `undefined` → naturalny przepływ (flexGrow zwija się do treści),
-  więc nic nie wystaje. Zasadę layoutu sprawdza `node apps/cli/test/fill-height.mjs`.
+  więc nic nie wystaje. **`HEADER` musi odpowiadać REALNEJ wysokości nagłówka**
+  (non‑stacked = 8: marginTop 1 + logo 6 + górny divider 1; logo zawsze dominuje
+  nad kolumną informacji): za duża → pusta linia nad logiem, za mała →
+  przepełnienie. Zasadę layoutu (w tym brak pustej linii) sprawdza
+  `node apps/cli/test/fill-height.mjs`.
 - **Slash‑komendy** (`commands.js`, `buildCommands(ctx)`): `/connect /login
   /shops /templates /conflicts /git /open /lang /logout /wrap /clear /remove
   /exit(quit)`. `/wrap` przełącza zawijanie logów (alternatywne wyświetlanie).
@@ -212,7 +220,13 @@ Liquid Flow, kompletny interaktywny CLI (Ink) z paletą komend, pickerami i
 formularzami. Doszlifowane: zapisywanie hasła z auto‑loginem (`signInSaved`),
 rozłączanie (`logout`), płaskie menu `/git` z inline togglami i wykrywaniem repo,
 czytelna sekwencja startu synchronizacji z loaderem ASCII, ekran ładowania listy
-szablonów, alt‑screen, okienkowanie list, repo git w trybie `0`.
+szablonów, alt‑screen, okienkowanie list, repo git w trybie `0`. Nowsze (CLI):
+przebudowa konfliktów na ekran `/conflicts` (akcje pojedyncze + seryjne z
+potwierdzeniem, 3 znaczniki czasu, „która strona nowsza"), cykliczne przeliczanie
+konfliktów w tle (`POLL_MS`, bez `/refresh`), responsywny nagłówek (2 kolumny ↔
+2 wiersze, pełne przerysowanie przy resize, spacery 100%), log na ekranie głównym
+przewijany kółkiem/strzałkami + tryb zawijania `/wrap` (zamiast osobnego widoku),
+oraz wypełnianie wysokości okna z inputem przypiętym do dołu.
 
 Znane/otwarte tematy: pełne i18n logów (część PL na sztywno); ewentualne
 ulepszenia czytelności logów (ikony poziomów `✓/ℹ/✗`, „Pobrano/Wysłano" zamiast
