@@ -12,15 +12,17 @@ function hslToHex(h, s, l) {
   return '#' + toHex(f(0)) + toHex(f(8)) + toHex(f(4));
 }
 
-// Barwa znaku z jego odległości od środka logo: gradient promienisty — wzór
-// „startuje" w środku (czerwień) i rozchodzi się tęczą aż do krawędzi (fiolet).
-// Znaki w terminalu są ~2x wyższe niż szersze, więc oś Y skalujemy.
-function hueFor(x, y, cx, cy, maxDist) {
+// Barwa znaku z jego kąta wokół środka — gradient płynie wzdłuż spirali:
+// start na dole-środku (czerwień), obrót przez lewą, górę, prawą i koniec
+// po prawej-dole (fiolet). Znaki w terminalu są ~2x wyższe niż szersze,
+// więc oś Y skalujemy, żeby kąt był geometrycznie poprawny.
+function hueFor(x, y, cx, cy) {
   const dx = x - cx;
   const dy = (y - cy) * 2;
-  const d = Math.sqrt(dx * dx + dy * dy);
-  const t = maxDist === 0 ? 0 : d / maxDist; // 0 (środek) .. 1 (krawędź)
-  return t * 300;                            // czerwień 0° -> fiolet 300°
+  let a = Math.atan2(dy, dx) * 180 / Math.PI; // -180..180, dół = +90°
+  a = (a + 360) % 360;                          // 0..360
+  const t = (a - 90 + 360) % 360;               // 0 = dół, rośnie przez lewą/górę/prawą
+  return (t / 360) * 300;                        // czerwień 0° -> fiolet 300°
 }
 
 // Banner: blokowy art z proceduralnym gradientem tęczowym (kolor per znak).
@@ -29,8 +31,6 @@ export default function Banner() {
   const height = ART.length;
   const cx = (width - 1) / 2;
   const cy = (height - 1) / 2;
-  // Maks. odległość od środka (róg) — normalizacja gradientu.
-  const maxDist = Math.sqrt(cx * cx + (cy * 2) * (cy * 2));
   return (
     <Box flexDirection="column">
       {ART.map((line, y) => (
@@ -38,7 +38,7 @@ export default function Banner() {
           {[...line].map((ch, x) =>
             ch === ' '
               ? <Text key={x}> </Text>
-              : <Text key={x} color={hslToHex(hueFor(x, y, cx, cy, maxDist), 95, 60)}>{ch}</Text>)}
+              : <Text key={x} color={hslToHex(hueFor(x, y, cx, cy), 95, 60)}>{ch}</Text>)}
         </Text>
       ))}
     </Box>
