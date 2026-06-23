@@ -5,11 +5,29 @@
 import { LANGUAGES, MismatchType, log } from '@liquidflow/core';
 import { openExternal } from './open.js';
 
-const MISMATCH_LABEL = {
-  [MismatchType.Timestamp]: 'zmienione po obu stronach',
-  [MismatchType.LocalMissing]: 'tylko zdalnie (brak lokalnie)',
-  [MismatchType.RemoteMissing]: 'tylko lokalnie (brak zdalnie)',
-};
+// Krótki znacznik czasu MM-DD HH:MM (lub '—' gdy brak).
+function fmtTs(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return String(ts);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// Podpowiedź w liście konfliktów: co zrobić + który nowszy (na podstawie
+// czasu pliku na dysku vs czasu po stronie sklepu).
+function conflictHint(m) {
+  if (m.Type === MismatchType.LocalMissing) return 'tylko zdalnie → pobierz';
+  if (m.Type === MismatchType.RemoteMissing) return 'tylko lokalnie → wyślij';
+  const f = new Date(m.FileTs).getTime();
+  const r = new Date(m.RemoteTs).getTime();
+  let who = 'zmienione obustronnie';
+  if (!Number.isNaN(f) && !Number.isNaN(r)) {
+    if (f > r) who = 'lokalny nowszy → wyślij';
+    else if (r > f) who = 'zdalny nowszy → pobierz';
+  }
+  return `${who}  (lok ${fmtTs(m.FileTs)} · zdal ${fmtTs(m.RemoteTs)})`;
+}
 
 export function buildCommands(ctx) {
   const { ctrl, state, mismatches, git, shops, refreshShops, clearLog, openPicker, openForm, exit, safe, skipToInput, withLoading } = ctx;
@@ -98,7 +116,7 @@ export function buildCommands(ctx) {
 
     const items = mismatches.map((m) => ({
       label: `${m.File.Name}`,
-      hint: MISMATCH_LABEL[m.Type] || m.Type,
+      hint: conflictHint(m),
       value: { kind: 'file', m },
     }));
     // pozycje seryjne na końcu listy (jak „przyciski”)
@@ -123,7 +141,9 @@ export function buildCommands(ctx) {
       if (m.Type !== MismatchType.LocalMissing) actions.push({ label: '↑ Wyślij (lokalna → sklep)', value: 'upload' });
       actions.push({ label: '🗑 Usuń lokalnie', value: 'removeLocal' });
       actions.push({ label: '🗑 Usuń w sklepie', value: 'removeRemote' });
-      openPicker(`Akcja: ${m.File.Name}`, actions,
+      // tytuł: trzy znaczniki czasu jak w desktopie — użytkownik sam decyduje
+      const tsLine = `📄 plik ${fmtTs(m.FileTs)}   💾 lokalny ${fmtTs(m.LocalTs)}   ☁️ zdalny ${fmtTs(m.RemoteTs)}`;
+      openPicker(`Akcja: ${m.File.Name}\n${tsLine}`, actions,
         (a) => safe(() => ctrl.runCommand({ comm: a.value, file: m.File, type: m.Type })));
     });
   };
@@ -202,7 +222,6 @@ export function buildCommands(ctx) {
       } },
     { name: '/templates', desc: 'wybierz szablon', run: () => goTemplates() },
     { name: '/conflicts', desc: 'rozwiąż konflikty (pojedynczo + seryjnie)', run: () => showConflicts() },
-    { name: '/refresh', desc: 'przelicz konflikty', run: () => safe(() => ctrl.runCommand({ comm: 'refresh' })) },
     { name: '/git', desc: 'wersjonowanie i backup', run: () => gitMenu() },
     { name: '/open', desc: 'otwórz folder lokalny', run: () => { const d = ctrl.currentFolder(); if (d) { openExternal(d); log.logInfo('Otwieram: ' + d); } else log.logErr('Brak aktywnego szablonu'); } },
     { name: '/lang', desc: 'zmień język', run: () => openPicker('Język', LANGUAGES.map((l) => ({ label: l.Name, value: l })), (it) => { ctrl.setLanguage(it.value.Id); log.logInfo('Język: ' + it.value.Name); }) },

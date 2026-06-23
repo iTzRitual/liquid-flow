@@ -104,12 +104,11 @@ export default function App() {
   // (logo+marginesy) + dividery + input + zapas.
   const paletteOpen = filtered.length > 0;
   const HEADER = 9;             // logo (6) + marginTop/Bottom (2) + divider (1)
-  const conflictRows = mismatches.length > 0 ? 1 : 0;
-  const logRows = Math.max(3, Math.min(16, termRows - HEADER - conflictRows - 6));
+  const logRows = Math.max(3, Math.min(16, termRows - HEADER - 6));
   // paleta: pod nagłówkiem zostaje miejsce na input; log chowamy gdy paleta otwarta
-  const paletteMax = Math.max(3, termRows - HEADER - conflictRows - 2);
+  const paletteMax = Math.max(3, termRows - HEADER - 2);
   // picker: ma ramkę (2) + tytuł (1) + stopkę (1) + zapas (1)
-  const pickerMax = Math.max(3, termRows - HEADER - conflictRows - 5);
+  const pickerMax = Math.max(3, termRows - HEADER - 5);
 
   return (
     <Box flexDirection="column">
@@ -117,16 +116,9 @@ export default function App() {
       <Box marginTop={1} marginBottom={1}>
         <Box paddingLeft={1}><Banner /></Box>
         <Box marginLeft={3} marginTop={1} flexDirection="column">
-          <StatusBar state={state} git={git} />
+          <StatusBar state={state} git={git} mismatches={mismatches} />
         </Box>
       </Box>
-
-      {/* Konflikty: pojawiają się tylko gdy istnieją — dolna linia, do prawej, czerwone */}
-      {mismatches.length > 0 && (
-        <Box justifyContent="flex-end" paddingRight={1}>
-          <Text color="red">⚠ Konflikty: {mismatches.length} (/conflicts)</Text>
-        </Box>
-      )}
 
       <Divider />
 

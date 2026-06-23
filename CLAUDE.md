@@ -99,12 +99,16 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
   gdy otwarta paleta, (4) input zawsze na dole. Przy zmianach layoutu pilnować,
   by suma wysokości ≤ `termRows`.
 - **Slash‑komendy** (`commands.js`, `buildCommands(ctx)`): `/connect /login
-  /shops /templates /conflicts /refresh /git /open /lang /logout /remove /clear
+  /shops /templates /conflicts /git /open /lang /logout /remove /clear
   /exit(quit)`. Wpisanie `/` filtruje paletę; lista startowa „Połącz ze sklepem"
   otwiera się automatycznie gdy niepołączony, a `/` ją przeskakuje. Operacje
   seryjne (pobierz/wyślij wszystkie) nie są osobnymi komendami — żyją na końcu
   ekranu `/conflicts` jako pozycje z potwierdzeniem (sens mają tylko przy
-  konfliktach). Wskaźnik konfliktów w nagłówku kieruje do `/conflicts`.
+  konfliktach). Ekran `/conflicts` pokazuje przy każdym pliku, która strona jest
+  nowsza, a w widoku akcji trzy znaczniki czasu (📄 plik / 💾 lokalny / ☁️
+  zdalny). Wskaźnik konfliktów siedzi w nagłówku (obok logo, nie spycha układu)
+  i kieruje do `/conflicts`. Nie ma `/refresh` — `SyncSession` przelicza
+  konflikty cyklicznie w tle (`POLL_MS`), wyłapując zmiany po stronie sklepu.
 
 ## Konwencje kodu
 

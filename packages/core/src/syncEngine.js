@@ -16,6 +16,9 @@ import { translationsFor } from './translations.js';
 const MAX_NAME_LEN = 64;
 const MAX_FILE_SIZE = 519168;
 const DEBOUNCE_MS = 333;
+// Cykliczne przeliczanie konfliktów w tle — wykrywa zmiany po stronie sklepu
+// (panel admina, inny użytkownik), o których watcher plików lokalnych nie wie.
+const POLL_MS = 20000;
 const IMAGE_EXT = new Set(['.gif', '.jpg', '.jpeg', '.png', '.ico', '.svg']);
 
 export const MismatchType = {
@@ -52,6 +55,7 @@ export class SyncSession {
     this.mismatches = [];
     this.watcher = null;
     this.watcherActive = false;
+    this._pollTimer = null; // cykliczne przeliczanie konfliktów (zmiany zdalne)
     this._debounce = new Map(); // path -> timer
     this._queue = Promise.resolve(); // serializacja operacji SOAP
     this.onSynced = opts.onSynced || null; // hook po każdej udanej operacji (np. git)
@@ -85,15 +89,41 @@ export class SyncSession {
     logOk('Sprawdzono niezgodności — konflikty: ' + this.mismatches.length);
 
     this._startWatcher();
+    this._startPoll();
     this._progress({ phase: 'ready', template: this.template.Name });
     logOk('Synchronizacja aktywna — hot-reload (' + this.template.Name + ')');
   }
 
   dispose() {
+    this._stopPoll();
     this._stopWatcher();
     for (const tm of this._debounce.values()) clearTimeout(tm);
     this._debounce.clear();
     logInfo(this.t.SyncStopped);
+  }
+
+  // ---- cykliczne przeliczanie konfliktów (zmiany zdalne) ----
+  // Watcher reaguje tylko na zmiany lokalne (wysyła je od razu). Zmian po stronie
+  // sklepu nie widzi — dlatego co POLL_MS przeliczamy niezgodności w tle i (gdy
+  // konfliktów przybyło) ostrzegamy w logu; wskaźnik w nagłówku i tak się odświeży.
+  _startPoll() {
+    if (this._pollTimer) return;
+    this._pollTimer = setInterval(() => {
+      this._enqueue(() => this._pollRefresh()).catch(() => {});
+    }, POLL_MS);
+    if (this._pollTimer.unref) this._pollTimer.unref();
+  }
+
+  _stopPoll() {
+    if (this._pollTimer) { clearInterval(this._pollTimer); this._pollTimer = null; }
+  }
+
+  async _pollRefresh() {
+    const prev = this.mismatches.length;
+    await this.refreshMismatches({ silent: true });
+    if (this.mismatches.length > prev) {
+      logInfo('⚠ Wykryto zmiany zdalne — konflikty: ' + this.mismatches.length + ' (/conflicts)');
+    }
   }
 
   // Pierwsze pobranie wszystkich plików szablonu do katalogu lokalnego.
@@ -272,9 +302,9 @@ export class SyncSession {
         result.push({
           File: { TemplateId: this.templateId, Mode: l.mode, Name: l.name },
           Type: MismatchType.Timestamp,
-          FileTs: l.fileTs,
-          LocalTs: m ? m.localts : null,
-          RemoteTs: m ? m.remotets : null,
+          FileTs: l.fileTs,         // aktualny czas pliku na dysku
+          LocalTs: m ? m.localts : null,   // ostatni zsynchronizowany lokalny
+          RemoteTs: r.Date,         // aktualny czas po stronie sklepu
         });
       }
     }
