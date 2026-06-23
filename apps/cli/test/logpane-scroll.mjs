@@ -41,8 +41,16 @@ async function show(title, cols, wrap, scroll) {
   if (lines.length > ROWS) console.log(`!!! PRZEKROCZONO BUDŻET (${lines.length} > ${ROWS})`);
 }
 
+// maxScroll jak w App.jsx (+1 na wskaźnik „↓")
+const maxScroll = (wrap, cols) => {
+  const n = buildVlines(log, wrap, cols).length;
+  return n > ROWS ? n - ROWS + 1 : 0;
+};
+
 await show('dół, bez zawijania', 70, false, 0);
 await show('przewinięte w górę, bez zawijania', 70, false, 3);
+await show('SAMA GÓRA, bez zawijania', 70, false, maxScroll(false, 70));
 await show('dół, zawijanie', 46, true, 0);
 await show('przewinięte w górę, zawijanie', 46, true, 5);
+await show('SAMA GÓRA, zawijanie', 46, true, maxScroll(true, 46));
 process.exit(0);

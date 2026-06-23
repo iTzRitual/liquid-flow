@@ -43,7 +43,9 @@ export function buildVlines(log, wrap, cols) {
 // budżecie `rows` — wskaźniki „↑/↓ więcej" zabierają wiersz z okna treści.
 export default function LogPane({ vlines, rows = 10, scroll = 0 }) {
   const total = vlines.length;
-  const maxScroll = Math.max(0, total - rows);
+  // +1, bo na górze wskaźnik „↓ nowszych" zabiera wiersz z okna — inaczej
+  // najstarszych wpisów (tyle, ile zajmują wskaźniki) nie dałoby się odsłonić.
+  const maxScroll = total > rows ? total - rows + 1 : 0;
   const off = Math.min(Math.max(0, scroll), maxScroll);
   const end = total - off;
 

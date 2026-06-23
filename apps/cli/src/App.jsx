@@ -112,7 +112,9 @@ export default function App() {
   const pickerMax = Math.max(3, termRows - HEADER - 5);
   // log: wizualne wiersze (zależne od trybu zawijania i szerokości) + zakres scrolla
   const vlines = useMemo(() => buildVlines(log, logWrap, termCols), [log, logWrap, termCols]);
-  const maxScroll = Math.max(0, vlines.length - logRows);
+  // +1, bo na górze wskaźnik „↓ nowszych" zabiera wiersz z okna; bez tego
+  // najstarsze wpisy (tyle, ile zajmują wskaźniki) byłyby nieosiągalne.
+  const maxScroll = vlines.length > logRows ? vlines.length - logRows + 1 : 0;
   const logScrollClamped = Math.min(logScroll, maxScroll);
 
   // Klawiatura/scroll w trybie input. Paleta otwarta → nawigacja palety; paleta
