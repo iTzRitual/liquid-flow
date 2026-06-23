@@ -98,7 +98,10 @@ export default function App() {
   // Wysokość „chrome" nagłówka. W układzie pionowym (wąskie okno) logo i
   // informacje są pod sobą, więc nagłówek jest wyższy.
   const stackedHeader = termCols < HEADER_STACK_COLS;
-  const HEADER = stackedHeader ? 14 : 9; // logo(6)+marginesy+status(+konflikty)+divider
+  // Realna wysokość nagłówka: marginTop(1)+logo(6)=7, plus górny divider=8 (logo
+  // zawsze dominuje nad kolumną informacji). Dokładna wartość sprawia, że log
+  // przylega do górnego dividera (brak pustej linii). Stackowany jest wyższy.
+  const HEADER = stackedHeader ? 14 : 8;
   // Log wypełnia całą dostępną wysokość (bez sztywnego limitu 16). Pasek postępu,
   // gdy widoczny, zajmuje 1 wiersz — odejmujemy go z budżetu.
   const progressRows = progress ? 1 : 0;
