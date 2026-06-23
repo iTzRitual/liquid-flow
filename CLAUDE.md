@@ -125,7 +125,19 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
      wartość jako zagnieżdżone `<Text>`). Inaczej przy wąskim oknie łamią się
      etykiety i pojawiają puste linie. Jedyny element, który ustępuje szerokości,
      to kolumna informacji (URL się przycina) — logo i wskaźnik nigdy.
-  6. Po zmianach: `node apps/cli/test/header-widths.mjs` (sprawdza 30–120 kol.).
+  6. **Bardzo wąskie okno (`cols < HEADER_STACK_COLS`, próg w `Header.jsx`)**:
+     układ przełącza się z 2 kolumn na 2 wiersze (logo na górze, informacje na
+     pełną szerokość pod spodem). `App.jsx` przekazuje `cols={termCols}` i dla
+     stackowanego nagłówka zwiększa stałą `HEADER` (jest wyższy).
+  7. Po zmianach: `node apps/cli/test/header-widths.mjs` (sprawdza 30–120 kol.,
+     w tym przełączenie kolumny↔wiersze).
+- **Resize / spacery (100% szerokości)**: Ink przy resize tylko przelicza Yogę na
+  istniejącym drzewie — **nie wywołuje ponownie komponentów** i nie czyści ekranu,
+  więc statyczne stringi (np. `'─'.repeat(cols)` w `Divider`) zostają w starym
+  rozmiarze i terminal je zawija. Dlatego `App.jsx` w handlerze `resize`: (1) pisze
+  `\x1b[2J\x1b[3J\x1b[H` (pełne czyszczenie — bez zawiniętych resztek), (2)
+  aktualizuje `termRows` **i** `termCols`, co wymusza pełny re-render. Dzięki temu
+  dividery/spacery zawsze mają 100% bieżącej szerokości, a Header przelicza układ.
 - **Anty‑przepełnienie (ważne!)**: Ink renderuje inline — jeśli ramka przekroczy
   wysokość okna, dokleja kopię („rozdwojenie"). Dlatego: (1) długie linie są
   obcinane, (2) listy są „okienkowane” przez `window.js` (`windowList`) z

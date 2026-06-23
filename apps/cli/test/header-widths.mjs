@@ -30,7 +30,7 @@ const mismatches = [1, 2, 3, 4];
 
 async function frameAt(columns) {
   const out = fakeStdout(columns);
-  const app = render(React.createElement(Header, { state, git, mismatches }), { stdout: out, patchConsole: false });
+  const app = render(React.createElement(Header, { state, git, mismatches, cols: columns }), { stdout: out, patchConsole: false });
   await new Promise((r) => setImmediate(r));
   app.unmount();
   return strip(out.last);

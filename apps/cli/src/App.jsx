@@ -5,7 +5,7 @@ import { log as corelog } from '@liquidflow/core';
 
 import { useController } from './useController.js';
 import { buildCommands } from './commands.js';
-import Header from './components/Header.jsx';
+import Header, { HEADER_STACK_COLS } from './components/Header.jsx';
 import Divider from './components/Divider.jsx';
 import ProgressView from './components/ProgressView.jsx';
 import Spinner from './components/Spinner.jsx';
@@ -24,11 +24,21 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [highlight, setHighlight] = useState(0);
   const [termRows, setTermRows] = useState(stdout?.rows || 24);
+  const [termCols, setTermCols] = useState(stdout?.columns || 80);
 
-  // Reaguj na zmianę rozmiaru terminala, by żywa ramka zawsze mieściła się na ekranie.
+  // Reaguj na zmianę rozmiaru terminala. Ink przy resize tylko przelicza layout
+  // istniejącego drzewa (nie wywołuje ponownie komponentów) i nie czyści ekranu —
+  // dlatego: (1) czyścimy cały ekran, by terminal nie zostawił zawiniętych, za
+  // szerokich wierszy z poprzedniego rozmiaru, (2) aktualizujemy stan (rows+cols),
+  // co wymusza pełny re-render wszystkich komponentów zależnych od szerokości
+  // (Divider liczy '─'×cols, Header przełącza kolumny↔wiersze).
   useEffect(() => {
     if (!stdout) return undefined;
-    const onResize = () => setTermRows(stdout.rows || 24);
+    const onResize = () => {
+      try { stdout.write('\x1b[2J\x1b[3J\x1b[H'); } catch {}
+      setTermRows(stdout.rows || 24);
+      setTermCols(stdout.columns || 80);
+    };
     stdout.on('resize', onResize);
     return () => stdout.off('resize', onResize);
   }, [stdout]);
@@ -102,7 +112,10 @@ export default function App() {
   // dokleja kolejną klatkę = zdublowany layout). Stałe „chrome" = nagłówek
   // (logo+marginesy) + dividery + input + zapas.
   const paletteOpen = filtered.length > 0;
-  const HEADER = 9;             // logo (6) + marginTop/Bottom (2) + divider (1)
+  // Wysokość „chrome" nagłówka. W układzie pionowym (wąskie okno) logo i
+  // informacje są pod sobą, więc nagłówek jest wyższy.
+  const stackedHeader = termCols < HEADER_STACK_COLS;
+  const HEADER = stackedHeader ? 14 : 9; // logo(6)+marginesy+status(+konflikty)+divider
   const logRows = Math.max(3, Math.min(16, termRows - HEADER - 6));
   // paleta: pod nagłówkiem zostaje miejsce na input; log chowamy gdy paleta otwarta
   const paletteMax = Math.max(3, termRows - HEADER - 2);
@@ -111,7 +124,7 @@ export default function App() {
 
   return (
     <Box flexDirection="column">
-      <Header state={state} git={git} mismatches={mismatches} />
+      <Header state={state} git={git} mismatches={mismatches} cols={termCols} />
 
       <Divider />
 
