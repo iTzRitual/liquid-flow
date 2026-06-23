@@ -115,10 +115,13 @@ export default function App() {
       {/* Logo po lewej, nagłówek (nazwa + status) po prawej. Bez marginBottom —
           dolny wiersz headera (z wskaźnikiem konfliktów) ma przylegać do Dividera. */}
       <Box marginTop={1}>
-        <Box paddingLeft={1}><Banner /></Box>
+        {/* flexShrink=0 — logo nigdy się nie kurczy ani nie zawija, choćby
+            wskaźnik konfliktów zabierał szerokość. */}
+        <Box paddingLeft={1} flexShrink={0}><Banner /></Box>
         {/* Status rośnie (flexGrow) i zabiera wolną szerokość — spycha wskaźnik
-            konfliktów do prawej krawędzi. */}
-        <Box marginLeft={3} marginTop={1} flexGrow={1} flexDirection="column">
+            konfliktów do prawej krawędzi; przy ciasnocie to on się kurczy
+            (URL ma truncate-end), nie logo. */}
+        <Box marginLeft={3} marginTop={1} flexGrow={1} flexShrink={1} flexDirection="column">
           <StatusBar state={state} git={git} />
         </Box>
         {/* Konflikty: prawy-dolny róg headera. flexShrink=0 → nigdy się nie
