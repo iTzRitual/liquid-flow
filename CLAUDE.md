@@ -97,6 +97,35 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
   tekstowe i `type:'choice'` Tak/Nie strzałkami), `ProgressView`+`Spinner`
   (loader pobierania/sprawdzania), `CommandPalette`. Layout nagłówka testuje się
   na różnych szerokościach: `node apps/cli/test/header-widths.mjs`.
+- **Layout nagłówka (`Header.jsx`) — NIE psuć!** Świadomy układ **2‑kolumnowy**;
+  historycznie był wielokrotnie psuty, więc reguły są twarde:
+  ```
+  ┌ marginTop=1 ──────────────────────────────────────────────┐
+  │  LOGO            INFORMACJE (jedna kolumna, flexGrow=1)     │
+  │  (Banner)        Liquid Flow CLI 0.9      ← status u góry   │
+  │  flexShrink=0    Sklep:   ● …  (truncate-end)               │
+  │  17×6            Szablon: …                                 │
+  │                  Git:     …                                 │
+  │                              ⚠ Konflikty: N (/conflicts) ◄──┤ do prawej, dół
+  └────────────────────────────────────────────── Divider ─────┘
+  ```
+  Niezmienniki:
+  1. **Dwie kolumny, nie trzy.** Logo + kolumna informacji. Konflikty to
+     **wiersz wewnątrz** kolumny informacji (osobny od wierszy statusu), a NIE
+     trzecia kolumna — inaczej kradną szerokość „Sklep/Szablon".
+  2. **Logo `flexShrink={0}`** — nigdy się nie kurczy ani nie zawija (zawinięcie
+     ASCII‑artu = „rozpad logo").
+  3. **Kolumna informacji `flexGrow={1}` + `flexDirection="column"` +
+     `justifyContent="space-between"`** — status lgnie do góry, konflikty do dołu.
+  4. **Konflikty**: `<Box justifyContent="flex-end">` (do prawej) z
+     `<Text wrap="truncate-end">`, renderowane tylko gdy `mismatches.length>0`.
+     Przyklejone do Dividera, **nie dokładają wiersza** (wysokość headera =
+     wysokość logo). Brak `marginBottom` na headerze.
+  5. **Każdy wiersz `StatusBar` = jeden `<Text wrap="truncate-end">`** (etykieta i
+     wartość jako zagnieżdżone `<Text>`). Inaczej przy wąskim oknie łamią się
+     etykiety i pojawiają puste linie. Jedyny element, który ustępuje szerokości,
+     to kolumna informacji (URL się przycina) — logo i wskaźnik nigdy.
+  6. Po zmianach: `node apps/cli/test/header-widths.mjs` (sprawdza 30–120 kol.).
 - **Anty‑przepełnienie (ważne!)**: Ink renderuje inline — jeśli ramka przekroczy
   wysokość okna, dokleja kopię („rozdwojenie"). Dlatego: (1) długie linie są
   obcinane, (2) listy są „okienkowane” przez `window.js` (`windowList`) z
