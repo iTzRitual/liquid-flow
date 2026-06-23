@@ -91,18 +91,39 @@ export function buildCommands(ctx) {
     if (!hasTemplate) { log.logErr('Brak aktywnego szablonu: /templates'); return; }
     const st = await ctrl.gitStatus();
     if (!st.available) { log.logErr('Git nie jest zainstalowany w systemie'); return; }
-    const items = [];
-    if (!st.active || !st.autoCommit) items.push({ label: 'Włącz wersjonowanie (auto-commit)', value: 'enable' });
-    items.push({ label: `Auto-commit: ${st.autoCommit ? 'WYŁĄCZ' : 'WŁĄCZ'}`, value: 'toggleCommit' });
-    items.push({ label: `Auto-push: ${st.autoPush ? 'WYŁĄCZ' : 'WŁĄCZ'}`, value: 'togglePush' });
-    items.push({ label: 'Historia / przywróć wersję', value: 'history' });
-    items.push({ label: 'Ustaw zdalne repozytorium (remote)', value: 'remote' });
-    items.push({ label: 'Push do origin', value: 'push' });
-    openPicker('Git / Backup', items, (it) => safe(async () => {
+
+    // Brak repozytorium → jedyna opcja to inicjalizacja. Po niej wracamy do
+    // pełnego menu (a nie do ekranu głównego).
+    if (!st.isRepo) {
+      openPicker('Git / Backup — nie wykryto repozytorium', [
+        { label: 'Zainicjalizuj repozytorium', value: 'init' },
+      ], () => safe(async () => {
+        await ctrl.gitEnable();
+        gitMenu();
+      }));
+      return;
+    }
+
+    // Repozytorium istnieje → pełne menu.
+    const title = `Git / Backup — wykryto repozytorium (${st.commitCount} commit(ów)${st.remote ? ', remote ustawiony' : ''})`;
+    const items = [
+      { label: 'Ustawienia: auto-commit / auto-push', value: 'settings' },
+      { label: 'Historia / przywróć wersję', value: 'history' },
+      { label: 'Ustaw zdalne repozytorium (remote)', value: 'remote' },
+      { label: 'Push do origin', value: 'push' },
+    ];
+    openPicker(title, items, (it) => safe(async () => {
       switch (it.value) {
-        case 'enable': await ctrl.gitEnable(); break;
-        case 'toggleCommit': await ctrl.gitSetSettings({ autoCommit: !st.autoCommit }); break;
-        case 'togglePush': await ctrl.gitSetSettings({ autoPush: !st.autoPush }); break;
+        case 'settings':
+          // Wybór Tak/Nie strzałkami (jak przy zapisie hasła); po zapisie wracamy do menu.
+          openForm('Ustawienia Git', [
+            { name: 'autoCommit', label: 'Auto-commit', type: 'choice', initial: !!st.autoCommit, options: [{ label: 'Tak', value: true }, { label: 'Nie', value: false }] },
+            { name: 'autoPush', label: 'Auto-push', type: 'choice', initial: !!st.autoPush, options: [{ label: 'Tak', value: true }, { label: 'Nie', value: false }] },
+          ], (vals) => safe(async () => {
+            await ctrl.gitSetSettings({ autoCommit: !!vals.autoCommit, autoPush: !!vals.autoPush });
+            gitMenu();
+          }));
+          break;
         case 'push': await ctrl.gitPush(); break;
         case 'remote':
           openForm('Zdalne repozytorium', [{ name: 'url', label: 'URL (git@… lub https://…)' }],
