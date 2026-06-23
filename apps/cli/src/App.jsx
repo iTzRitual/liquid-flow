@@ -116,14 +116,15 @@ export default function App() {
           dolny wiersz headera (z wskaźnikiem konfliktów) ma przylegać do Dividera. */}
       <Box marginTop={1}>
         <Box paddingLeft={1}><Banner /></Box>
-        <Box marginLeft={3} marginTop={1} flexDirection="column">
+        {/* Status rośnie (flexGrow) i zabiera wolną szerokość — spycha wskaźnik
+            konfliktów do prawej krawędzi. */}
+        <Box marginLeft={3} marginTop={1} flexGrow={1} flexDirection="column">
           <StatusBar state={state} git={git} />
         </Box>
-        {/* Konflikty: prawy-dolny róg headera — dosunięte w prawo (flex-end) i
-            przyklejone do dołu (alignItems flex-end), niezależnie od kolumny
-            statusu. flexGrow zabiera resztę szerokości; wysokość headera
-            wyznacza logo, więc nie dokłada wiersza ani nie spycha układu. */}
-        <Box flexGrow={1} justifyContent="flex-end" alignItems="flex-end" paddingRight={1}>
+        {/* Konflikty: prawy-dolny róg headera. flexShrink=0 → nigdy się nie
+            zawija (jedna linia); alignItems flex-end → przyklejone do dołu, czyli
+            do Dividera. Niezależne od kolumny statusu i nie dokłada wiersza. */}
+        <Box flexShrink={0} alignItems="flex-end" paddingRight={1}>
           {mismatches.length > 0 && (
             <Text color="red">⚠ Konflikty: {mismatches.length} (/conflicts)</Text>
           )}
