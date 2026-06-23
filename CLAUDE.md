@@ -79,8 +79,14 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
   (`register()`), potem dynamicznie importuje `src/index.jsx`. JSX działa wprost.
 - **JSX**: w plikach JSX dodawany jest `import React` (tryb klasyczny — niezależny
   od konfiguracji tsx; `tsconfig.json` ma `react-jsx`, ale nie polegać na nim).
-- **Alternatywny bufor ekranu**: `index.jsx` wchodzi w alt‑screen (`\x1b[?1049h`)
-  i wychodzi przy zakończeniu — brak zaśmiecania scrollbacku terminala.
+- **Alternatywny bufor ekranu + scroll**: `index.jsx` wchodzi w alt‑screen
+  (`\x1b[?1049h`) i wychodzi przy zakończeniu — brak zaśmiecania scrollbacku
+  terminala. Dodatkowo „alternate scroll mode" (`\x1b[?1007h`): kółko myszy w
+  alt‑screenie wysyła strzałki ↑/↓ do aplikacji (zamiast przewijać terminal),
+  więc scroll przewija log na ekranie głównym. W trybie `input` (paleta zamknięta)
+  `App.jsx` obsługuje `↑/↓`/`PgUp`/`PgDn` jako przewijanie `LogPane` (`logScroll`),
+  a `setLogScroll(0)` po komendzie wraca na dół. Sekwencje włącza/wyłącza się
+  parami przy starcie/zakończeniu.
 - **Model trybów w `App.jsx`** (`mode.type`): `input` (prompt + paleta), `picker`
   (lista wyboru), `form` (sekwencyjny formularz), `loading` (spinner na czas
   pobierania). Helpery w `ctx`: `openPicker`, `openForm`, `withLoading`,
@@ -91,13 +97,13 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
   `Banner` (ASCII + gradient tęczowy per znak, 17×6), `StatusBar` (`~` gdy
   niepołączony; Sklep/Szablon/Git tylko gdy istnieją; każdy wiersz to jeden
   `<Text wrap="truncate-end">`, więc przy wąskim oknie przycina się jako całość
-  zamiast łamać etykiety/dokładać puste linie), `LogPane` (ogon logu — ostatnie
-  `rows` wpisów, każdy `wrap="truncate-end"` = 1 wiersz, stała wysokość),
-  `LogView` (pełnoekranowy, przewijalny podgląd `/log`: spłaszcza wpisy do
-  „wizualnych wierszy" przez `wrap-ansi`+hard, linie ZAWIJAJĄ się = czytasz
-  całość; `↑/↓`/`PgUp`/`PgDn`/`g`/`G`, `Esc` wraca; `start===null` = trzymaj się
-  dołu; tytuł i stopka `truncate-end`, by nie rozsadzić budżetu), `Divider`
-  (znak `─`, kolor `#82bbff`), `Picker`
+  zamiast łamać etykiety/dokładać puste linie), `LogPane` (log ekranu głównego —
+  PRZEWIJANY i z trybem zawijania. `buildVlines(log, wrap, cols)` spłaszcza wpisy
+  do „wizualnych wierszy": `wrap=false` → 1 wpis/wiersz `truncate-end`,
+  `wrap=true` (`/wrap`) → długie wpisy zawijane przez `wrap-ansi`+hard. Render
+  okienkuje vlines wg `scroll` (ile wierszy od dołu; 0 = najnowsze) i zawsze
+  mieści się w budżecie `rows` — wskaźniki „↑/↓ więcej" zabierają wiersz z okna),
+  `Divider` (znak `─`, kolor `#82bbff`), `Picker`
   (pozycje akcji + pozycje `kind:'toggle'` przełączane `←/→`), `Form` (pola
   tekstowe i `type:'choice'` Tak/Nie strzałkami), `ProgressView`+`Spinner`
   (loader pobierania/sprawdzania), `CommandPalette`. Layout nagłówka testuje się
@@ -145,8 +151,8 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
   dividery/spacery zawsze mają 100% bieżącej szerokości, a Header przelicza układ.
 - **Anty‑przepełnienie (ważne!)**: Ink renderuje inline — jeśli ramka przekroczy
   wysokość okna, dokleja kopię („rozdwojenie"). Dlatego: (1) długie linie są
-  obcinane `truncate-end` (pełne, zawijane linie czyta się w `/log`/`LogView`,
-  który pilnuje własnego budżetu wierszy), (2) listy są „okienkowane” przez
+  obcinane `truncate-end` (pełne linie odsłania scroll logu albo tryb zawijania
+  `/wrap`; `LogPane` i tak pilnuje budżetu wierszy), (2) listy są „okienkowane” przez
   `window.js` (`windowList`) z
   wysokością liczoną z `termRows` i wskaźnikami `↑/↓ więcej`, (3) log chowa się
   gdy otwarta paleta, (4) input przypięty do dołu. Przy zmianach layoutu pilnować,
@@ -159,8 +165,9 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
   `height` jest `undefined` → naturalny przepływ (flexGrow zwija się do treści),
   więc nic nie wystaje. Zasadę layoutu sprawdza `node apps/cli/test/fill-height.mjs`.
 - **Slash‑komendy** (`commands.js`, `buildCommands(ctx)`): `/connect /login
-  /shops /templates /conflicts /git /open /lang /logout /log /clear /remove
-  /exit(quit)`. Wpisanie `/` filtruje paletę; lista startowa „Połącz ze sklepem"
+  /shops /templates /conflicts /git /open /lang /logout /wrap /clear /remove
+  /exit(quit)`. `/wrap` przełącza zawijanie logów (alternatywne wyświetlanie).
+  Wpisanie `/` filtruje paletę; lista startowa „Połącz ze sklepem"
   otwiera się automatycznie gdy niepołączony, a `/` ją przeskakuje. Operacje
   seryjne (pobierz/wyślij wszystkie) nie są osobnymi komendami — żyją na końcu
   ekranu `/conflicts` jako pozycje z potwierdzeniem (sens mają tylko przy

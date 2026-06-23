@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
+import wrapAnsi from 'wrap-ansi';
 
 // Mapowanie kolorów z rdzenia (hex) na nazwy kolorów Ink.
 function inkColor(hex) {
@@ -16,20 +17,53 @@ function hhmmss(ts) {
   catch { return ''; }
 }
 
-// Ogon logu na żywo — ostatnie `rows` wpisów, każdy obcinany do jednego wiersza
-// (`truncate-end`), żeby panel miał stałą wysokość i Ink nie doklejał kopii.
-// Pełne, zawijane linie czyta się w przewijanym widoku `/log` (`LogView`).
-export default function LogPane({ log, rows = 10 }) {
-  const visible = log.slice(-rows);
+// Buduje „wizualne wiersze" logu (jednostka przewijania).
+//  - wrap=false (domyślnie): każdy wpis = 1 wiersz (obcinany przy renderze),
+//  - wrap=true (/wrap): długie wpisy zawijają się na kilka wierszy — alternatywny
+//    tryb, w którym czytasz całość bez otwierania osobnego ekranu.
+// Liczone tą samą `wrap-ansi`+hard co Ink, więc render zgadza się co do wiersza.
+export function buildVlines(log, wrap, cols) {
+  const w = Math.max(8, (cols || 80) - 2); // Box ma paddingX={1} → -2 kolumny
+  const out = [];
+  for (const e of log) {
+    const color = inkColor(e.Color);
+    const text = `${hhmmss(e.TS)} ${e.Text}`;
+    if (wrap) {
+      wrapAnsi(text, w, { trim: false, hard: true }).split('\n')
+        .forEach((t, i) => out.push({ text: t, color, key: `${e.Id}:${i}` }));
+    } else {
+      out.push({ text, color, key: String(e.Id), trunc: true });
+    }
+  }
+  return out;
+}
+
+// Panel logu na ekranie głównym. Przewijany kółkiem/strzałkami: `scroll` to ile
+// wizualnych wierszy od dołu (0 = najnowsze na dole). Zawsze mieści się w
+// budżecie `rows` — wskaźniki „↑/↓ więcej" zabierają wiersz z okna treści.
+export default function LogPane({ vlines, rows = 10, scroll = 0 }) {
+  const total = vlines.length;
+  const maxScroll = Math.max(0, total - rows);
+  const off = Math.min(Math.max(0, scroll), maxScroll);
+  const end = total - off;
+
+  const hasBelow = end < total;                 // przewinięto w górę → są nowsze pod spodem
+  let avail = Math.max(1, rows - (hasBelow ? 1 : 0));
+  let start = Math.max(0, end - avail);
+  const hasAbove = start > 0;                    // są starsze nad
+  if (hasAbove) { avail = Math.max(1, avail - 1); start = Math.max(0, end - avail); }
+
+  const slice = vlines.slice(start, end);
+
   return (
     <Box flexDirection="column" paddingX={1}>
-      {visible.length === 0
+      {hasAbove && <Text color="gray" dimColor>↑ {start} starszych</Text>}
+      {slice.length === 0
         ? <Text color="gray" dimColor>— pusto —</Text>
-        : visible.map((e) => (
-            <Text key={e.Id} color={inkColor(e.Color)} wrap="truncate-end">
-              <Text color="gray">{hhmmss(e.TS)} </Text>{e.Text}
-            </Text>
+        : slice.map((l) => (
+            <Text key={l.key} color={l.color} wrap={l.trunc ? 'truncate-end' : 'wrap'}>{l.text}</Text>
           ))}
+      {hasBelow && <Text color="gray" dimColor>↓ {total - end} nowszych</Text>}
     </Box>
   );
 }

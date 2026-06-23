@@ -9,8 +9,7 @@ import Header, { HEADER_STACK_COLS } from './components/Header.jsx';
 import Divider from './components/Divider.jsx';
 import ProgressView from './components/ProgressView.jsx';
 import Spinner from './components/Spinner.jsx';
-import LogPane from './components/LogPane.jsx';
-import LogView from './components/LogView.jsx';
+import LogPane, { buildVlines } from './components/LogPane.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Picker from './components/Picker.jsx';
 import Form from './components/Form.jsx';
@@ -26,6 +25,8 @@ export default function App() {
   const [highlight, setHighlight] = useState(0);
   const [termRows, setTermRows] = useState(stdout?.rows || 24);
   const [termCols, setTermCols] = useState(stdout?.columns || 80);
+  const [logWrap, setLogWrap] = useState(false); // /wrap: zawijanie logów
+  const [logScroll, setLogScroll] = useState(0); // ile wizualnych wierszy od dołu (0 = najnowsze)
 
   // Reaguj na zmianę rozmiaru terminala. Ink przy resize tylko przelicza layout
   // istniejącego drzewa (nie wywołuje ponownie komponentów) i nie czyści ekranu —
@@ -50,14 +51,13 @@ export default function App() {
     const safe = (fn) => Promise.resolve().then(fn).catch((e) => corelog.logErr(e?.message || String(e)));
     return {
       ctrl, state, mismatches, git, shops, refreshShops, clearLog, exit, safe,
+      logWrap, setLogWrap,
       openPicker: (title, items, onSelect, opts = {}) =>
         setMode({ type: 'picker', title, items, onSlash: opts.onSlash, onSelect: (it, i) => { back(); onSelect?.(it, i); } }),
       openForm: (title, fields, onSubmit) =>
         setMode({ type: 'form', title, fields, onSubmit: (vals) => { back(); onSubmit?.(vals); } }),
       // wyjście z listy startowej do zwykłego inputu z otwartą paletą
       skipToInput: () => { setMode({ type: 'input' }); setQuery('/'); },
-      // pełnoekranowy, przewijalny podgląd logu
-      openLog: () => setMode({ type: 'logview' }),
       // pokaż ekran ładowania na czas operacji (np. pobierania listy szablonów),
       // a po niej fn otwiera właściwy widok; przy błędzie wróć do inputu
       withLoading: (label, fn) => {
@@ -69,7 +69,7 @@ export default function App() {
         });
       },
     };
-  }, [ctrl, state, mismatches, git, shops, refreshShops, clearLog, exit]);
+  }, [ctrl, state, mismatches, git, shops, refreshShops, clearLog, exit, logWrap]);
 
   const commands = useMemo(() => buildCommands(ctx), [ctx]);
 
@@ -92,28 +92,8 @@ export default function App() {
 
   useEffect(() => { setHighlight(0); }, [query]);
 
-  // Nawigacja palety (tylko w trybie input). Strzałki + Tab; Enter obsługuje TextInput.
-  useInput((input, key) => {
-    if (filtered.length) {
-      if (key.upArrow) { setHighlight((h) => (h - 1 + filtered.length) % filtered.length); return; }
-      if (key.downArrow) { setHighlight((h) => (h + 1) % filtered.length); return; }
-      if (key.tab) { setQuery(filtered[highlight].name + ' '); return; }
-    }
-  }, { isActive: mode.type === 'input' });
-
-  const onSubmit = (value) => {
-    const v = (value || '').trim();
-    setQuery('');
-    if (!v.startsWith('/')) return;
-    // dokładne dopasowanie ma pierwszeństwo, w innym wypadku podświetlona pozycja
-    const exact = commands.find((c) => c.name === v.split(' ')[0]);
-    const target = exact || filtered[highlight];
-    if (target) target.run();
-  };
-
-  // Wysokości dynamiczne, by całość zawsze mieściła się w oknie (inaczej Ink
-  // dokleja kolejną klatkę = zdublowany layout). Stałe „chrome" = nagłówek
-  // (logo+marginesy) + dividery + input + zapas.
+  // --- wymiary i pochodne (przed useInput, bo scroll ich używa) ---
+  // Stałe „chrome" = nagłówek (logo+marginesy) + dividery + input + zapas.
   const paletteOpen = filtered.length > 0;
   // Wysokość „chrome" nagłówka. W układzie pionowym (wąskie okno) logo i
   // informacje są pod sobą, więc nagłówek jest wyższy.
@@ -126,22 +106,46 @@ export default function App() {
   // Na sensownie wysokim oknie przypinamy input do dołu (flexGrow w obszarze
   // logu); na niskim wracamy do naturalnego przepływu, by nic nie wystawało.
   const fillHeight = termRows >= 16;
-  // pełny log: cała przestrzeń pod nagłówkiem
-  const logViewRows = Math.max(6, termRows - HEADER - 1);
   // paleta: pod nagłówkiem zostaje miejsce na input; log chowamy gdy paleta otwarta
   const paletteMax = Math.max(3, termRows - HEADER - 2);
   // picker: ma ramkę (2) + tytuł (1) + stopkę (1) + zapas (1)
   const pickerMax = Math.max(3, termRows - HEADER - 5);
+  // log: wizualne wiersze (zależne od trybu zawijania i szerokości) + zakres scrolla
+  const vlines = useMemo(() => buildVlines(log, logWrap, termCols), [log, logWrap, termCols]);
+  const maxScroll = Math.max(0, vlines.length - logRows);
+  const logScrollClamped = Math.min(logScroll, maxScroll);
+
+  // Klawiatura/scroll w trybie input. Paleta otwarta → nawigacja palety; paleta
+  // zamknięta → strzałki/kółko (alt‑scroll) przewijają log na ekranie głównym.
+  useInput((input, key) => {
+    if (paletteOpen) {
+      if (key.upArrow) { setHighlight((h) => (h - 1 + filtered.length) % filtered.length); return; }
+      if (key.downArrow) { setHighlight((h) => (h + 1) % filtered.length); return; }
+      if (key.tab) { setQuery(filtered[highlight].name + ' '); return; }
+      return;
+    }
+    if (key.upArrow) { setLogScroll((s) => Math.min(maxScroll, s + 1)); return; }
+    if (key.downArrow) { setLogScroll((s) => Math.max(0, s - 1)); return; }
+    if (key.pageUp) { setLogScroll((s) => Math.min(maxScroll, s + logRows)); return; }
+    if (key.pageDown) { setLogScroll((s) => Math.max(0, s - logRows)); return; }
+  }, { isActive: mode.type === 'input' });
+
+  const onSubmit = (value) => {
+    const v = (value || '').trim();
+    setQuery('');
+    setLogScroll(0); // po komendzie wróć na dół, by zobaczyć świeży wynik
+    if (!v.startsWith('/')) return;
+    // dokładne dopasowanie ma pierwszeństwo, w innym wypadku podświetlona pozycja
+    const exact = commands.find((c) => c.name === v.split(' ')[0]);
+    const target = exact || filtered[highlight];
+    if (target) target.run();
+  };
 
   return (
     <Box flexDirection="column" height={fillHeight ? termRows - 1 : undefined}>
       <Header state={state} git={git} mismatches={mismatches} cols={termCols} />
 
       <Divider />
-
-      {mode.type === 'logview' && (
-        <LogView log={log} rows={logViewRows} cols={termCols} onCancel={() => setMode({ type: 'input' })} />
-      )}
 
       {mode.type === 'loading' && (
         <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
@@ -168,7 +172,7 @@ export default function App() {
               ? <CommandPalette items={filtered} index={highlight} maxRows={paletteMax} />
               : (
                 <>
-                  {log.length > 0 && <LogPane log={log} rows={logRows} />}
+                  {log.length > 0 && <LogPane vlines={vlines} rows={logRows} scroll={logScrollClamped} />}
                   {progress && <ProgressView progress={progress} />}
                 </>
               )}
