@@ -91,6 +91,10 @@ export function filesRoot(shopName) {
 export function templateDir(shopName, templateId) {
   return path.join(filesRoot(shopName), String(templateId));
 }
+// Folder konkretnego trybu szablonu (np. roboczy '0').
+export function templateModeDir(shopName, templateId, mode) {
+  return path.join(templateDir(shopName, templateId), String(mode));
+}
 export function metaDir(shopName) {
   return path.join(shopDir(shopName), 'meta');
 }
@@ -106,6 +110,9 @@ export function parseLocalPath(shopName, templateId, absPath) {
   const root = templateDir(shopName, templateId);
   const rel = path.relative(root, absPath).split(path.sep);
   if (rel.length < 2 || rel[0].startsWith('..')) return null;
+  // Pomiń pliki/foldery zaczynające się od kropki (np. .git, .DS_Store) —
+  // nie są synchronizowane z e-Sklep. Dzięki temu repo git może żyć w trybie '0'.
+  if (rel.some((seg) => seg.startsWith('.'))) return null;
   const mode = parseInt(rel[0], 10);
   if (Number.isNaN(mode)) return null;
   const name = rel.slice(1).join('/');

@@ -256,10 +256,13 @@ export class Controller extends EventEmitter {
     });
     this.state.session = session;
 
-    // git: ustaw konfigurację dla aktywnego szablonu
+    // git: ustaw konfigurację dla aktywnego szablonu. Repo trzymamy w folderze
+    // roboczym '0' (tam edytujemy pliki), a nie na poziomie szablonu — dzięki
+    // temu struktura repo to czyste pliki szablonu. Wnętrze .git nie jest
+    // synchronizowane do e-Sklep (pomijane jako ścieżka z kropką).
     const tCfg = this._templateConfig(shop.Id, template.Id);
     this.activeGit = {
-      dir: store.templateDir(shop.Name, template.Id),
+      dir: store.templateModeDir(shop.Name, template.Id, 0),
       autoCommit: tCfg.git ? !!tCfg.git.autoCommit : false,
       autoPush: tCfg.git ? !!tCfg.git.autoPush : false,
     };
