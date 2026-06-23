@@ -30,7 +30,7 @@ function conflictHint(m) {
 }
 
 export function buildCommands(ctx) {
-  const { ctrl, state, mismatches, git, shops, refreshShops, clearLog, openPicker, openForm, exit, safe, skipToInput, withLoading } = ctx;
+  const { ctrl, state, mismatches, git, shops, refreshShops, clearLog, openPicker, openForm, openLog, exit, safe, skipToInput, withLoading } = ctx;
   const hasShop = !!state?.currentShop;
   const hasTemplate = !!state?.currentTemplate;
 
@@ -234,6 +234,7 @@ export function buildCommands(ctx) {
         openPicker('Usuń sklep', shops.map((s) => ({ label: s.Name, hint: s.Url, value: s })),
           (it) => { ctrl.removeShop(it.value.Id); refreshShops(); log.logOk('Usunięto sklep: ' + it.value.Name); });
       } },
+    { name: '/log', desc: 'pełny log (zawijanie, przewijanie)', run: () => openLog() },
     { name: '/clear', desc: 'wyczyść panel logu', run: () => clearLog() },
     { name: '/exit(quit)', desc: 'zakończ', run: () => exit() },
   ];

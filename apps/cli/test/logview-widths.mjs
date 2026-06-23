@@ -1,16 +1,22 @@
-// Test renderu panelu logu na różnych szerokościach.
-// Uruchom: node apps/cli/test/log-widths.mjs
-// Weryfikuje, że wpisy się ZAWIJAJĄ (nie kropki) oraz że panel nie przekracza
-// budżetu `rows` (inaczej Ink dubluje layout).
+// Test renderu pełnego widoku logu (/log → LogView) na różnych szerokościach.
+// Uruchom: node apps/cli/test/logview-widths.mjs
+// Weryfikuje, że długie wpisy się ZAWIJAJĄ (czytasz całość) oraz że zawartość
+// ramki nie przekracza zadanego budżetu wierszy.
 import { register } from 'tsx/esm/api';
 register();
 const React = (await import('react')).default;
 const { render } = await import('ink');
-const LogPane = (await import('../src/components/LogPane.jsx')).default;
+const LogView = (await import('../src/components/LogView.jsx')).default;
 
 const ANSI = /\x1b\[[0-9;?]*[A-Za-z]/g;
 const strip = (s) => s.replace(ANSI, '');
 
+// LogView używa useInput → potrzebny stdin z (atrapą) raw mode.
+const fakeStdin = {
+  isTTY: true, setRawMode() {}, setEncoding() {}, ref() {}, unref() {},
+  on() {}, off() {}, addListener() {}, removeListener() {}, read() { return null; },
+  resume() {}, pause() {},
+};
 function fakeStdout(columns, rows = 40) {
   let last = '';
   return { columns, rows, isTTY: false, write(s) { last = s; return true; }, on() {}, off() {}, removeListener() {}, get last() { return last; } };
@@ -25,23 +31,21 @@ const log = [
   { Id: 5, TS: now, Color: '#2A2', Text: 'Synchronizacja aktywna — hot-reload (new)' },
 ];
 
-const ROWS_BUDGET = 9;
+const ROWS = 12; // budżet całego widoku (z ramką/tytułem/stopką)
 
 async function frameAt(columns) {
   const out = fakeStdout(columns);
-  const app = render(React.createElement(LogPane, { log, rows: ROWS_BUDGET, cols: columns }), { stdout: out, patchConsole: false });
+  const app = render(React.createElement(LogView, { log, rows: ROWS, cols: columns, onCancel() {} }), { stdout: out, stdin: fakeStdin, patchConsole: false, exitOnCtrlC: false });
   await new Promise((r) => setImmediate(r));
   app.unmount();
   return strip(out.last).replace(/\n+$/g, '');
 }
 
-for (const wdt of [120, 80, 60, 40, 30]) {
+for (const wdt of [120, 70, 50, 36]) {
   const frame = await frameAt(wdt);
   const lines = frame.split('\n');
-  console.log(`\n### szerokość = ${wdt} · budżet=${ROWS_BUDGET} wierszy · wyrenderowano=${lines.length} ###`);
-  console.log('─'.repeat(wdt));
+  console.log(`\n### szerokość = ${wdt} · budżet=${ROWS} · wyrenderowano=${lines.length} ###`);
   lines.forEach((ln, i) => console.log(String(i).padStart(2) + '|' + ln));
-  console.log('─'.repeat(wdt));
-  if (lines.length > ROWS_BUDGET) console.log(`!!! PRZEKROCZONO BUDŻET (${lines.length} > ${ROWS_BUDGET})`);
+  if (lines.length > ROWS) console.log(`!!! PRZEKROCZONO BUDŻET (${lines.length} > ${ROWS})`);
 }
 process.exit(0);

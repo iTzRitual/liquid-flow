@@ -10,6 +10,7 @@ import Divider from './components/Divider.jsx';
 import ProgressView from './components/ProgressView.jsx';
 import Spinner from './components/Spinner.jsx';
 import LogPane from './components/LogPane.jsx';
+import LogView from './components/LogView.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Picker from './components/Picker.jsx';
 import Form from './components/Form.jsx';
@@ -55,6 +56,8 @@ export default function App() {
         setMode({ type: 'form', title, fields, onSubmit: (vals) => { back(); onSubmit?.(vals); } }),
       // wyjście z listy startowej do zwykłego inputu z otwartą paletą
       skipToInput: () => { setMode({ type: 'input' }); setQuery('/'); },
+      // pełnoekranowy, przewijalny podgląd logu
+      openLog: () => setMode({ type: 'logview' }),
       // pokaż ekran ładowania na czas operacji (np. pobierania listy szablonów),
       // a po niej fn otwiera właściwy widok; przy błędzie wróć do inputu
       withLoading: (label, fn) => {
@@ -117,6 +120,8 @@ export default function App() {
   const stackedHeader = termCols < HEADER_STACK_COLS;
   const HEADER = stackedHeader ? 14 : 9; // logo(6)+marginesy+status(+konflikty)+divider
   const logRows = Math.max(3, Math.min(16, termRows - HEADER - 6));
+  // pełny log: cała przestrzeń pod nagłówkiem
+  const logViewRows = Math.max(6, termRows - HEADER - 1);
   // paleta: pod nagłówkiem zostaje miejsce na input; log chowamy gdy paleta otwarta
   const paletteMax = Math.max(3, termRows - HEADER - 2);
   // picker: ma ramkę (2) + tytuł (1) + stopkę (1) + zapas (1)
@@ -129,9 +134,13 @@ export default function App() {
       <Divider />
 
       {/* Log/progress chowamy gdy otwarta paleta — by lista + input zmieściły się */}
-      {mode.type === 'input' && !paletteOpen && log.length > 0 && <LogPane log={log} rows={logRows} cols={termCols} />}
+      {mode.type === 'input' && !paletteOpen && log.length > 0 && <LogPane log={log} rows={logRows} />}
       {mode.type === 'input' && !paletteOpen && progress && <ProgressView progress={progress} />}
       {mode.type === 'input' && !paletteOpen && (log.length > 0 || progress) && <Divider />}
+
+      {mode.type === 'logview' && (
+        <LogView log={log} rows={logViewRows} cols={termCols} onCancel={() => setMode({ type: 'input' })} />
+      )}
 
       {mode.type === 'loading' && (
         <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
