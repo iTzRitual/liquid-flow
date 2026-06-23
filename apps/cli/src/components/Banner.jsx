@@ -12,18 +12,25 @@ function hslToHex(h, s, l) {
   return '#' + toHex(f(0)) + toHex(f(8)) + toHex(f(4));
 }
 
-// Barwa znaku z jego pozycji w poziomie: środek-góra czerwony, lewa zielona,
-// prawa niebieska — tęczowy łuk jak w logo AGY/Claude.
-function hueFor(x, width) {
-  const cx = (width - 1) / 2;
-  const t = cx === 0 ? 0 : (x - cx) / cx; // -1 (lewo) .. +1 (prawo)
-  if (t <= 0) return -t * 135;            // środek (czerwony 0°) -> lewo (zieleń 135°)
-  return 360 - t * 120;                   // środek (360≡0°) -> prawo (błękit 240°)
+// Barwa znaku z jego odległości od środka logo: gradient promienisty — wzór
+// „startuje" w środku (czerwień) i rozchodzi się tęczą aż do krawędzi (fiolet).
+// Znaki w terminalu są ~2x wyższe niż szersze, więc oś Y skalujemy.
+function hueFor(x, y, cx, cy, maxDist) {
+  const dx = x - cx;
+  const dy = (y - cy) * 2;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  const t = maxDist === 0 ? 0 : d / maxDist; // 0 (środek) .. 1 (krawędź)
+  return t * 300;                            // czerwień 0° -> fiolet 300°
 }
 
 // Banner: blokowy art z proceduralnym gradientem tęczowym (kolor per znak).
 export default function Banner() {
   const width = Math.max(...ART.map((l) => l.length));
+  const height = ART.length;
+  const cx = (width - 1) / 2;
+  const cy = (height - 1) / 2;
+  // Maks. odległość od środka (róg) — normalizacja gradientu.
+  const maxDist = Math.sqrt(cx * cx + (cy * 2) * (cy * 2));
   return (
     <Box flexDirection="column">
       {ART.map((line, y) => (
@@ -31,7 +38,7 @@ export default function Banner() {
           {[...line].map((ch, x) =>
             ch === ' '
               ? <Text key={x}> </Text>
-              : <Text key={x} color={hslToHex(hueFor(x, width), 95, 60)}>{ch}</Text>)}
+              : <Text key={x} color={hslToHex(hueFor(x, y, cx, cy, maxDist), 95, 60)}>{ch}</Text>)}
         </Text>
       ))}
     </Box>
