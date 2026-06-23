@@ -115,8 +115,13 @@ export default function App() {
       {/* Logo po lewej, nagłówek (nazwa + status) po prawej */}
       <Box marginTop={1} marginBottom={1}>
         <Box paddingLeft={1}><Banner /></Box>
-        <Box marginLeft={3} marginTop={1} flexDirection="column">
-          <StatusBar state={state} git={git} mismatches={mismatches} />
+        {/* Kolumna rozciąga się do wysokości logo; status u góry, konflikty
+            przypięte do dołu (puste pole) — pojawienie się nie spycha układu. */}
+        <Box marginLeft={3} marginTop={1} marginBottom={1} flexDirection="column" justifyContent="space-between">
+          <StatusBar state={state} git={git} />
+          {mismatches.length > 0 && (
+            <Text color="red">⚠ Konflikty: {mismatches.length} (/conflicts)</Text>
+          )}
         </Box>
       </Box>
 

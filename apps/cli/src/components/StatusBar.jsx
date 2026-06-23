@@ -6,12 +6,11 @@ import { Box, Text } from 'ink';
 //  - połączony          -> Sklep
 //  - po wyborze szablonu-> Szablon
 //  - Git tylko gdy aktywny
-//  - konflikty (czerwone) tylko gdy są — w pustej przestrzeni obok logo, więc
-//    pojawienie się nie spycha reszty układu w dół.
-export default function StatusBar({ state, git, mismatches }) {
+// Konflikty NIE są tutaj — App.jsx przypina je do dołu kolumny nagłówka
+// (puste pole obok logo), żeby ich pojawienie się nie spychało układu.
+export default function StatusBar({ state, git }) {
   const shop = state?.currentShop;
   const tpl = state?.currentTemplate;
-  const conflicts = mismatches?.length || 0;
 
   return (
     <Box flexDirection="column">
@@ -34,10 +33,6 @@ export default function StatusBar({ state, git, mismatches }) {
           {git.autoCommit ? <Text color="green">commit ✓ </Text> : <Text color="gray">commit ✗ </Text>}
           {git.autoPush ? <Text color="green">push ✓</Text> : <Text color="gray">push ✗</Text>}
         </Box>
-      )}
-
-      {conflicts > 0 && (
-        <Text color="red">⚠ Konflikty: {conflicts} (/conflicts)</Text>
       )}
     </Box>
   );
