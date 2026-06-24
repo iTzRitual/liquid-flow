@@ -29,6 +29,22 @@ export default function App() {
   const [termCols, setTermCols] = useState(stdout?.columns || 80);
   const [logWrap, setLogWrap] = useState(false); // /wrap: zawijanie logów
   const [logScroll, setLogScroll] = useState(0); // ile wizualnych wierszy od dołu (0 = najnowsze)
+  // Nawigacja „wstecz”: każda otwierana nakładka dostaje wskaźnik `parent` (ekran,
+  // z którego przyszliśmy). Esc wraca do rodzica, a dopiero z ekranu najwyższego
+  // poziomu — do inputu. `pendingParentRef` przenosi rodzica przez asynchroniczne
+  // otwarcia (loader → ekran): ustawiamy go w momencie interakcji użytkownika
+  // (wybór w pickerze/formularzu, akcja w connect/conflicts), a konsumuje go
+  // helper otwierający kolejną nakładkę. Czyszczony przy starcie komendy (skok od
+  // inputu nie ma rodzica) i przy cofaniu.
+  const pendingParentRef = useRef(null);
+  const takeParent = () => { const p = pendingParentRef.current; pendingParentRef.current = null; return p || null; };
+  // Cofnięcie z nakładki: pokaż rodzica (jeśli jest), inaczej wróć do inputu.
+  const cancelTo = (m) => {
+    pendingParentRef.current = null;
+    const p = m?.parent;
+    if (p) setMode(p);
+    else { setMode({ type: 'input' }); setQuery(''); }
+  };
 
   // Reaguj na zmianę rozmiaru terminala. Ink przy resize tylko przelicza layout
   // istniejącego drzewa (nie wywołuje ponownie komponentów) i nie czyści ekranu —
@@ -54,16 +70,40 @@ export default function App() {
     return {
       ctrl, t, state, mismatches, git, shops, refreshShops, clearLog, exit, safe,
       logWrap, setLogWrap,
-      openPicker: (title, items, onSelect, opts = {}) =>
-        setMode({ type: 'picker', title, items, onSlash: opts.onSlash, onSelect: (it, i) => { back(); onSelect?.(it, i); } }),
-      openForm: (title, fields, onSubmit) =>
-        setMode({ type: 'form', title, fields, onSubmit: (vals) => { back(); onSubmit?.(vals); } }),
+      // Wybór pozycji zamyka picker (back → input), a wskaźnik rodzica zapisujemy
+      // tuż przed handlerem — jeśli ten otworzy kolejną nakładkę, dostanie ona ten
+      // picker jako rodzica (Esc wróci tu, a nie do inputu).
+      openPicker: (title, items, onSelect, opts = {}) => {
+        const self = { type: 'picker', title, items, onSlash: opts.onSlash, parent: takeParent() };
+        self.onSelect = (it, i) => { pendingParentRef.current = self; back(); onSelect?.(it, i); };
+        setMode(self);
+      },
+      openForm: (title, fields, onSubmit) => {
+        const self = { type: 'form', title, fields, parent: takeParent() };
+        self.onSubmit = (vals) => { pendingParentRef.current = self; back(); onSubmit?.(vals); };
+        setMode(self);
+      },
       // ekran konfliktów (karty + stopka seryjna). Handlery same sterują trybem
-      // (loader/odświeżenie/potwierdzenie), więc nie owijamy ich w back().
-      openConflicts: (data) => setMode({ type: 'conflicts', ...data }),
+      // (loader/odświeżenie/potwierdzenie), więc nie owijamy ich w back(). Ekran
+      // jest zawsze wchodzony z poziomu inputu (/conflicts lub wskaźnik), więc
+      // rodzic = input; jego akcje (potwierdzenia) dostają ten ekran jako rodzica.
+      openConflicts: (data) => {
+        pendingParentRef.current = null;
+        const self = { type: 'conflicts', ...data, parent: null };
+        self.onAction = (...a) => { pendingParentRef.current = self; data.onAction?.(...a); };
+        self.onBulk = (...a) => { pendingParentRef.current = self; data.onBulk?.(...a); };
+        setMode(self);
+      },
       // ekran łączenia (lista sklepów + stopka akcji). Handlery same sterują
       // trybem (loader/formularz/sub-picker), więc nie owijamy ich w back().
-      openConnect: (data) => setMode({ type: 'connect', ...data }),
+      // Akcje (Dodaj/Usuń/wybór sklepu) zapisują ten ekran jako rodzica, by Esc
+      // z formularza/sub-pickera wrócił do listy sklepów, a nie do inputu.
+      openConnect: (data) => {
+        const self = { type: 'connect', ...data, parent: takeParent() };
+        self.onShop = (...a) => { pendingParentRef.current = self; data.onShop?.(...a); };
+        self.onAction = (...a) => { pendingParentRef.current = self; data.onAction?.(...a); };
+        setMode(self);
+      },
       // wyjście z listy startowej do zwykłego inputu z otwartą paletą
       skipToInput: () => { setMode({ type: 'input' }); setQuery('/'); },
       // powrót do czystego inputu (np. gdy operacja z loaderem nie otwiera widoku)
@@ -89,6 +129,7 @@ export default function App() {
     if (booted.current) return;
     if (state && !state.currentShop) {
       booted.current = true;
+      pendingParentRef.current = null;
       commands.find((c) => c.name === '/connect')?.run();
     }
   }, [state, commands]);
@@ -183,6 +224,7 @@ export default function App() {
     setQuery('');
     setLogScroll(0); // po komendzie wróć na dół, by zobaczyć świeży wynik
     if (!v.startsWith('/')) return;
+    pendingParentRef.current = null; // komenda startuje od inputu — brak rodzica
     // dokładne dopasowanie ma pierwszeństwo, w innym wypadku podświetlona pozycja
     const exact = commands.find((c) => c.name === v.split(' ')[0]);
     const target = exact || filtered[highlight];
@@ -219,19 +261,19 @@ export default function App() {
       )}
 
       {mode.type === 'picker' && wrapAction(
-        <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => setMode({ type: 'input' })} maxRows={ovMax} t={t} />
+        <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => cancelTo(mode)} maxRows={ovMax} t={t} />
       )}
 
       {mode.type === 'form' && wrapAction(
-        <Form title={mode.title} fields={mode.fields} onSubmit={mode.onSubmit} onCancel={() => setMode({ type: 'input' })} t={t} />
+        <Form title={mode.title} fields={mode.fields} onSubmit={mode.onSubmit} onCancel={() => cancelTo(mode)} t={t} />
       )}
 
       {mode.type === 'conflicts' && wrapAction(
-        <ConflictList title={mode.title} files={mode.files} bulk={mode.bulk} onAction={mode.onAction} onBulk={mode.onBulk} onCancel={() => setMode({ type: 'input' })} maxRows={ovMax} t={t} />
+        <ConflictList title={mode.title} files={mode.files} bulk={mode.bulk} onAction={mode.onAction} onBulk={mode.onBulk} onCancel={() => cancelTo(mode)} maxRows={ovMax} t={t} />
       )}
 
       {mode.type === 'connect' && wrapAction(
-        <ConnectList title={mode.title} shops={mode.shops} actions={mode.actions} onShop={mode.onShop} onAction={mode.onAction} onSlash={mode.onSlash} onCancel={() => setMode({ type: 'input' })} maxRows={ovMax} t={t} />
+        <ConnectList title={mode.title} shops={mode.shops} actions={mode.actions} onShop={mode.onShop} onAction={mode.onAction} onSlash={mode.onSlash} onCancel={() => cancelTo(mode)} maxRows={ovMax} t={t} />
       )}
 
       {mode.type === 'input' && (

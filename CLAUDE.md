@@ -142,6 +142,20 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
   pobierania). Helpery w `ctx`: `openPicker`, `openForm`, `withLoading`,
   `skipToInput`, `safe`, oraz `logWrap`/`setLogWrap` (tryb zawijania logów dla
   komendy `/wrap`).
+- **Nawigacja wstecz (Esc cofa o jeden ekran, nie do inputu)**: każda otwierana
+  nakładka dostaje wskaźnik `mode.parent` (ekran, z którego przyszliśmy). Esc
+  (`onCancel` w komponentach → `cancelTo(mode)` w `App.jsx`) pokazuje rodzica, a
+  dopiero z ekranu najwyższego poziomu wraca do inputu. Rodzic jest przenoszony
+  przez **asynchroniczne** otwarcia (loader → ekran) w `pendingParentRef`:
+  ustawiamy go w momencie interakcji użytkownika — wrappery `onSelect`/`onSubmit`
+  (picker/form) oraz `onShop`/`onAction`/`onBulk` (connect/conflicts) zapisują
+  `pendingParentRef = self` tuż przed handlerem; helper otwierający kolejną
+  nakładkę konsumuje go przez `takeParent()` i wpina jako `parent`. Czyszczony przy
+  starcie komendy (`onSubmit`/boot — skok od inputu nie ma rodzica) i w `cancelTo`.
+  **Ekran `/conflicts` ma `parent: null`** (zawsze wchodzony z inputu; jego
+  potwierdzenia dostają ten ekran jako rodzica, więc Esc z potwierdzenia wraca do
+  listy konfliktów). Picker/Form nadal zamykają się do inputu **po wyborze**
+  (`back()` w wrapperze) — `parent` zmienia tylko zachowanie **Esc**, nie wyboru.
 - **Komponenty**: `Header` (nagłówek = 2 kolumny: logo i informacje; logo ma
   `flexShrink=0`, kolumna informacji `flexGrow=1` + `justifyContent="space-between"`
   — status u góry, wskaźnik konfliktów do prawej i przyklejony do dołu/Dividera),
