@@ -308,6 +308,15 @@ export class Controller extends EventEmitter {
   // ---------- konflikty / komendy ----------
   getMismatches() { return this.state.session ? this.state.session.mismatches : []; }
 
+  // Natychmiastowe przeliczenie konfliktów na żądanie (np. przy wejściu w
+  // /conflicts) — to samo zapytanie o metadane co cykliczny poll, żeby decyzje
+  // o pobraniu/wysłaniu opierały się na świeżym stanie sklepu. refreshMismatches
+  // emituje 'mismatches' przez onMismatchChange, więc wskaźnik też się odświeży.
+  async recheckMismatches() {
+    if (!this.state.session) return [];
+    return this.state.session.refreshMismatches({ silent: true });
+  }
+
   async runCommand({ comm, file, type }) {
     if (!this.state.session) throw new Error(this.t.NoActiveSyncSession);
     const result = await this.state.session.command(comm, file, type);

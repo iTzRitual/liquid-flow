@@ -58,6 +58,8 @@ export default function App() {
         setMode({ type: 'form', title, fields, onSubmit: (vals) => { back(); onSubmit?.(vals); } }),
       // wyjście z listy startowej do zwykłego inputu z otwartą paletą
       skipToInput: () => { setMode({ type: 'input' }); setQuery('/'); },
+      // powrót do czystego inputu (np. gdy operacja z loaderem nie otwiera widoku)
+      backToInput: back,
       // pokaż ekran ładowania na czas operacji (np. pobierania listy szablonów),
       // a po niej fn otwiera właściwy widok; przy błędzie wróć do inputu
       withLoading: (label, fn) => {

@@ -15,7 +15,7 @@ function fmtTs(ts) {
 }
 
 export function buildCommands(ctx) {
-  const { ctrl, t, state, mismatches, git, shops, refreshShops, clearLog, openPicker, openForm, logWrap, setLogWrap, exit, safe, skipToInput, withLoading } = ctx;
+  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, logWrap, setLogWrap, exit, safe, skipToInput, backToInput, withLoading } = ctx;
   const hasShop = !!state?.currentShop;
   const hasTemplate = !!state?.currentTemplate;
 
@@ -106,15 +106,16 @@ export function buildCommands(ctx) {
   // Jeden ekran do rozwiązywania konfliktów: pojedyncze pliki (pobierz/wyślij/
   // usuń) + na końcu operacje seryjne („wszystkie”) z potwierdzeniem. Wejście
   // przez wskaźnik konfliktów w nagłówku → /conflicts.
-  const showConflicts = () => {
-    if (!hasTemplate) { log.logErr(log.tmsg('NoActiveTemplateHint')); return; }
-    if (!mismatches.length) { log.logOk(log.tmsg('NoConflicts')); return; }
+  // Render listy konfliktów z PRZEKAZANEJ (świeżej) listy mm — nie z migawki ctx,
+  // bo przed otwarciem przeliczamy konflikty na żywo (patrz showConflicts).
+  const renderConflicts = (mm) => {
+    if (!mm.length) { log.logOk(log.tmsg('NoConflicts')); backToInput(); return; }
 
     // ile plików obejmie każda operacja seryjna (te same filtry co w syncEngine)
-    const nDownload = mismatches.filter((m) => m.Type === MismatchType.LocalMissing || m.Type === MismatchType.Timestamp).length;
-    const nUpload = mismatches.filter((m) => m.Type === MismatchType.RemoteMissing || m.Type === MismatchType.Timestamp).length;
+    const nDownload = mm.filter((m) => m.Type === MismatchType.LocalMissing || m.Type === MismatchType.Timestamp).length;
+    const nUpload = mm.filter((m) => m.Type === MismatchType.RemoteMissing || m.Type === MismatchType.Timestamp).length;
 
-    const items = mismatches.map((m) => ({
+    const items = mm.map((m) => ({
       label: `${m.File.Name}`,
       hint: conflictHint(m),
       value: { kind: 'file', m },
@@ -145,6 +146,17 @@ export function buildCommands(ctx) {
       const tsLine = `📄 ${t.TsFile} ${fmtTs(m.FileTs)}   💾 ${t.TsLocal} ${fmtTs(m.LocalTs)}   ☁️ ${t.TsRemote} ${fmtTs(m.RemoteTs)}`;
       openPicker(`${tfmt(t.ActionTitle, { name: m.File.Name })}\n${tsLine}`, actions,
         (a) => safe(() => ctrl.runCommand({ comm: a.value, file: m.File, type: m.Type })));
+    });
+  };
+
+  // Wejście w /conflicts: najpierw przelicz konflikty na żywo (to samo zapytanie
+  // co cykliczny poll — wyłapuje świeże zmiany po stronie sklepu), potem pokaż
+  // listę. Dzięki temu decyzje pobierz/wyślij opierają się na aktualnym stanie.
+  const showConflicts = () => {
+    if (!hasTemplate) { log.logErr(log.tmsg('NoActiveTemplateHint')); return; }
+    withLoading(t.CheckingMismatch, async () => {
+      const mm = await ctrl.recheckMismatches();
+      renderConflicts(mm);
     });
   };
 
