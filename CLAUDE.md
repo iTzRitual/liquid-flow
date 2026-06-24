@@ -196,7 +196,13 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
   wykonuje, `Esc` anuluje. **Akcje są dopasowane do typu konfliktu** (2 opcje):
   Timestamp → Pobierz/Wyślij; LocalMissing → Pobierz/Usuń w sklepie; RemoteMissing
   → Wyślij/Usuń lokalnie. Domyślny wybór nigdy nie jest usuwaniem; usuwanie idzie
-  przez potwierdzenie (`confirmStay` — „Nie" wraca do listy). Po akcji lista
+  przez potwierdzenie (`confirmStay` — „Nie" wraca do listy). **Kursor ←/→ należy
+  tylko do bieżącego wiersza i NIE jest pamiętany** (jeden stan `cursor`, nie mapa
+  per‑plik): wejście na kartę (↑/↓) resetuje go do bezpiecznego `initial`, bo
+  liczy się dopiero Enter (działa natychmiast na bieżącej karcie). Wszystkie
+  przyciski są **pełnokontrastowe** (`color` domyślny); podświetlenie (tło `cyan`,
+  tekst `black`) ma WYŁĄCZNIE kursor `focused` wiersza — żadnych szarych
+  „niewybranych". Po akcji lista
   odświeża się i zostaje otwarta (rozwiązujesz kolejne pliki bez ponownego
   `/conflicts`). Okienkowanie kart przez `windowCards(n, idx, budżet, 3)` w
   `window.js` (stała wysokość karty = 3 wiersze, wskaźniki `↑/↓ więcej`). **Uwaga

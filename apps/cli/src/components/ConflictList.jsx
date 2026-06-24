@@ -12,47 +12,65 @@ import { windowCards } from '../window.js';
 // wybór akcji w wierszu, Enter wykonuje, Esc anuluje.
 //   files: [{ name, meta, options:[{label,value}], initial }]
 //   bulk:  [{ label, value }]  (opcjonalne)
+//
+// Kursor ←/→ należy WYŁĄCZNIE do bieżącego wiersza i NIE jest pamiętany — przy
+// wejściu na kartę (↑/↓) startuje od bezpiecznego domyślnego wyboru (`initial`).
+// Liczy się dopiero Enter (działa natychmiast na bieżącej karcie), więc
+// zapamiętywanie pozycji na innych kartach nic nie wnosi. Wszystkie przyciski są
+// pełnokontrastowe; podświetlenie (cyan tło) ma tylko kursor bieżącego wiersza.
 const CARD_LINES = 3;
 
 export default function ConflictList({ title, files, bulk, onAction, onBulk, onCancel, maxRows = 12, t }) {
   const hasBulk = Array.isArray(bulk) && bulk.length > 0;
   const rows = files.length + (hasBulk ? 1 : 0);
-  const [i, setI] = useState(0);
-  const [sel, setSel] = useState({}); // rowIndex → wybrany indeks opcji
 
-  const optsFor = (idx) => (idx < files.length ? files[idx].options : bulk);
+  const optsFor = (idx) => (idx < files.length ? files[idx].options : bulk) || [];
   const initFor = (idx) => (idx < files.length ? (files[idx].initial ?? 0) : 0);
-  const selVal = (idx) => (idx in sel ? sel[idx] : initFor(idx));
+
+  const [i, setI] = useState(0);
+  const [cursor, setCursor] = useState(() => initFor(0)); // pozycja ←/→ tylko bieżącego wiersza
+
+  // ↑/↓ — zmiana wiersza resetuje kursor do bezpiecznego domyślnego wyboru.
+  const moveRow = (delta) => {
+    const n = (i + delta + rows) % rows;
+    setI(n);
+    setCursor(initFor(n));
+  };
+
+  // kursor przycięty do liczby opcji bieżącego wiersza (np. po odświeżeniu listy)
+  const curOpts = optsFor(i);
+  const curCursor = Math.max(0, Math.min(cursor, curOpts.length - 1));
 
   useInput((input, key) => {
     if (key.escape) { onCancel?.(); return; }
     if (!rows) return;
-    if (key.upArrow) { setI((p) => (p - 1 + rows) % rows); return; }
-    if (key.downArrow) { setI((p) => (p + 1) % rows); return; }
-    const opts = optsFor(i);
-    const n = opts.length;
-    if (key.leftArrow) { setSel((s) => ({ ...s, [i]: (selVal(i) - 1 + n) % n })); return; }
-    if (key.rightArrow) { setSel((s) => ({ ...s, [i]: (selVal(i) + 1) % n })); return; }
+    if (key.upArrow) { moveRow(-1); return; }
+    if (key.downArrow) { moveRow(1); return; }
+    const n = curOpts.length || 1;
+    if (key.leftArrow) { setCursor((c) => (Math.min(c, n - 1) - 1 + n) % n); return; }
+    if (key.rightArrow) { setCursor((c) => (Math.min(c, n - 1) + 1) % n); return; }
     if (key.return) {
-      const o = opts[selVal(i)];
+      const o = curOpts[curCursor];
+      if (!o) return;
       if (i < files.length) onAction?.(o.value, files[i]);
       else onBulk?.(o.value);
     }
   });
 
-  // przyciski akcji jednej karty/stopki (selektor ←/→)
+  // Przyciski akcji jednej karty/stopki. Wszystkie pełnokontrastowe; kursor
+  // (tylko gdy wiersz `focused`) wyróżniony tłem cyan. `cv` = indeks kursora.
   const renderButtons = (options, cv, focused) =>
-    options.map((o, oi) => (
-      <Text
-        key={oi}
-        color={oi === cv ? (focused ? 'black' : undefined) : 'gray'}
-        backgroundColor={focused && oi === cv ? 'cyan' : undefined}
-      > {o.label} </Text>
-    ));
+    options.map((o, oi) => {
+      const active = focused && oi === cv;
+      return (
+        <Text key={oi} color={active ? 'black' : undefined} backgroundColor={active ? 'cyan' : undefined}>
+          {' '}{o.label}{' '}
+        </Text>
+      );
+    });
 
   const renderCard = (f, idx) => {
     const focused = idx === i;
-    const cv = selVal(idx);
     return (
       <Box key={idx} flexDirection="column">
         <Box>
@@ -61,7 +79,7 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
               {focused ? '› ' : '  '}{f.name}
             </Text>
           </Box>
-          <Box flexShrink={0} marginLeft={2}>{renderButtons(f.options, cv, focused)}</Box>
+          <Box flexShrink={0} marginLeft={2}>{renderButtons(f.options, curCursor, focused)}</Box>
         </Box>
         <Text dimColor wrap="truncate-end">  {f.meta}</Text>
         <Text> </Text>
@@ -95,8 +113,8 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
         <>
           <Text> </Text>
           <Box>
-            <Text color={bulkFocused ? 'cyan' : 'gray'}>{bulkFocused ? '› ' : '  '}</Text>
-            {renderButtons(bulk, selVal(files.length), bulkFocused)}
+            <Text color={bulkFocused ? 'cyan' : undefined}>{bulkFocused ? '› ' : '  '}</Text>
+            {renderButtons(bulk, curCursor, bulkFocused)}
           </Box>
         </>
       )}
