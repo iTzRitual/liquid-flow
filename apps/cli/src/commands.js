@@ -34,13 +34,6 @@ export function buildCommands(ctx) {
     return `${who}  (${t.TsLocalShort} ${fmtTs(m.FileTs)} · ${t.TsRemoteShort} ${fmtTs(m.RemoteTs)})`;
   };
 
-  // Potwierdzenie tak/nie przed operacją nieodwracalną (styl picker).
-  const confirm = (title, onYes) =>
-    openPicker(title, [
-      { label: t.ConfirmYes, value: true },
-      { label: t.ConfirmNo, value: false },
-    ], (it) => { if (it.value) onYes(); });
-
   // --- formularz logowania (gałąź „dodaj nowy” / edycja w /connect) ---
   const loginForm = (prefill = {}) =>
     openForm(t.SignInShopTitle, [
@@ -103,9 +96,57 @@ export function buildCommands(ctx) {
   };
 
   // --- konflikty ---
-  // Jeden ekran do rozwiązywania konfliktów: pojedyncze pliki (pobierz/wyślij/
-  // usuń) + na końcu operacje seryjne („wszystkie”) z potwierdzeniem. Wejście
+  // Jeden ekran rozwiązywania konfliktów. Każdy plik to wiersz z DWIEMA akcjami
+  // dopasowanymi do typu konfliktu, przełączanymi ←/→ wprost w wierszu (bez
+  // podmenu) — Enter wykonuje wybraną. Na końcu listy operacje seryjne. Wejście
   // przez wskaźnik konfliktów w nagłówku → /conflicts.
+
+  // Dwie sensowne akcje dla danego typu konfliktu + domyślny wybór (nigdy nie
+  // jest nim usuwanie). Dla Timestamp domyślnie kierunek od nowszej strony.
+  const fileOptions = (m) => {
+    if (m.Type === MismatchType.LocalMissing) {
+      // tylko na serwerze → pobierz albo usuń w sklepie
+      return { options: [
+        { label: t.ActionDownloadShort, value: 'download' },
+        { label: t.ActionDeleteRemoteShort, value: 'removeRemote' },
+      ], initial: 0 };
+    }
+    if (m.Type === MismatchType.RemoteMissing) {
+      // tylko lokalnie → wyślij albo usuń lokalnie
+      return { options: [
+        { label: t.ActionUploadShort, value: 'upload' },
+        { label: t.ActionDeleteLocalShort, value: 'removeLocal' },
+      ], initial: 0 };
+    }
+    // Timestamp: oba istnieją → pobierz z serwera albo wyślij z lokala
+    const f = new Date(m.FileTs).getTime();
+    const r = new Date(m.RemoteTs).getTime();
+    const localNewer = !Number.isNaN(f) && !Number.isNaN(r) && f > r;
+    return { options: [
+      { label: t.ActionDownloadShort, value: 'download' },
+      { label: t.ActionUploadShort, value: 'upload' },
+    ], initial: localNewer ? 1 : 0 };
+  };
+
+  // Potwierdzenie, które przy „Nie” wraca do listy konfliktów (zostajemy w flow).
+  const confirmStay = (title, onYes, mm) =>
+    openPicker(title, [
+      { label: t.ConfirmYes, value: true },
+      { label: t.ConfirmNo, value: false },
+    ], (it) => { if (it.value) onYes(); else renderConflicts(mm); });
+
+  // Wykonanie akcji na pliku: loader na czas SOAP, potem odśwież listę i zostaw
+  // ją otwartą (kolejny konflikt rozwiązujesz bez ponownego /conflicts).
+  const runFileAction = (m, value, mm) => {
+    const exec = () => withLoading(t.ApplyingAction, async () => {
+      const fresh = await ctrl.runCommand({ comm: value, file: m.File, type: m.Type });
+      renderConflicts(fresh);
+    });
+    if (value === 'removeLocal') { confirmStay(tfmt(t.ConfirmRemoveLocalFile, { name: m.File.Name }), exec, mm); return; }
+    if (value === 'removeRemote') { confirmStay(tfmt(t.ConfirmRemoveRemoteFile, { name: m.File.Name }), exec, mm); return; }
+    exec();
+  };
+
   // Render listy konfliktów z PRZEKAZANEJ (świeżej) listy mm — nie z migawki ctx,
   // bo przed otwarciem przeliczamy konflikty na żywo (patrz showConflicts).
   const renderConflicts = (mm) => {
@@ -115,37 +156,31 @@ export function buildCommands(ctx) {
     const nDownload = mm.filter((m) => m.Type === MismatchType.LocalMissing || m.Type === MismatchType.Timestamp).length;
     const nUpload = mm.filter((m) => m.Type === MismatchType.RemoteMissing || m.Type === MismatchType.Timestamp).length;
 
-    const items = mm.map((m) => ({
-      label: `${m.File.Name}`,
-      hint: conflictHint(m),
-      value: { kind: 'file', m },
-    }));
-    // pozycje seryjne na końcu listy (jak „przyciski”)
-    if (nDownload) items.push({ label: tfmt(t.DownloadAllN, { count: nDownload }), hint: t.RemoteToLocal, value: { kind: 'downloadAll' } });
-    if (nUpload) items.push({ label: tfmt(t.UploadAllN, { count: nUpload }), hint: t.LocalToShop, value: { kind: 'uploadAll' } });
+    const items = mm.map((m) => {
+      const { options, initial } = fileOptions(m);
+      return {
+        kind: 'choice',
+        label: m.File.Name,
+        hint: conflictHint(m),
+        options,
+        initial,
+        onSelect: (value) => runFileAction(m, value, mm),
+      };
+    });
+    // pozycje seryjne na końcu listy (jak „przyciski”) — zwykłe pozycje (Enter)
+    if (nDownload) items.push({ label: tfmt(t.DownloadAllN, { count: nDownload }), hint: t.RemoteToLocal, value: { kind: 'downloadAll', n: nDownload } });
+    if (nUpload) items.push({ label: tfmt(t.UploadAllN, { count: nUpload }), hint: t.LocalToShop, value: { kind: 'uploadAll', n: nUpload } });
 
+    // top-level onSelect obsługuje już tylko pozycje seryjne (pliki mają własne
+    // onSelect przez kind:'choice').
     openPicker(t.FileConflicts, items, (item) => {
       const v = item.value;
-      if (v.kind === 'downloadAll') {
-        confirm(tfmt(t.ConfirmDownloadAll, { count: nDownload }),
-          () => safe(() => ctrl.runCommand({ comm: 'downloadAll' })));
-        return;
-      }
-      if (v.kind === 'uploadAll') {
-        confirm(tfmt(t.ConfirmUploadAll, { count: nUpload }),
-          () => safe(() => ctrl.runCommand({ comm: 'uploadAll' })));
-        return;
-      }
-      const m = v.m;
-      const actions = [];
-      if (m.Type !== MismatchType.RemoteMissing) actions.push({ label: t.ActionDownload, value: 'download' });
-      if (m.Type !== MismatchType.LocalMissing) actions.push({ label: t.ActionUpload, value: 'upload' });
-      actions.push({ label: t.ActionRemoveLocal, value: 'removeLocal' });
-      actions.push({ label: t.ActionRemoveRemote, value: 'removeRemote' });
-      // tytuł: trzy znaczniki czasu jak w desktopie — użytkownik sam decyduje
-      const tsLine = `📄 ${t.TsFile} ${fmtTs(m.FileTs)}   💾 ${t.TsLocal} ${fmtTs(m.LocalTs)}   ☁️ ${t.TsRemote} ${fmtTs(m.RemoteTs)}`;
-      openPicker(`${tfmt(t.ActionTitle, { name: m.File.Name })}\n${tsLine}`, actions,
-        (a) => safe(() => ctrl.runCommand({ comm: a.value, file: m.File, type: m.Type })));
+      const bulk = (comm) => withLoading(t.ApplyingAction, async () => {
+        const fresh = await ctrl.runCommand({ comm });
+        renderConflicts(fresh);
+      });
+      if (v.kind === 'downloadAll') { confirmStay(tfmt(t.ConfirmDownloadAll, { count: v.n }), () => bulk('downloadAll'), mm); return; }
+      if (v.kind === 'uploadAll') { confirmStay(tfmt(t.ConfirmUploadAll, { count: v.n }), () => bulk('uploadAll'), mm); return; }
     });
   };
 
