@@ -41,7 +41,7 @@ export function buildCommands(ctx) {
       { label: t.ConfirmNo, value: false },
     ], (it) => { if (it.value) onYes(); });
 
-  // --- formularz logowania (współdzielony przez /login i /shops) ---
+  // --- formularz logowania (gałąź „dodaj nowy” / edycja w /connect) ---
   const loginForm = (prefill = {}) =>
     openForm(t.SignInShopTitle, [
       { name: 'Name', label: t.FieldName, initial: prefill.Name || '' },
@@ -199,27 +199,6 @@ export function buildCommands(ctx) {
   // --- definicje komend ---
   const commands = [
     { name: '/connect', desc: t.CmdConnect, run: () => connect() },
-    { name: '/login', desc: t.CmdLogin, run: () => loginForm() },
-    { name: '/shops', desc: t.CmdShops, run: () => {
-        if (!shops.length) { log.logInfo(log.tmsg('NoSavedShops')); return; }
-        openPicker(t.Shops, shops.map((s) => ({
-          label: s.Name,
-          hint: s.isCurrent ? t.CurrentShop : s.Url,
-          value: s,
-        })), (it) => {
-          const s = it.value;
-          if (s.SavePassword) {
-            // auto-login zapisanym hasłem, bez ponownego wpisywania
-            withLoading(t.ConnectingToShop, async () => {
-              await ctrl.signInSaved(s.Id);
-              refreshShops();
-              await openTemplatesPicker();
-            });
-          } else {
-            loginForm({ Name: s.Name, Url: s.Url });
-          }
-        });
-      } },
     { name: '/templates', desc: t.CmdTemplates, run: () => goTemplates() },
     { name: '/conflicts', desc: t.CmdConflicts, run: () => showConflicts() },
     { name: '/git', desc: t.CmdGit, run: () => gitMenu() },
