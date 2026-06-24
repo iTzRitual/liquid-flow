@@ -72,7 +72,7 @@ export default function ConnectList({ title, shops, actions, onShop, onAction, o
         {actions.map((a, ai) => {
           const sel = inFooter && ai === actIdx;
           return (
-            <Text key={a.key} color={sel ? 'black' : 'gray'} backgroundColor={sel ? 'cyan' : undefined}> {a.label} </Text>
+            <Text key={a.key} color={sel ? 'black' : undefined} backgroundColor={sel ? 'cyan' : undefined}> {a.label} </Text>
           );
         })}
       </Box>
