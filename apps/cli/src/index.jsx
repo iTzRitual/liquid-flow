@@ -24,8 +24,14 @@ process.on('exit', leaveAlt);
 for (const sig of ['SIGTERM', 'SIGHUP']) {
   process.on(sig, () => { leaveAlt(); process.exit(0); });
 }
+// Świadomie ignorujemy Ctrl+C, żeby przypadkowe naciśnięcie nie ubiło sesji
+// synchronizacji. Wyjście tylko przez komendę /exit (albo zamknięcie terminala).
+// W trybie raw terminal nie wysyła SIGINT — Ink dostaje \x03 i dzięki
+// exitOnCtrlC:false go ignoruje; ten handler to zabezpieczenie na wypadek
+// braku raw mode (np. inny terminal/pipe).
+process.on('SIGINT', () => {});
 
-const { waitUntilExit } = render(<App />);
+const { waitUntilExit } = render(<App />, { exitOnCtrlC: false });
 try {
   await waitUntilExit();
 } finally {

@@ -192,7 +192,7 @@ export default function App() {
               value={query}
               onChange={setQuery}
               onSubmit={onSubmit}
-              placeholder="wpisz / aby zobaczyć komendy · Ctrl+C wyjście"
+              placeholder="wpisz / aby zobaczyć komendy · /exit wyjście"
             />
           </Box>
         </>
