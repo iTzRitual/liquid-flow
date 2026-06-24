@@ -155,9 +155,13 @@ export default function App() {
   // Slash NIE chowa już logu: paleta zajmuje kawałek przy dole (tuż nad inputem),
   // a log wypełnia resztę nad nią. Mieścimy się tylko gdy jest sensownie wysoko.
   const showLogWithPalette = fillHeight && log.length > 0 && logRows >= 10;
-  // -5 = chrome palety + 1 wiersz przerwy; paletteLogRows dokłada własny -1 na spacer
-  const paletteCap = Math.max(3, Math.min(filtered.length, logRows - 5));
-  const paletteLogRows = Math.max(1, logRows - paletteCap - 1);
+  const logWithPalette = paletteOpen && showLogWithPalette;
+  // Aktywny tryb: log > divider > podpowiedzi > input (ten sam divider co pasywny,
+  // tuż pod logiem; bez spacera). Divider(1)+input(1) już są w budżecie logRows (−3);
+  // paleta to dodatkowy sibling, więc log oddaje jej tyle wierszy ile zajmie.
+  // −4 zostawia ≥3 wiersze logu nad dividerem.
+  const paletteCap = Math.max(3, Math.min(filtered.length, logRows - 4));
+  const paletteLogRows = Math.max(1, logRows - paletteCap);
 
   // Klawiatura/scroll w trybie input. Paleta otwarta → nawigacja palety; paleta
   // zamknięta → strzałki/kółko (alt‑scroll) przewijają log na ekranie głównym.
@@ -232,20 +236,14 @@ export default function App() {
 
       {mode.type === 'input' && (
         <>
-          {/* Środek rośnie i wypycha input na sam dół; log/postęp/paleta hugują
-              dół (tuż nad inputem). Slash już nie chowa logu — paleta zajmuje
-              kawałek dołu, log wypełnia resztę nad nią. */}
+          {/* Środek rośnie i wypycha strefę akcji na dół. Log wypełnia górę, pod
+              nim divider, a poniżej (gdy paleta otwarta) podpowiedzi tuż nad
+              inputem: log > divider > podpowiedzi > input. Slash nie chowa logu. */}
           <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
             {paletteOpen
-              ? (showLogWithPalette
-                  ? (
-                    <>
-                      {log.length > 0 && <LogPane vlines={vlines} rows={paletteLogRows} scroll={0} t={t} dim />}
-                      {log.length > 0 && <Text> </Text>}
-                      <CommandPalette items={filtered} index={highlight} maxRows={paletteCap} t={t} />
-                    </>
-                  )
-                  : <CommandPalette items={filtered} index={highlight} maxRows={paletteMax} t={t} />)
+              ? (logWithPalette
+                  ? <LogPane vlines={vlines} rows={paletteLogRows} scroll={0} t={t} dim />
+                  : null)
               : (
                 <>
                   {log.length > 0 && <LogPane vlines={vlines} rows={logRows} scroll={logScrollClamped} t={t} />}
@@ -253,7 +251,10 @@ export default function App() {
                 </>
               )}
           </Box>
-          {(paletteOpen || log.length > 0 || progress) && <Divider />}
+          {(paletteOpen ? logWithPalette : (log.length > 0 || progress)) && <Divider />}
+          {paletteOpen && (
+            <CommandPalette items={filtered} index={highlight} maxRows={logWithPalette ? paletteCap : paletteMax} t={t} />
+          )}
           <Box paddingLeft={1}>
             <Text color="#ff5a1f">› </Text>
             <TextInput

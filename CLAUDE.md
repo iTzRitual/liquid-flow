@@ -236,16 +236,21 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
   okna, a log jest kontekstem **nad** nim i nigdy nie znika. Dzięki temu oko nie
   skacze góra↔dół przy zmianie trybu (był to świadomy redesign — wcześniej slash
   chował log, a ekrany były wyrównane do góry).
-  - **Slash nie chowa logu**: gdy `showLogWithPalette` (`fillHeight` + są wpisy +
-    `logRows >= 10`), tryb `input` renderuje `LogPane` (rows `paletteLogRows`) **i**
-    `CommandPalette` (rows `paletteCap = min(filtered.length, logRows-5)`); poniżej
-    progu paleta zajmuje pełną wysokość (`paletteMax`) jak dawniej.
-  - **Log jako tło = wyszarzony + odsunięty**: gdy log jest tłem dla otwartej
-    palety/ekranu, `LogPane` dostaje `dim` (wyszarza CAŁY log — `dimColor`, ten sam
-    efekt co `historic` dla poprzedniej sesji), a między logiem a strefą akcji
-    wstawiany jest 1 wiersz przerwy (`<Text> </Text>`). Spacer jest wliczony w
-    budżet (`paletteLogRows`/`ovLogRows` rezerwują ten wiersz), więc nie powoduje
-    przepełnienia. Wyszarzenie czytelnie komunikuje „to kontekst, akcja jest niżej".
+  - **Slash nie chowa logu** (`input`): układ aktywny (paleta otwarta) to
+    **log > divider > podpowiedzi > input**, pasywny (zamknięta) to **log > divider
+    > input** — divider zawsze tuż pod logiem, podpowiedzi żyją w strefie akcji nad
+    inputem (bez spacera, bez dolnego dividera). `logWithPalette = paletteOpen &&
+    showLogWithPalette` (`showLogWithPalette` = `fillHeight` + są wpisy + `logRows
+    >= 10`); wtedy `LogPane` (rows `paletteLogRows = logRows - paletteCap`, `dim`) +
+    `Divider` + `CommandPalette` (rows `paletteCap = min(filtered.length, logRows-4)`).
+    Poniżej progu (brak logu / niskie okno) paleta bierze pełną wysokość
+    (`paletteMax`) i nie ma dividera. Divider i paleta są **siblingami** flex‑boxa
+    logu (nie wewnątrz), więc log oddaje palecie dokładnie tyle wierszy, ile zajmie.
+  - **Log jako tło = wyszarzony**: gdy log jest tłem dla otwartej palety/ekranu,
+    `LogPane` dostaje `dim` (wyszarza CAŁY log — `dimColor`, ten sam efekt co
+    `historic` dla poprzedniej sesji). Czytelnie mówi „to kontekst, akcja jest
+    niżej". Przy palecie rozdziela je divider; przy ekranach (mają własną ramkę)
+    — 1 wiersz przerwy (`<Text> </Text>`, wliczony w `ovLogRows`).
   - **Ekrany na dole z logiem nad**: helper `wrapAction(node)` w `App.jsx` owija
     każdą nakładkę w `flexGrow=1`+`justifyContent="flex-end"`, a nad nią wstawia
     `LogPane` (rows `ovLogRows`, `dim`) + wiersz przerwy. **To FUNKCJA, nie komponent** — inaczej Box

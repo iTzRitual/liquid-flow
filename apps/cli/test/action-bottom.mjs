@@ -82,19 +82,20 @@ async function runPalette(rows, cols, nCmds, nLogs) {
   const HEADERc = 8;
   const logRows = Math.max(3, rows - HEADERc - 3);
   const showLogWithPalette = fillHeight && nLogs > 0 && logRows >= 10;
-  const paletteCap = Math.max(3, Math.min(nCmds, logRows - 5));
-  const paletteLogRows = Math.max(1, logRows - paletteCap - 1);
+  const paletteCap = Math.max(3, Math.min(nCmds, logRows - 4));
+  const paletteLogRows = Math.max(1, logRows - paletteCap);
   const items = Array.from({ length: nCmds }, (_, i) => ({ name: `/cmd${i + 1}`, desc: 'opis' }));
   const log = Array.from({ length: nLogs }, (_, i) => ({ Id: i + 1, TS: Date.now(), Color: '#2A2', Text: `log ${i + 1}` }));
   const vlines = buildVlines(log, false, cols);
+  // Nowy układ aktywny: log > divider > podpowiedzi > input (bez spacera, bez
+  // dolnego dividera). Divider tuż pod logiem jest siblingiem flex-boxa logu.
   const tree = React.createElement(Box, { flexDirection: 'column', height: fillHeight ? rows - 1 : undefined },
     React.createElement(Header, { state, git, mismatches: [], cols, t }),
     React.createElement(Text, { color: 'blue' }, '─'.repeat(cols)),
     React.createElement(Box, { flexDirection: 'column', flexGrow: 1, justifyContent: 'flex-end' },
-      showLogWithPalette ? React.createElement(LogPane, { vlines, rows: paletteLogRows, scroll: 0, t, dim: true }) : null,
-      showLogWithPalette ? React.createElement(Text, null, ' ') : null,
-      React.createElement(CommandPalette, { items, index: 0, maxRows: showLogWithPalette ? paletteCap : Math.max(3, rows - HEADERc - 2), t })),
-    React.createElement(Text, { color: 'blue' }, '─'.repeat(cols)),
+      showLogWithPalette ? React.createElement(LogPane, { vlines, rows: paletteLogRows, scroll: 0, t, dim: true }) : null),
+    showLogWithPalette ? React.createElement(Text, { color: 'blue' }, '─'.repeat(cols)) : null,
+    React.createElement(CommandPalette, { items, index: 0, maxRows: showLogWithPalette ? paletteCap : Math.max(3, rows - HEADERc - 2), t }),
     React.createElement(Box, null, React.createElement(Text, { color: 'yellow' }, '› /')));
   const out = fakeStdout(cols, rows);
   const app = render(tree, { stdout: out, stdin: fakeStdin(), patchConsole: false });
@@ -106,12 +107,16 @@ async function runPalette(rows, cols, nCmds, nLogs) {
   const hasLog = lines.some((l) => /log \d/.test(l));
   const cmdIdx = lines.findIndex((l) => /\/cmd/.test(l));
   const hasCmd = cmdIdx >= 0;
-  const gap = hasLog && cmdIdx > 0 && (lines[cmdIdx - 1] || '').trim() === '';
+  // tuż nad pierwszą podpowiedzią ma być divider (──), nie pusty wiersz
+  const dividerAbove = hasLog && cmdIdx > 0 && /^─+$/.test((lines[cmdIdx - 1] || '').trim());
   const dimmed = raw.split("\n").some((l) => /log \d/.test(strip(l)) && /\x1b\[2m/.test(l));
-  console.log(`palette rows=${rows} cmds=${nCmds} logi=${nLogs}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} gap=${gap} dim=${dimmed}; paleta=${hasCmd}`);
+  // ostatnia treść to input (podpowiedzi bezpośrednio nad nim, bez dolnego dividera)
+  const last = lines[lines.length - 1] || '';
+  const inputLast = /›\s*\/$/.test(last.trim());
+  console.log(`palette rows=${rows} cmds=${nCmds} logi=${nLogs}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} div=${dividerAbove} dim=${dimmed} paleta=${hasCmd} input-na-dole=${inputLast}`);
   if (overflow) lines.forEach((l, i) => console.log(String(i).padStart(2) + '|' + l));
   if (!fillHeight) return !overflow && hasCmd;
-  return !overflow && hasCmd && hasLog && gap && dimmed;
+  return !overflow && hasCmd && hasLog && dividerAbove && dimmed && inputLast;
 }
 
 let ok = true;
