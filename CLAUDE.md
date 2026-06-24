@@ -160,7 +160,9 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
   `Divider` (znak `─`, kolor `#82bbff`), `Picker`
   (pozycje akcji + pozycje `kind:'toggle'` przełączane `←/→`), `Form` (pola
   tekstowe i `type:'choice'` Tak/Nie strzałkami), `ConflictList` (dedykowany
-  ekran `/conflicts` — patrz niżej), `ProgressView`+`Spinner`
+  ekran `/conflicts` — patrz niżej), `ConnectList` (dedykowany ekran `/connect`:
+  lista sklepów ↑/↓ + wiersz akcji w stopce Rozłącz/Dodaj/Usuń, ←/→ i ↑/↓ chodzą
+  po przyciskach w tej samej kolejności — patrz niżej), `ProgressView`+`Spinner`
   (loader pobierania/sprawdzania), `CommandPalette`. Layout nagłówka testuje się
   na różnych szerokościach: `node apps/cli/test/header-widths.mjs`.
 - **`ConflictList.jsx` (ekran `/conflicts`)** — NIE używa `Picker` (inny model
@@ -242,8 +244,11 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
 - **Slash‑komendy** (`commands.js`, `buildCommands(ctx)`): `/connect /templates
   /conflicts /git /open /clear /settings /exit(quit)`. `/connect` łączy oba
   scenariusze (lista zapisanych sklepów **i** „dodaj nowy") — nie ma osobnych
-  `/login`/`/shops`; do tej samej listy **zwinięte są** rozłączanie i usuwanie
-  sklepu (akcje na dole, dawne `/logout`/`/remove`). `/settings` to menu
+  `/login`/`/shops`; to **dedykowany ekran `ConnectList`** (NIE `Picker`): lista
+  sklepów (↑/↓, Enter = połącz) + wiersz akcji w stopce — Rozłącz sesję / Dodaj
+  nowe połączenie / Usuń sklep (dawne `/logout`/`/remove`), wybierane ←/→ (i ↑/↓
+  w tej samej kolejności; Rozłącz tylko gdy połączony, Usuń tylko gdy są zapisane
+  sklepy). Render: `node apps/cli/test/connectlist-render.mjs`. `/settings` to menu
   preferencji: toggle zawijania logów (dawne `/wrap`, wzorzec togglów z `/git`) +
   wybór języka (dawne `/lang`). Wpisanie `/`
   filtruje paletę; lista startowa „Połącz ze sklepem" otwiera się automatycznie

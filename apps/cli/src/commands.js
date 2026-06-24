@@ -15,7 +15,7 @@ function fmtTs(ts) {
 }
 
 export function buildCommands(ctx) {
-  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, openConflicts, logWrap, setLogWrap, exit, safe, skipToInput, backToInput, withLoading } = ctx;
+  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, openConflicts, openConnect, logWrap, setLogWrap, exit, safe, skipToInput, backToInput, withLoading } = ctx;
   const hasShop = !!state?.currentShop;
   const hasTemplate = !!state?.currentTemplate;
 
@@ -82,35 +82,45 @@ export function buildCommands(ctx) {
       (it) => { ctrl.removeShop(it.value.Id); refreshShops(); log.logOk(log.tmsg('ShopRemoved', { name: it.value.Name })); });
   };
 
-  // --- łączenie ze sklepem (lista + dodanie nowego + cykl życia) ---
-  // Wybór sklepu = szybka ścieżka połączenia (jeden krok). Na dole akcje cyklu
-  // życia: rozłączenie (gdy połączony) i usuwanie zapisanych sklepów — wcześniej
-  // osobne /logout i /remove, zwinięte tutaj, bo i tak operują na tej liście.
+  // --- łączenie ze sklepem (lista + stopka akcji cyklu życia) ---
+  // Lista zapisanych sklepów (↑/↓, Enter = połącz) + wiersz akcji w stopce
+  // (←/→, też ↑/↓): Rozłącz sesję / Dodaj nowe połączenie / Usuń sklep —
+  // wcześniej osobne /logout i /remove, zwinięte tutaj, bo i tak operują na tej
+  // liście. Wybór sklepu zostaje szybką ścieżką (jeden krok).
+  const connectToShop = (s) => {
+    if (s.SavePassword) {
+      withLoading(t.ConnectingToShop, async () => {
+        await ctrl.signInSaved(s.Id);
+        refreshShops();
+        await openTemplatesPicker();
+      });
+    } else {
+      loginForm({ Name: s.Name, Url: s.Url });
+    }
+  };
+
   const connect = () => {
-    const items = shops.map((s) => ({
+    const shopItems = shops.map((s) => ({
       label: s.Name,
       hint: s.isCurrent ? t.CurrentShop : s.Url,
-      value: { kind: 'shop', shop: s },
+      shop: s,
     }));
-    items.push({ label: t.AddNewConnection, value: { kind: 'add' } });
-    if (hasShop) items.push({ label: t.Disconnect, value: { kind: 'logout' } });
-    if (shops.length) items.push({ label: t.RemoveShopTitle, value: { kind: 'remove' } });
-    openPicker(t.ConnectToShop, items, (it) => {
-      const v = it.value;
-      if (v.kind === 'add') { loginForm(); return; }
-      if (v.kind === 'logout') { ctrl.logout(); return; }
-      if (v.kind === 'remove') { removeShopPicker(); return; }
-      const s = v.shop;
-      if (s.SavePassword) {
-        withLoading(t.ConnectingToShop, async () => {
-          await ctrl.signInSaved(s.Id);
-          refreshShops();
-          await openTemplatesPicker();
-        });
-      } else {
-        loginForm({ Name: s.Name, Url: s.Url });
-      }
-    }, { onSlash: skipToInput });
+    const actions = [];
+    if (hasShop) actions.push({ key: 'logout', label: t.DisconnectSession });
+    actions.push({ key: 'add', label: t.AddConnectionShort });
+    if (shops.length) actions.push({ key: 'remove', label: t.RemoveShopTitle });
+    openConnect({
+      title: t.ConnectToShop,
+      shops: shopItems,
+      actions,
+      onShop: connectToShop,
+      onAction: (key) => {
+        if (key === 'add') { loginForm(); return; }
+        if (key === 'logout') { backToInput(); ctrl.logout(); return; }
+        if (key === 'remove') { removeShopPicker(); return; }
+      },
+      onSlash: skipToInput,
+    });
   };
 
   // --- ustawienia (język + zawijanie logów) ---

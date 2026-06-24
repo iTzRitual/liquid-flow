@@ -13,6 +13,7 @@ import LogPane, { buildVlines } from './components/LogPane.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Picker from './components/Picker.jsx';
 import ConflictList from './components/ConflictList.jsx';
+import ConnectList from './components/ConnectList.jsx';
 import Form from './components/Form.jsx';
 
 export default function App() {
@@ -60,6 +61,9 @@ export default function App() {
       // ekran konfliktów (karty + stopka seryjna). Handlery same sterują trybem
       // (loader/odświeżenie/potwierdzenie), więc nie owijamy ich w back().
       openConflicts: (data) => setMode({ type: 'conflicts', ...data }),
+      // ekran łączenia (lista sklepów + stopka akcji). Handlery same sterują
+      // trybem (loader/formularz/sub-picker), więc nie owijamy ich w back().
+      openConnect: (data) => setMode({ type: 'connect', ...data }),
       // wyjście z listy startowej do zwykłego inputu z otwartą paletą
       skipToInput: () => { setMode({ type: 'input' }); setQuery('/'); },
       // powrót do czystego inputu (np. gdy operacja z loaderem nie otwiera widoku)
@@ -178,6 +182,10 @@ export default function App() {
 
       {mode.type === 'conflicts' && (
         <ConflictList title={mode.title} files={mode.files} bulk={mode.bulk} onAction={mode.onAction} onBulk={mode.onBulk} onCancel={() => setMode({ type: 'input' })} maxRows={pickerMax} t={t} />
+      )}
+
+      {mode.type === 'connect' && (
+        <ConnectList title={mode.title} shops={mode.shops} actions={mode.actions} onShop={mode.onShop} onAction={mode.onAction} onSlash={mode.onSlash} onCancel={() => setMode({ type: 'input' })} maxRows={pickerMax} t={t} />
       )}
 
       {mode.type === 'input' && (
