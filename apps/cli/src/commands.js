@@ -15,7 +15,7 @@ function fmtTs(ts) {
 }
 
 export function buildCommands(ctx) {
-  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, openConflicts, openConnect, logWrap, setLogWrap, exit, safe, skipToInput, backToInput, withLoading } = ctx;
+  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, openConflicts, openConnect, logWrap, setLogWrap, exit, safe, skipToInput, backToInput, withLoading, dropParent } = ctx;
   const hasShop = !!state?.currentShop;
   const hasTemplate = !!state?.currentTemplate;
 
@@ -246,10 +246,11 @@ export function buildCommands(ctx) {
     if (!st.isRepo) {
       openPicker(t.GitMenuNoRepo, [
         { label: t.GitInitRepo, value: 'init' },
-      ], () => safe(async () => {
+      ], () => withLoading(t.Loading, async () => {
         await ctrl.gitEnable();
+        dropParent(); // ekran „brak repo” jest już nieaktualny → Esc z menu git wróci do inputu
         gitMenu();
-      }));
+      }, t.GitInitRepo));
       return;
     }
 

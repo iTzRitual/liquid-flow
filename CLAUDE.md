@@ -156,6 +156,14 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
   potwierdzenia dostają ten ekran jako rodzica, więc Esc z potwierdzenia wraca do
   listy konfliktów). Picker/Form nadal zamykają się do inputu **po wyborze**
   (`back()` w wrapperze) — `parent` zmienia tylko zachowanie **Esc**, nie wyboru.
+  Gdy zapamiętany rodzic przestaje być aktualny (np. po `init` ekran „brak repo”
+  znika), handler woła `ctx.dropParent()` przed otwarciem kolejnego widoku, by Esc
+  wrócił do inputu zamiast do nieaktualnego ekranu. **Asynchroniczne re‑otwarcia**
+  (np. `gitEnable()` → `gitMenu()`) idą przez `withLoading`, a nie `safe` — `back()`
+  w wrapperze pickera zdążyłby wyrenderować „goły” input przed otwarciem widoku
+  (mignięcie ekranu głównego); spinner loadera trzyma kadr do czasu otwarcia.
+  `withLoading(label, fn, title?)` przyjmuje opcjonalny `title` nadpisujący domyślny
+  nagłówek loadera (`t.SelectTemplate`).
 - **Komponenty**: `Header` (nagłówek = 2 kolumny: logo i informacje; logo ma
   `flexShrink=0`, kolumna informacji `flexGrow=1` + `justifyContent="space-between"`
   — status u góry, wskaźnik konfliktów do prawej i przyklejony do dołu/Dividera),

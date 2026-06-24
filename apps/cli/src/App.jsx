@@ -104,14 +104,22 @@ export default function App() {
         self.onAction = (...a) => { pendingParentRef.current = self; data.onAction?.(...a); };
         setMode(self);
       },
+      // porzuć zapamiętanego rodzica — gdy ekran, z którego przyszliśmy, przestaje
+      // być aktualny (np. po `init` ekran „brak repo” znika), kolejny otwarty
+      // widok ma wrócić Esc do inputu, a nie do nieaktualnego ekranu.
+      dropParent: () => { pendingParentRef.current = null; },
       // wyjście z listy startowej do zwykłego inputu z otwartą paletą
       skipToInput: () => { setMode({ type: 'input' }); setQuery('/'); },
       // powrót do czystego inputu (np. gdy operacja z loaderem nie otwiera widoku)
       backToInput: back,
       // pokaż ekran ładowania na czas operacji (np. pobierania listy szablonów),
-      // a po niej fn otwiera właściwy widok; przy błędzie wróć do inputu
-      withLoading: (label, fn) => {
-        setMode({ type: 'loading', label });
+      // a po niej fn otwiera właściwy widok; przy błędzie wróć do inputu.
+      // `title` (opcjonalny) nadpisuje domyślny nagłówek loadera. Użycie loadera
+      // zamiast „gołego” inputu eliminuje też mignięcie ekranu głównego, gdy fn
+      // jest asynchroniczne (back()→input zdąża się wyrenderować przed otwarciem
+      // właściwego widoku) — spinner trzyma kadr do czasu otwarcia widoku.
+      withLoading: (label, fn, title) => {
+        setMode({ type: 'loading', label, title });
         Promise.resolve().then(fn).catch((e) => {
           corelog.logErr(e?.message || String(e));
           setMode({ type: 'input' });
@@ -255,7 +263,7 @@ export default function App() {
 
       {mode.type === 'loading' && wrapAction(
         <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
-          <Text color="cyan" bold>{t.SelectTemplate}</Text>
+          <Text color="cyan" bold>{mode.title || t.SelectTemplate}</Text>
           <Box><Spinner color="cyan" /><Text> {mode.label || t.Loading}</Text></Box>
         </Box>
       )}
