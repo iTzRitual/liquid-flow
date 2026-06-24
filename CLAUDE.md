@@ -238,11 +238,17 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
   chował log, a ekrany były wyrównane do góry).
   - **Slash nie chowa logu**: gdy `showLogWithPalette` (`fillHeight` + są wpisy +
     `logRows >= 10`), tryb `input` renderuje `LogPane` (rows `paletteLogRows`) **i**
-    `CommandPalette` (rows `paletteCap = min(filtered.length, logRows-4)`); poniżej
+    `CommandPalette` (rows `paletteCap = min(filtered.length, logRows-5)`); poniżej
     progu paleta zajmuje pełną wysokość (`paletteMax`) jak dawniej.
+  - **Log jako tło = wyszarzony + odsunięty**: gdy log jest tłem dla otwartej
+    palety/ekranu, `LogPane` dostaje `dim` (wyszarza CAŁY log — `dimColor`, ten sam
+    efekt co `historic` dla poprzedniej sesji), a między logiem a strefą akcji
+    wstawiany jest 1 wiersz przerwy (`<Text> </Text>`). Spacer jest wliczony w
+    budżet (`paletteLogRows`/`ovLogRows` rezerwują ten wiersz), więc nie powoduje
+    przepełnienia. Wyszarzenie czytelnie komunikuje „to kontekst, akcja jest niżej".
   - **Ekrany na dole z logiem nad**: helper `wrapAction(node)` w `App.jsx` owija
     każdą nakładkę w `flexGrow=1`+`justifyContent="flex-end"`, a nad nią wstawia
-    `LogPane` (rows `ovLogRows`). **To FUNKCJA, nie komponent** — inaczej Box
+    `LogPane` (rows `ovLogRows`, `dim`) + wiersz przerwy. **To FUNKCJA, nie komponent** — inaczej Box
     dostaje nową tożsamość co render i React remontuje ekran, gubiąc `useState`
     pickerów. Budżet liczony z DANYCH: `overlayNatural` (ile pozycji + chrome),
     `ovRows = min(natural, overlayAvail - ovReserve)`, `ovMax = ovRows-4` (body),

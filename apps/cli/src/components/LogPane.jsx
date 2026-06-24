@@ -50,7 +50,9 @@ export function buildVlines(log, wrap, cols) {
 // Panel logu na ekranie głównym. Przewijany kółkiem/strzałkami: `scroll` to ile
 // wizualnych wierszy od dołu (0 = najnowsze na dole). Zawsze mieści się w
 // budżecie `rows` — wskaźniki „↑/↓ więcej" zabierają wiersz z okna treści.
-export default function LogPane({ vlines, rows = 10, scroll = 0, t }) {
+// `dim` wyszarza CAŁY log (gdy jest tłem dla otwartej palety/ekranu — kontekst,
+// nie aktywna treść; ten sam efekt co `historic` dla poprzedniej sesji).
+export default function LogPane({ vlines, rows = 10, scroll = 0, t, dim = false }) {
   const total = vlines.length;
   // +1, bo na górze wskaźnik „↓ nowszych" zabiera wiersz z okna — inaczej
   // najstarszych wpisów (tyle, ile zajmują wskaźniki) nie dałoby się odsłonić.
@@ -72,7 +74,7 @@ export default function LogPane({ vlines, rows = 10, scroll = 0, t }) {
       {slice.length === 0
         ? <Text color="gray" dimColor>{t.LogEmpty}</Text>
         : slice.map((l) => (
-            <Text key={l.key} color={l.color} dimColor={l.dim} wrap={l.trunc ? 'truncate-end' : 'wrap'}>{l.text}</Text>
+            <Text key={l.key} color={l.color} dimColor={l.dim || dim} wrap={l.trunc ? 'truncate-end' : 'wrap'}>{l.text}</Text>
           ))}
       {hasBelow && <Text color="gray" dimColor>{tfmt(t.NewerEntries, { count: total - end })}</Text>}
     </Box>

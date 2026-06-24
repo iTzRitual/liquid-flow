@@ -3,6 +3,9 @@
 // wysokość okna, (2) ostatni wiersz treści to ekran/paleta (jest nisko, nie pod
 // nagłówkiem), (3) log jest widoczny nad ekranem. Replikuje liczenie z App.jsx.
 // Uruchom: node apps/cli/test/action-bottom.mjs
+// FORCE_COLOR (przed importem ink/chalk) — bez kolorów `dimColor` nie emituje
+// kodu SGR, więc asercja wyszarzenia logu (dim) nie mogłaby go wykryć.
+process.env.FORCE_COLOR = process.env.FORCE_COLOR || '3';
 import { register } from 'tsx/esm/api';
 register();
 const React = (await import('react')).default;
@@ -33,7 +36,7 @@ function layoutOverlay(termRows, nItems, nLogs) {
   const ovReserve = ovShowLog ? 4 : 0;
   const ovRows = Math.min(natural, overlayAvail - ovReserve);
   const ovMax = Math.max(3, ovRows - 4);
-  const ovLogRows = ovShowLog ? Math.max(0, overlayAvail - ovRows) : 0;
+  const ovLogRows = ovShowLog ? Math.max(0, overlayAvail - ovRows - 1) : 0;
   return { fillHeight, ovMax, ovLogRows };
 }
 
@@ -42,9 +45,11 @@ async function runPicker(rows, cols, nItems, nLogs) {
   const items = Array.from({ length: nItems }, (_, i) => ({ label: `pozycja ${i + 1}`, value: i }));
   const log = Array.from({ length: nLogs }, (_, i) => ({ Id: i + 1, TS: Date.now(), Color: '#2A2', Text: `log ${i + 1}` }));
   const vlines = buildVlines(log, false, cols);
+  const showLog = fillHeight && ovLogRows > 0 && log.length > 0;
   const wrap = (node) => fillHeight
     ? React.createElement(Box, { flexDirection: 'column', flexGrow: 1, justifyContent: 'flex-end' },
-        ovLogRows > 0 && log.length > 0 ? React.createElement(LogPane, { vlines, rows: ovLogRows, scroll: 0, t }) : null,
+        showLog ? React.createElement(LogPane, { vlines, rows: ovLogRows, scroll: 0, t, dim: true }) : null,
+        showLog ? React.createElement(Text, null, ' ') : null,
         node)
     : node;
   const tree = React.createElement(Box, { flexDirection: 'column', height: fillHeight ? rows - 1 : undefined },
@@ -55,18 +60,21 @@ async function runPicker(rows, cols, nItems, nLogs) {
   const app = render(tree, { stdout: out, stdin: fakeStdin(), patchConsole: false });
   await new Promise((r) => setImmediate(r));
   app.unmount();
-  const lines = strip(out.last).replace(/\n+$/g, '').split('\n');
+  const raw = out.last;
+  const lines = strip(raw).replace(/\n+$/g, '').split('\n');
   const overflow = lines.length > rows;
-  const hasLog = lines.some((l) => /log \d/.test(l));
+  const logIdx = lines.map((l, i) => (/log \d/.test(l) ? i : -1)).filter((i) => i >= 0);
+  const hasLog = logIdx.length > 0;
+  const screenIdx = lines.findIndex((l) => /╭/.test(l)); // górna ramka ekranu
+  // między ostatnim wierszem logu a górną ramką ekranu musi być pusty wiersz
+  const gap = hasLog && screenIdx > 0 && (lines[screenIdx - 1] || '').trim() === '';
+  const dimmed = raw.split("\n").some((l) => /log \d/.test(strip(l)) && /\x1b\[2m/.test(l)); // log renderowany z dimColor
   const last = lines[lines.length - 1] || '';
-  // ostatni wiersz powinien należeć do ekranu (ramka ╰ lub pomoc), nie być pusty
   const bottomIsScreen = /[╰─]/.test(last) || /wybór|Enter/.test(last);
-  console.log(`picker rows=${rows} items=${nItems} logi=${nLogs} fill=${fillHeight}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log nad ekranem=${hasLog}; dół=ekran:${bottomIsScreen}`);
+  console.log(`picker rows=${rows} items=${nItems} logi=${nLogs} fill=${fillHeight}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} gap=${gap} dim=${dimmed}; dół=ekran:${bottomIsScreen}`);
   if (overflow && fillHeight) lines.forEach((l, i) => console.log(String(i).padStart(2) + '|' + l));
-  // Asercje dotyczą tylko trybu fillHeight (>=16 wierszy) — to ścieżka zmieniona.
-  // Niskie okno = naturalny przepływ (legacy, identyczny jak przed zmianą).
-  if (!fillHeight) return true;
-  return !overflow && bottomIsScreen && hasLog;
+  if (!fillHeight) return true; // niskie okno = legacy, bez asercji
+  return !overflow && bottomIsScreen && hasLog && gap && dimmed;
 }
 
 async function runPalette(rows, cols, nCmds, nLogs) {
@@ -74,8 +82,8 @@ async function runPalette(rows, cols, nCmds, nLogs) {
   const HEADERc = 8;
   const logRows = Math.max(3, rows - HEADERc - 3);
   const showLogWithPalette = fillHeight && nLogs > 0 && logRows >= 10;
-  const paletteCap = Math.max(3, Math.min(nCmds, logRows - 4));
-  const paletteLogRows = Math.max(1, logRows - paletteCap);
+  const paletteCap = Math.max(3, Math.min(nCmds, logRows - 5));
+  const paletteLogRows = Math.max(1, logRows - paletteCap - 1);
   const items = Array.from({ length: nCmds }, (_, i) => ({ name: `/cmd${i + 1}`, desc: 'opis' }));
   const log = Array.from({ length: nLogs }, (_, i) => ({ Id: i + 1, TS: Date.now(), Color: '#2A2', Text: `log ${i + 1}` }));
   const vlines = buildVlines(log, false, cols);
@@ -83,7 +91,8 @@ async function runPalette(rows, cols, nCmds, nLogs) {
     React.createElement(Header, { state, git, mismatches: [], cols, t }),
     React.createElement(Text, { color: 'blue' }, '─'.repeat(cols)),
     React.createElement(Box, { flexDirection: 'column', flexGrow: 1, justifyContent: 'flex-end' },
-      showLogWithPalette ? React.createElement(LogPane, { vlines, rows: paletteLogRows, scroll: 0, t }) : null,
+      showLogWithPalette ? React.createElement(LogPane, { vlines, rows: paletteLogRows, scroll: 0, t, dim: true }) : null,
+      showLogWithPalette ? React.createElement(Text, null, ' ') : null,
       React.createElement(CommandPalette, { items, index: 0, maxRows: showLogWithPalette ? paletteCap : Math.max(3, rows - HEADERc - 2), t })),
     React.createElement(Text, { color: 'blue' }, '─'.repeat(cols)),
     React.createElement(Box, null, React.createElement(Text, { color: 'yellow' }, '› /')));
@@ -91,13 +100,18 @@ async function runPalette(rows, cols, nCmds, nLogs) {
   const app = render(tree, { stdout: out, stdin: fakeStdin(), patchConsole: false });
   await new Promise((r) => setImmediate(r));
   app.unmount();
-  const lines = strip(out.last).replace(/\n+$/g, '').split('\n');
+  const raw = out.last;
+  const lines = strip(raw).replace(/\n+$/g, '').split('\n');
   const overflow = lines.length > rows;
   const hasLog = lines.some((l) => /log \d/.test(l));
-  const hasCmd = lines.some((l) => /\/cmd/.test(l));
-  console.log(`palette rows=${rows} cmds=${nCmds} logi=${nLogs}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog}; paleta=${hasCmd}`);
+  const cmdIdx = lines.findIndex((l) => /\/cmd/.test(l));
+  const hasCmd = cmdIdx >= 0;
+  const gap = hasLog && cmdIdx > 0 && (lines[cmdIdx - 1] || '').trim() === '';
+  const dimmed = raw.split("\n").some((l) => /log \d/.test(strip(l)) && /\x1b\[2m/.test(l));
+  console.log(`palette rows=${rows} cmds=${nCmds} logi=${nLogs}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} gap=${gap} dim=${dimmed}; paleta=${hasCmd}`);
   if (overflow) lines.forEach((l, i) => console.log(String(i).padStart(2) + '|' + l));
-  return !overflow && hasCmd && (fillHeight ? hasLog : true);
+  if (!fillHeight) return !overflow && hasCmd;
+  return !overflow && hasCmd && hasLog && gap && dimmed;
 }
 
 let ok = true;

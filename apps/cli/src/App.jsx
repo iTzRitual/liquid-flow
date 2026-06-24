@@ -148,14 +148,16 @@ export default function App() {
   const ovReserve = ovShowLog ? 4 : 0; // minimalny log nad ekranem
   const ovRows = Math.min(overlayNatural, overlayAvail - ovReserve);
   const ovMax = Math.max(3, ovRows - 4); // body ekranu (chrome ekranu = 4 wiersze)
-  const ovLogRows = ovShowLog ? Math.max(0, overlayAvail - ovRows) : 0;
+  // log nad ekranem + 1 wiersz przerwy (spacer) między logiem a ekranem
+  const ovLogRows = ovShowLog ? Math.max(0, overlayAvail - ovRows - 1) : 0;
 
   // --- paleta w trybie input ---
   // Slash NIE chowa już logu: paleta zajmuje kawałek przy dole (tuż nad inputem),
   // a log wypełnia resztę nad nią. Mieścimy się tylko gdy jest sensownie wysoko.
   const showLogWithPalette = fillHeight && log.length > 0 && logRows >= 10;
-  const paletteCap = Math.max(3, Math.min(filtered.length, logRows - 4));
-  const paletteLogRows = Math.max(1, logRows - paletteCap);
+  // -5 = chrome palety + 1 wiersz przerwy; paletteLogRows dokłada własny -1 na spacer
+  const paletteCap = Math.max(3, Math.min(filtered.length, logRows - 5));
+  const paletteLogRows = Math.max(1, logRows - paletteCap - 1);
 
   // Klawiatura/scroll w trybie input. Paleta otwarta → nawigacja palety; paleta
   // zamknięta → strzałki/kółko (alt‑scroll) przewijają log na ekranie głównym.
@@ -187,13 +189,17 @@ export default function App() {
   // przyklejony do dołu — spójnie z inputem. To FUNKCJA (nie komponent), żeby Box
   // miał stabilną tożsamość w drzewie i nie remontował ekranu (zachowanie stanu
   // useState pickerów). Na niskim oknie (brak fillHeight) — naturalny przepływ.
-  const wrapAction = (node) =>
-    fillHeight ? (
+  const wrapAction = (node) => {
+    if (!fillHeight) return node;
+    const showLog = ovLogRows > 0 && log.length > 0;
+    return (
       <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
-        {ovLogRows > 0 && log.length > 0 && <LogPane vlines={vlines} rows={ovLogRows} scroll={0} t={t} />}
+        {showLog && <LogPane vlines={vlines} rows={ovLogRows} scroll={0} t={t} dim />}
+        {showLog && <Text> </Text>}
         {node}
       </Box>
-    ) : node;
+    );
+  };
 
   return (
     <Box flexDirection="column" height={fillHeight ? termRows - 1 : undefined}>
@@ -234,7 +240,8 @@ export default function App() {
               ? (showLogWithPalette
                   ? (
                     <>
-                      {log.length > 0 && <LogPane vlines={vlines} rows={paletteLogRows} scroll={0} t={t} />}
+                      {log.length > 0 && <LogPane vlines={vlines} rows={paletteLogRows} scroll={0} t={t} dim />}
+                      {log.length > 0 && <Text> </Text>}
                       <CommandPalette items={filtered} index={highlight} maxRows={paletteCap} t={t} />
                     </>
                   )
