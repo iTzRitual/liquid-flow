@@ -12,6 +12,7 @@ import Spinner from './components/Spinner.jsx';
 import LogPane, { buildVlines } from './components/LogPane.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Picker from './components/Picker.jsx';
+import ConflictList from './components/ConflictList.jsx';
 import Form from './components/Form.jsx';
 
 export default function App() {
@@ -56,6 +57,9 @@ export default function App() {
         setMode({ type: 'picker', title, items, onSlash: opts.onSlash, onSelect: (it, i) => { back(); onSelect?.(it, i); } }),
       openForm: (title, fields, onSubmit) =>
         setMode({ type: 'form', title, fields, onSubmit: (vals) => { back(); onSubmit?.(vals); } }),
+      // ekran konfliktów (karty + stopka seryjna). Handlery same sterują trybem
+      // (loader/odświeżenie/potwierdzenie), więc nie owijamy ich w back().
+      openConflicts: (data) => setMode({ type: 'conflicts', ...data }),
       // wyjście z listy startowej do zwykłego inputu z otwartą paletą
       skipToInput: () => { setMode({ type: 'input' }); setQuery('/'); },
       // powrót do czystego inputu (np. gdy operacja z loaderem nie otwiera widoku)
@@ -170,6 +174,10 @@ export default function App() {
 
       {mode.type === 'form' && (
         <Form title={mode.title} fields={mode.fields} onSubmit={mode.onSubmit} onCancel={() => setMode({ type: 'input' })} t={t} />
+      )}
+
+      {mode.type === 'conflicts' && (
+        <ConflictList title={mode.title} files={mode.files} bulk={mode.bulk} onAction={mode.onAction} onBulk={mode.onBulk} onCancel={() => setMode({ type: 'input' })} maxRows={pickerMax} t={t} />
       )}
 
       {mode.type === 'input' && (

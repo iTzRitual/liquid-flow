@@ -15,24 +15,28 @@ function fmtTs(ts) {
 }
 
 export function buildCommands(ctx) {
-  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, logWrap, setLogWrap, exit, safe, skipToInput, backToInput, withLoading } = ctx;
+  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, openConflicts, logWrap, setLogWrap, exit, safe, skipToInput, backToInput, withLoading } = ctx;
   const hasShop = !!state?.currentShop;
   const hasTemplate = !!state?.currentTemplate;
 
-  // Podpowiedź w liście konfliktów: co zrobić + który nowszy (na podstawie
-  // czasu pliku na dysku vs czasu po stronie sklepu).
-  const conflictHint = (m) => {
+  // Która strona jest nowsza / gdzie istnieje plik (słowny opis konfliktu).
+  const whoNewer = (m) => {
     if (m.Type === MismatchType.LocalMissing) return t.HintRemoteOnly;
     if (m.Type === MismatchType.RemoteMissing) return t.HintLocalOnly;
     const f = new Date(m.FileTs).getTime();
     const r = new Date(m.RemoteTs).getTime();
-    let who = t.HintBothChanged;
     if (!Number.isNaN(f) && !Number.isNaN(r)) {
-      if (f > r) who = t.HintLocalNewer;
-      else if (r > f) who = t.HintRemoteNewer;
+      if (f > r) return t.HintLocalNewer;
+      if (r > f) return t.HintRemoteNewer;
     }
-    return `${who}  (${t.TsLocalShort} ${fmtTs(m.FileTs)} · ${t.TsRemoteShort} ${fmtTs(m.RemoteTs)})`;
+    return t.HintBothChanged;
   };
+
+  // Wiersz metadanych karty konfliktu: trzy znaczniki czasu + słowny opis. Bez
+  // emoji — warianty U+FE0F bywają liczone jako 1, a rysowane jako 2 znaki, co
+  // rozjeżdża przycinanie i łamie prawą ramkę karty.
+  const metaLine = (m) =>
+    `${t.TsFile} ${fmtTs(m.FileTs)} · ${t.TsLocal} ${fmtTs(m.LocalTs)} · ${t.TsRemote} ${fmtTs(m.RemoteTs)} · ${whoNewer(m)}`;
 
   // --- formularz logowania (gałąź „dodaj nowy” / edycja w /connect) ---
   const loginForm = (prefill = {}) =>
@@ -147,8 +151,16 @@ export function buildCommands(ctx) {
     exec();
   };
 
-  // Render listy konfliktów z PRZEKAZANEJ (świeżej) listy mm — nie z migawki ctx,
+  // Operacja seryjna (wszystkie) z odświeżeniem listy po zakończeniu.
+  const runBulk = (comm) => withLoading(t.ApplyingAction, async () => {
+    const fresh = await ctrl.runCommand({ comm });
+    renderConflicts(fresh);
+  });
+
+  // Render ekranu konfliktów z PRZEKAZANEJ (świeżej) listy mm — nie z migawki ctx,
   // bo przed otwarciem przeliczamy konflikty na żywo (patrz showConflicts).
+  // Każdy plik = karta (nazwa + przyciski / metadane / odstęp); na dole stopka
+  // z operacjami seryjnymi.
   const renderConflicts = (mm) => {
     if (!mm.length) { log.logOk(log.tmsg('NoConflicts')); backToInput(); return; }
 
@@ -156,31 +168,24 @@ export function buildCommands(ctx) {
     const nDownload = mm.filter((m) => m.Type === MismatchType.LocalMissing || m.Type === MismatchType.Timestamp).length;
     const nUpload = mm.filter((m) => m.Type === MismatchType.RemoteMissing || m.Type === MismatchType.Timestamp).length;
 
-    const items = mm.map((m) => {
+    const files = mm.map((m) => {
       const { options, initial } = fileOptions(m);
-      return {
-        kind: 'choice',
-        label: m.File.Name,
-        hint: conflictHint(m),
-        options,
-        initial,
-        onSelect: (value) => runFileAction(m, value, mm),
-      };
+      return { name: m.File.Name, meta: metaLine(m), options, initial, m };
     });
-    // pozycje seryjne na końcu listy (jak „przyciski”) — zwykłe pozycje (Enter)
-    if (nDownload) items.push({ label: tfmt(t.DownloadAllN, { count: nDownload }), hint: t.RemoteToLocal, value: { kind: 'downloadAll', n: nDownload } });
-    if (nUpload) items.push({ label: tfmt(t.UploadAllN, { count: nUpload }), hint: t.LocalToShop, value: { kind: 'uploadAll', n: nUpload } });
 
-    // top-level onSelect obsługuje już tylko pozycje seryjne (pliki mają własne
-    // onSelect przez kind:'choice').
-    openPicker(t.FileConflicts, items, (item) => {
-      const v = item.value;
-      const bulk = (comm) => withLoading(t.ApplyingAction, async () => {
-        const fresh = await ctrl.runCommand({ comm });
-        renderConflicts(fresh);
-      });
-      if (v.kind === 'downloadAll') { confirmStay(tfmt(t.ConfirmDownloadAll, { count: v.n }), () => bulk('downloadAll'), mm); return; }
-      if (v.kind === 'uploadAll') { confirmStay(tfmt(t.ConfirmUploadAll, { count: v.n }), () => bulk('uploadAll'), mm); return; }
+    const bulk = [];
+    if (nDownload) bulk.push({ label: tfmt(t.DownloadAllN, { count: nDownload }), value: 'downloadAll' });
+    if (nUpload) bulk.push({ label: tfmt(t.UploadAllN, { count: nUpload }), value: 'uploadAll' });
+
+    openConflicts({
+      title: t.FileConflicts,
+      files,
+      bulk,
+      onAction: (value, file) => runFileAction(file.m, value, mm),
+      onBulk: (value) => {
+        if (value === 'downloadAll') { confirmStay(tfmt(t.ConfirmDownloadAll, { count: nDownload }), () => runBulk('downloadAll'), mm); return; }
+        if (value === 'uploadAll') { confirmStay(tfmt(t.ConfirmUploadAll, { count: nUpload }), () => runBulk('uploadAll'), mm); }
+      },
     });
   };
 

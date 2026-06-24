@@ -159,9 +159,26 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
   i `LogPane` MUSZĄ liczyć tak samo. Test: `node apps/cli/test/logpane-scroll.mjs`),
   `Divider` (znak `─`, kolor `#82bbff`), `Picker`
   (pozycje akcji + pozycje `kind:'toggle'` przełączane `←/→`), `Form` (pola
-  tekstowe i `type:'choice'` Tak/Nie strzałkami), `ProgressView`+`Spinner`
+  tekstowe i `type:'choice'` Tak/Nie strzałkami), `ConflictList` (dedykowany
+  ekran `/conflicts` — patrz niżej), `ProgressView`+`Spinner`
   (loader pobierania/sprawdzania), `CommandPalette`. Layout nagłówka testuje się
   na różnych szerokościach: `node apps/cli/test/header-widths.mjs`.
+- **`ConflictList.jsx` (ekran `/conflicts`)** — NIE używa `Picker` (inny model
+  layoutu). Każdy plik to **karta 3‑wierszowa**: (1) nazwa do lewej
+  (`truncate-end`) + przyciski akcji do prawej (`flexShrink=0`), (2) metadane
+  (znaczniki czasu + która strona nowsza), (3) pusta linia. Na dole stała stopka:
+  pusta linia + jeden wiersz operacji seryjnych (Pobierz/Wyślij wszystkie).
+  Nawigacja: `↑/↓` między kartami i stopką, `←/→` wybór akcji w wierszu, `Enter`
+  wykonuje, `Esc` anuluje. **Akcje są dopasowane do typu konfliktu** (2 opcje):
+  Timestamp → Pobierz/Wyślij; LocalMissing → Pobierz/Usuń w sklepie; RemoteMissing
+  → Wyślij/Usuń lokalnie. Domyślny wybór nigdy nie jest usuwaniem; usuwanie idzie
+  przez potwierdzenie (`confirmStay` — „Nie" wraca do listy). Po akcji lista
+  odświeża się i zostaje otwarta (rozwiązujesz kolejne pliki bez ponownego
+  `/conflicts`). Okienkowanie kart przez `windowCards(n, idx, budżet, 3)` w
+  `window.js` (stała wysokość karty = 3 wiersze, wskaźniki `↑/↓ więcej`). **Uwaga
+  o emoji:** w przycinanym wierszu metadanych NIE używać emoji z `U+FE0F`
+  (📄💾☁️) — bywają liczone jako 1, a rysowane jako 2 znaki, co łamie prawą
+  ramkę; w przyciskach (flex‑box mierzony Yogą, np. 🗑) jest OK.
 - **Layout nagłówka (`Header.jsx`) — NIE psuć!** Świadomy układ **2‑kolumnowy**;
   historycznie był wielokrotnie psuty, więc reguły są twarde:
   ```
@@ -222,17 +239,19 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
   nad kolumną informacji): za duża → pusta linia nad logiem, za mała →
   przepełnienie. Zasadę layoutu (w tym brak pustej linii) sprawdza
   `node apps/cli/test/fill-height.mjs`.
-- **Slash‑komendy** (`commands.js`, `buildCommands(ctx)`): `/connect /login
-  /shops /templates /conflicts /git /open /lang /logout /wrap /clear /remove
-  /exit(quit)`. `/wrap` przełącza zawijanie logów (alternatywne wyświetlanie).
-  Wpisanie `/` filtruje paletę; lista startowa „Połącz ze sklepem"
-  otwiera się automatycznie gdy niepołączony, a `/` ją przeskakuje. Operacje
-  seryjne (pobierz/wyślij wszystkie) nie są osobnymi komendami — żyją na końcu
-  ekranu `/conflicts` jako pozycje z potwierdzeniem (sens mają tylko przy
-  konfliktach). Ekran `/conflicts` pokazuje przy każdym pliku, która strona jest
-  nowsza, a w widoku akcji trzy znaczniki czasu (📄 plik / 💾 lokalny / ☁️
-  zdalny). Wskaźnik konfliktów siedzi w nagłówku (obok logo, nie spycha układu)
-  i kieruje do `/conflicts`. Nie ma `/refresh` — `SyncSession` przelicza
+- **Slash‑komendy** (`commands.js`, `buildCommands(ctx)`): `/connect /templates
+  /conflicts /git /open /lang /logout /wrap /clear /remove /exit(quit)`. `/connect`
+  łączy oba scenariusze (lista zapisanych sklepów **i** „dodaj nowy") — nie ma
+  osobnych `/login`/`/shops`. `/wrap` przełącza zawijanie logów. Wpisanie `/`
+  filtruje paletę; lista startowa „Połącz ze sklepem" otwiera się automatycznie
+  gdy niepołączony, a `/` ją przeskakuje. Operacje seryjne (pobierz/wyślij
+  wszystkie) nie są osobnymi komendami — to stopka ekranu `/conflicts` (sens mają
+  tylko przy konfliktach). Pojedynczy plik rozwiązujesz wprost w wierszu karty
+  (`←/→` wybiera akcję, `Enter` wykonuje — patrz `ConflictList` wyżej). **Wejście
+  w `/conflicts` najpierw przelicza konflikty na żywo** (`ctrl.recheckMismatches`
+  → to samo zapytanie metadanych co poll), żeby decyzje opierały się na świeżym
+  stanie sklepu. Wskaźnik konfliktów siedzi w nagłówku (obok logo, nie spycha
+  układu) i kieruje do `/conflicts`. Nie ma `/refresh` — `SyncSession` przelicza
   konflikty cyklicznie w tle (`POLL_MS`), wyłapując zmiany po stronie sklepu.
 
 ## Tłumaczenia (i18n) — PL/EN
