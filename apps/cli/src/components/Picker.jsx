@@ -44,7 +44,7 @@ export default function Picker({ title, items, onSelect, onCancel, onSlash, maxR
       const val = toggleVal(idx);
       return (
         <Text key={idx} wrap="truncate-end">
-          <Text color={sel ? 'cyan' : 'gray'}>{sel ? '› ' : '  '}{it.label}: </Text>
+          <Text color={sel ? 'cyan' : undefined}>{sel ? '› ' : '  '}{it.label}: </Text>
           <Text color={val ? 'black' : 'gray'} backgroundColor={val ? 'cyan' : undefined}> {t.Yes} </Text>
           <Text> </Text>
           <Text color={!val ? 'black' : 'gray'} backgroundColor={!val ? 'cyan' : undefined}> {t.No} </Text>
@@ -52,7 +52,7 @@ export default function Picker({ title, items, onSelect, onCancel, onSlash, maxR
       );
     }
     return (
-      <Text key={idx} color={sel ? 'black' : 'white'} backgroundColor={sel ? 'cyan' : undefined} wrap="truncate-end">
+      <Text key={idx} color={sel ? 'black' : undefined} backgroundColor={sel ? 'cyan' : undefined} wrap="truncate-end">
         {sel ? '› ' : '  '}{it.label}
         {it.hint ? <Text color={sel ? 'black' : 'gray'}>  {it.hint}</Text> : null}
       </Text>
@@ -63,15 +63,15 @@ export default function Picker({ title, items, onSelect, onCancel, onSlash, maxR
     <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
       <Text color="cyan" bold>{title}</Text>
       {items.length === 0
-        ? <Text color="gray" dimColor>{t.PickerEmpty}</Text>
+        ? <Text dimColor>{t.PickerEmpty}</Text>
         : (
           <>
-            {w.above > 0 && <Text color="gray" dimColor>{tfmt(t.MoreAbove, { count: w.above })}</Text>}
+            {w.above > 0 && <Text dimColor>{tfmt(t.MoreAbove, { count: w.above })}</Text>}
             {slice.map((it, k) => renderItem(it, w.start + k))}
-            {w.below > 0 && <Text color="gray" dimColor>{tfmt(t.MoreBelow, { count: w.below })}</Text>}
+            {w.below > 0 && <Text dimColor>{tfmt(t.MoreBelow, { count: w.below })}</Text>}
           </>
         )}
-      <Text color="gray" dimColor>
+      <Text dimColor>
         {[t.PickerNav, hasToggle ? t.PickerToggle : null, t.PickerEnter, t.PickerEsc, onSlash ? t.PickerSlash : null].filter(Boolean).join(' · ')}
       </Text>
     </Box>

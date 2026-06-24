@@ -53,18 +53,18 @@ export default function ConnectList({ title, shops, actions, onShop, onAction, o
       <Text color="cyan" bold>{title}</Text>
       {nShops > 0 && (
         <>
-          {w.above > 0 && <Text color="gray" dimColor>{tfmt(t.MoreAbove, { count: w.above })}</Text>}
+          {w.above > 0 && <Text dimColor>{tfmt(t.MoreAbove, { count: w.above })}</Text>}
           {slice.map((s, k) => {
             const idx = w.start + k;
             const sel = idx === i;
             return (
-              <Text key={idx} color={sel ? 'black' : 'white'} backgroundColor={sel ? 'cyan' : undefined} wrap="truncate-end">
+              <Text key={idx} color={sel ? 'black' : undefined} backgroundColor={sel ? 'cyan' : undefined} wrap="truncate-end">
                 {sel ? '› ' : '  '}{s.label}
                 {s.hint ? <Text color={sel ? 'black' : 'gray'}>  {s.hint}</Text> : null}
               </Text>
             );
           })}
-          {w.below > 0 && <Text color="gray" dimColor>{tfmt(t.MoreBelow, { count: w.below })}</Text>}
+          {w.below > 0 && <Text dimColor>{tfmt(t.MoreBelow, { count: w.below })}</Text>}
         </>
       )}
       <Text> </Text>
@@ -76,7 +76,7 @@ export default function ConnectList({ title, shops, actions, onShop, onAction, o
           );
         })}
       </Box>
-      <Text color="gray" dimColor>{help}</Text>
+      <Text dimColor>{help}</Text>
     </Box>
   );
 }

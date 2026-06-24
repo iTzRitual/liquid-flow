@@ -10,7 +10,7 @@ export default function CommandPalette({ items, index, maxRows = 12, t }) {
   if (!items.length) {
     return (
       <Box paddingX={1}>
-        <Text color="gray" dimColor>{t.NoMatchingCommands}</Text>
+        <Text dimColor>{t.NoMatchingCommands}</Text>
       </Box>
     );
   }
@@ -18,7 +18,7 @@ export default function CommandPalette({ items, index, maxRows = 12, t }) {
   const slice = items.slice(w.start, w.start + w.count);
   return (
     <Box flexDirection="column" paddingX={1}>
-      {w.above > 0 && <Text color="gray" dimColor>{tfmt(t.MoreAbove, { count: w.above })}</Text>}
+      {w.above > 0 && <Text dimColor>{tfmt(t.MoreAbove, { count: w.above })}</Text>}
       {slice.map((c, k) => {
         const i = w.start + k;
         const sel = i === index;
@@ -29,7 +29,7 @@ export default function CommandPalette({ items, index, maxRows = 12, t }) {
           </Text>
         );
       })}
-      {w.below > 0 && <Text color="gray" dimColor>{tfmt(t.MoreBelow, { count: w.below })}</Text>}
+      {w.below > 0 && <Text dimColor>{tfmt(t.MoreBelow, { count: w.below })}</Text>}
     </Box>
   );
 }

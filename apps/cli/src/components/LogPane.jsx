@@ -8,7 +8,9 @@ function inkColor(hex) {
   switch ((hex || '').toUpperCase()) {
     case '#F00': return 'red';
     case '#2A2': return 'green';
-    case '#FFF': return 'white';
+    // #FFF = wpis domyślny: bez koloru = foreground terminala (czytelny na
+    // ciemnym I jasnym tle; „white" znikał na białym terminalu).
+    case '#FFF': return undefined;
     default: return 'gray';
   }
 }
@@ -70,13 +72,13 @@ export default function LogPane({ vlines, rows = 10, scroll = 0, t, dim = false 
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      {hasAbove && <Text color="gray" dimColor>{tfmt(t.OlderEntries, { count: start })}</Text>}
+      {hasAbove && <Text dimColor>{tfmt(t.OlderEntries, { count: start })}</Text>}
       {slice.length === 0
-        ? <Text color="gray" dimColor>{t.LogEmpty}</Text>
+        ? <Text dimColor>{t.LogEmpty}</Text>
         : slice.map((l) => (
             <Text key={l.key} color={l.color} dimColor={l.dim || dim} wrap={l.trunc ? 'truncate-end' : 'wrap'}>{l.text}</Text>
           ))}
-      {hasBelow && <Text color="gray" dimColor>{tfmt(t.NewerEntries, { count: total - end })}</Text>}
+      {hasBelow && <Text dimColor>{tfmt(t.NewerEntries, { count: total - end })}</Text>}
     </Box>
   );
 }

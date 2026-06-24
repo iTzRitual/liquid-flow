@@ -68,7 +68,7 @@ export default function Form({ title, fields, onSubmit, onCancel, t }) {
       <Text color="magenta" bold>{title}</Text>
       {fields.map((ff, j) => (
         <Box key={ff.name}>
-          <Text color={j === idx ? 'white' : 'gray'}>
+          <Text color={j === idx ? undefined : 'gray'} bold={j === idx}>
             {j < idx ? '✓ ' : j === idx ? '› ' : '  '}{ff.label}: </Text>
           {j < idx
             ? renderValue(ff)
@@ -85,10 +85,10 @@ export default function Form({ title, fields, onSubmit, onCancel, t }) {
                       })}
                     </Box>
                   : <TextInput value={cur} onChange={setCur} onSubmit={submitText} mask={ff.mask} placeholder={ff.optional ? t.Optional : ''} />)
-              : <Text color="gray" dimColor>…</Text>}
+              : <Text dimColor>…</Text>}
         </Box>
       ))}
-      <Text color="gray" dimColor>
+      <Text dimColor>
         {(f.type === 'choice' ? [t.FormChoiceNav, t.FormNext, t.FormCancel] : [t.FormNext, t.FormCancel]).join(' · ')}
       </Text>
     </Box>

@@ -45,7 +45,7 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
     options.map((o, oi) => (
       <Text
         key={oi}
-        color={oi === cv ? (focused ? 'black' : 'white') : 'gray'}
+        color={oi === cv ? (focused ? 'black' : undefined) : 'gray'}
         backgroundColor={focused && oi === cv ? 'cyan' : undefined}
       > {o.label} </Text>
     ));
@@ -57,13 +57,13 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
       <Box key={idx} flexDirection="column">
         <Box>
           <Box flexGrow={1} flexShrink={1} minWidth={0}>
-            <Text color={focused ? 'cyan' : 'white'} wrap="truncate-end">
+            <Text color={focused ? 'cyan' : undefined} wrap="truncate-end">
               {focused ? '› ' : '  '}{f.name}
             </Text>
           </Box>
           <Box flexShrink={0} marginLeft={2}>{renderButtons(f.options, cv, focused)}</Box>
         </Box>
-        <Text color="gray" dimColor wrap="truncate-end">  {f.meta}</Text>
+        <Text dimColor wrap="truncate-end">  {f.meta}</Text>
         <Text> </Text>
       </Box>
     );
@@ -83,12 +83,12 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
     <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
       <Text color="cyan" bold>{title}</Text>
       {files.length === 0
-        ? <Text color="gray" dimColor>{t.NoConflicts}</Text>
+        ? <Text dimColor>{t.NoConflicts}</Text>
         : (
           <>
-            {w.above > 0 && <Text color="gray" dimColor>{tfmt(t.MoreAbove, { count: w.above })}</Text>}
+            {w.above > 0 && <Text dimColor>{tfmt(t.MoreAbove, { count: w.above })}</Text>}
             {slice.map((f, k) => renderCard(f, w.start + k))}
-            {w.below > 0 && <Text color="gray" dimColor>{tfmt(t.MoreBelow, { count: w.below })}</Text>}
+            {w.below > 0 && <Text dimColor>{tfmt(t.MoreBelow, { count: w.below })}</Text>}
           </>
         )}
       {hasBulk && (
@@ -100,7 +100,7 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
           </Box>
         </>
       )}
-      <Text color="gray" dimColor>{help}</Text>
+      <Text dimColor>{help}</Text>
     </Box>
   );
 }

@@ -237,6 +237,22 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
      stackowanego nagłówka zwiększa stałą `HEADER` (jest wyższy).
   7. Po zmianach: `node apps/cli/test/header-widths.mjs` (sprawdza 30–120 kol.,
      w tym przełączenie kolumny↔wiersze).
+- **Kolory / kontrast — adaptacja do motywu terminala (NIE psuć!)**: CLI musi być
+  czytelne na **ciemnym I jasnym** tle terminala. Twarde reguły:
+  1. **Tekst podstawowy → bez `color`** (domyślny foreground terminala: jasny na
+     ciemnym, ciemny na jasnym). NIGDY `color="white"` jako zwykły foreground —
+     znika na białym terminalu (był to bug). Dotyczy m.in. niezaznaczonych pozycji
+     list (`Picker`/`ConnectList`/`ConflictList`) i domyślnego wpisu logu
+     (`LogPane.inkColor` mapuje `#FFF` → `undefined`, nie `'white'`).
+  2. **Podpowiedzi / tekst drugorzędny → `dimColor` BEZ `color="gray"`.** `gray`
+     to ANSI bright‑black (~#666), a `dimColor` (SGR 2) przygasza go jeszcze
+     bardziej → na czarnym tle prawie niewidoczne (podwójne przyciemnienie). Samo
+     `dimColor` przygasza domyślny foreground → czytelne na obu tłach. Dotyczy
+     stopek nawigacji i wskaźników „więcej ↑/↓" we wszystkich ekranach.
+  3. **`white`/`black` tylko z jawnym `backgroundColor`** (pigułki zaznaczenia, np.
+     `color="black" backgroundColor="cyan"`) — tam tło jest jawne, więc OK.
+  4. Akcenty (cyan/blue `#82bbff`/green/red/magenta/yellow, orange `#ff5a1f`)
+     niosą semantykę i są widoczne na obu tłach — zostają.
 - **Resize / spacery (100% szerokości)**: Ink przy resize tylko przelicza Yogę na
   istniejącym drzewie — **nie wywołuje ponownie komponentów** i nie czyści ekranu,
   więc statyczne stringi (np. `'─'.repeat(cols)` w `Divider`) zostają w starym
