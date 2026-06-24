@@ -7,7 +7,7 @@ import TextInput from 'ink-text-input';
 //   wybór:  { name, label, type:'choice', initial?, options:[{label,value}] }
 // Enter zatwierdza pole i przechodzi dalej; po ostatnim wywołuje onSubmit(values).
 // W polu wyboru strzałki ←/→ (lub ↑/↓) zmieniają opcję. Esc anuluje formularz.
-export default function Form({ title, fields, onSubmit, onCancel }) {
+export default function Form({ title, fields, onSubmit, onCancel, t }) {
   const initialValue = (f) =>
     f.initial !== undefined ? f.initial : (f.type === 'choice' ? f.options?.[0]?.value : '');
 
@@ -60,7 +60,7 @@ export default function Form({ title, fields, onSubmit, onCancel }) {
       return <Text color="gray">{opt ? opt.label : ''}</Text>;
     }
     if (ff.mask) return <Text color="gray">••••</Text>;
-    return <Text color="gray">{values[ff.name] || <Text dimColor>(puste)</Text>}</Text>;
+    return <Text color="gray">{values[ff.name] || <Text dimColor>{t.Empty}</Text>}</Text>;
   };
 
   return (
@@ -84,12 +84,12 @@ export default function Form({ title, fields, onSubmit, onCancel }) {
                         );
                       })}
                     </Box>
-                  : <TextInput value={cur} onChange={setCur} onSubmit={submitText} mask={ff.mask} placeholder={ff.optional ? '(opcjonalne)' : ''} />)
+                  : <TextInput value={cur} onChange={setCur} onSubmit={submitText} mask={ff.mask} placeholder={ff.optional ? t.Optional : ''} />)
               : <Text color="gray" dimColor>…</Text>}
         </Box>
       ))}
       <Text color="gray" dimColor>
-        {f.type === 'choice' ? '←/→ wybór · Enter dalej · Esc anuluj' : 'Enter dalej · Esc anuluj'}
+        {(f.type === 'choice' ? [t.FormChoiceNav, t.FormNext, t.FormCancel] : [t.FormNext, t.FormCancel]).join(' · ')}
       </Text>
     </Box>
   );

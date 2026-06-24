@@ -17,7 +17,7 @@ import Form from './components/Form.jsx';
 export default function App() {
   const { exit } = useApp();
   const { stdout } = useStdout();
-  const { ctrl, state, mismatches, log, logVersion, git, shops, progress, refreshShops, clearLog } = useController();
+  const { ctrl, t, state, mismatches, log, logVersion, git, shops, progress, refreshShops, clearLog } = useController();
 
   // mode: { type: 'input' } | { type: 'picker', ... } | { type: 'form', ... }
   const [mode, setMode] = useState({ type: 'input' });
@@ -50,7 +50,7 @@ export default function App() {
     const back = () => { setMode({ type: 'input' }); setQuery(''); };
     const safe = (fn) => Promise.resolve().then(fn).catch((e) => corelog.logErr(e?.message || String(e)));
     return {
-      ctrl, state, mismatches, git, shops, refreshShops, clearLog, exit, safe,
+      ctrl, t, state, mismatches, git, shops, refreshShops, clearLog, exit, safe,
       logWrap, setLogWrap,
       openPicker: (title, items, onSelect, opts = {}) =>
         setMode({ type: 'picker', title, items, onSlash: opts.onSlash, onSelect: (it, i) => { back(); onSelect?.(it, i); } }),
@@ -69,7 +69,7 @@ export default function App() {
         });
       },
     };
-  }, [ctrl, state, mismatches, git, shops, refreshShops, clearLog, exit, logWrap]);
+  }, [ctrl, t, state, mismatches, git, shops, refreshShops, clearLog, exit, logWrap]);
 
   const commands = useMemo(() => buildCommands(ctx), [ctx]);
 
@@ -151,23 +151,23 @@ export default function App() {
 
   return (
     <Box flexDirection="column" height={fillHeight ? termRows - 1 : undefined}>
-      <Header state={state} git={git} mismatches={mismatches} cols={termCols} />
+      <Header state={state} git={git} mismatches={mismatches} cols={termCols} t={t} />
 
       <Divider />
 
       {mode.type === 'loading' && (
         <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
-          <Text color="cyan" bold>Wybierz szablon</Text>
-          <Box><Spinner color="cyan" /><Text> {mode.label || 'Ładowanie…'}</Text></Box>
+          <Text color="cyan" bold>{t.SelectTemplate}</Text>
+          <Box><Spinner color="cyan" /><Text> {mode.label || t.Loading}</Text></Box>
         </Box>
       )}
 
       {mode.type === 'picker' && (
-        <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => setMode({ type: 'input' })} maxRows={pickerMax} />
+        <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => setMode({ type: 'input' })} maxRows={pickerMax} t={t} />
       )}
 
       {mode.type === 'form' && (
-        <Form title={mode.title} fields={mode.fields} onSubmit={mode.onSubmit} onCancel={() => setMode({ type: 'input' })} />
+        <Form title={mode.title} fields={mode.fields} onSubmit={mode.onSubmit} onCancel={() => setMode({ type: 'input' })} t={t} />
       )}
 
       {mode.type === 'input' && (
@@ -177,10 +177,10 @@ export default function App() {
               górę, wypełniając wysokość. Gdy paleta otwarta — chowamy log. */}
           <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
             {paletteOpen
-              ? <CommandPalette items={filtered} index={highlight} maxRows={paletteMax} />
+              ? <CommandPalette items={filtered} index={highlight} maxRows={paletteMax} t={t} />
               : (
                 <>
-                  {log.length > 0 && <LogPane vlines={vlines} rows={logRows} scroll={logScrollClamped} />}
+                  {log.length > 0 && <LogPane vlines={vlines} rows={logRows} scroll={logScrollClamped} t={t} />}
                   {progress && <ProgressView progress={progress} />}
                 </>
               )}
@@ -192,7 +192,7 @@ export default function App() {
               value={query}
               onChange={setQuery}
               onSubmit={onSubmit}
-              placeholder="wpisz / aby zobaczyć komendy · /exit wyjście"
+              placeholder={t.InputPlaceholder}
             />
           </Box>
         </>

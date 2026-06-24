@@ -68,16 +68,16 @@ function createWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-function createTray() {
+function createTray(t = {}) {
   try {
     let img = nativeImage.createFromPath(path.join(ROOT, 'assets', 'icon.png'));
     if (!img.isEmpty()) img = img.resize({ width: 18, height: 18 });
     tray = new Tray(img.isEmpty() ? nativeImage.createEmpty() : img);
     tray.setToolTip('Liquid Flow');
     const menu = Menu.buildFromTemplate([
-      { label: 'Pokaż okno', click: () => { if (!mainWindow) createWindow(); else mainWindow.show(); } },
+      { label: t.ShowWindow || 'Show window', click: () => { if (!mainWindow) createWindow(); else mainWindow.show(); } },
       { type: 'separator' },
-      { label: 'Zakończ', click: () => app.quit() },
+      { label: t.Quit || 'Quit', click: () => app.quit() },
     ]);
     tray.setContextMenu(menu);
     tray.on('click', () => { if (!mainWindow) createWindow(); else mainWindow.show(); });
@@ -124,7 +124,7 @@ function registerIpc(ctrl) {
 
   ipcMain.handle('invoke', async (_e, method, arg) => {
     const fn = handlers[method];
-    if (!fn) throw new Error('Nieznana metoda IPC: ' + method);
+    if (!fn) throw new Error('Unknown IPC method: ' + method);
     return fn(arg);
   });
 }
@@ -147,7 +147,7 @@ app.whenReady().then(async () => {
   const ctrl = await getController();
   registerIpc(ctrl);
   createWindow();
-  createTray();
+  createTray(ctrl.getTranslations().Translations);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

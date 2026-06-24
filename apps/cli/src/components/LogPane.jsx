@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import wrapAnsi from 'wrap-ansi';
+import { tfmt } from '@liquidflow/core';
 
 // Mapowanie kolorów z rdzenia (hex) na nazwy kolorów Ink.
 function inkColor(hex) {
@@ -49,7 +50,7 @@ export function buildVlines(log, wrap, cols) {
 // Panel logu na ekranie głównym. Przewijany kółkiem/strzałkami: `scroll` to ile
 // wizualnych wierszy od dołu (0 = najnowsze na dole). Zawsze mieści się w
 // budżecie `rows` — wskaźniki „↑/↓ więcej" zabierają wiersz z okna treści.
-export default function LogPane({ vlines, rows = 10, scroll = 0 }) {
+export default function LogPane({ vlines, rows = 10, scroll = 0, t }) {
   const total = vlines.length;
   // +1, bo na górze wskaźnik „↓ nowszych" zabiera wiersz z okna — inaczej
   // najstarszych wpisów (tyle, ile zajmują wskaźniki) nie dałoby się odsłonić.
@@ -67,13 +68,13 @@ export default function LogPane({ vlines, rows = 10, scroll = 0 }) {
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      {hasAbove && <Text color="gray" dimColor>↑ {start} starszych</Text>}
+      {hasAbove && <Text color="gray" dimColor>{tfmt(t.OlderEntries, { count: start })}</Text>}
       {slice.length === 0
-        ? <Text color="gray" dimColor>— pusto —</Text>
+        ? <Text color="gray" dimColor>{t.LogEmpty}</Text>
         : slice.map((l) => (
             <Text key={l.key} color={l.color} dimColor={l.dim} wrap={l.trunc ? 'truncate-end' : 'wrap'}>{l.text}</Text>
           ))}
-      {hasBelow && <Text color="gray" dimColor>↓ {total - end} nowszych</Text>}
+      {hasBelow && <Text color="gray" dimColor>{tfmt(t.NewerEntries, { count: total - end })}</Text>}
     </Box>
   );
 }

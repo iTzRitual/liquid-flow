@@ -39,7 +39,7 @@ export default function SyncView() {
           <p className="text-xs text-muted-foreground">{currentShop?.Name} · {currentShop?.Url}</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => api.openFolder()}><FolderOpen className="h-4 w-4" /> {t.OpenLocalFolder}</Button>
-        <Button variant="outline" size="sm" onClick={() => api.openShop()}><Globe className="h-4 w-4" /> Otwórz sklep</Button>
+        <Button variant="outline" size="sm" onClick={() => api.openShop()}><Globe className="h-4 w-4" /> {t.OpenShop}</Button>
         <Button variant="ghost" size="sm" onClick={refresh}><RefreshCw className="h-4 w-4" /> {t.Refresh}</Button>
       </div>
 
@@ -50,7 +50,7 @@ export default function SyncView() {
               {mismatches.length > 0 && <Badge variant="warning" className="ml-1 h-4 px-1 text-[10px]">{mismatches.length}</Badge>}
             </TabsTrigger>
             <TabsTrigger value="log"><ScrollText className="h-4 w-4" /> {t.Log}</TabsTrigger>
-            <TabsTrigger value="git"><GitBranch className="h-4 w-4" /> Git / Backup</TabsTrigger>
+            <TabsTrigger value="git"><GitBranch className="h-4 w-4" /> {t.GitBackup}</TabsTrigger>
           </TabsList>
 
           {tab === 'conflicts' && mismatches.length > 0 && (

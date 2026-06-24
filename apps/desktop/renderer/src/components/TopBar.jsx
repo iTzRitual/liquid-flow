@@ -37,8 +37,8 @@ export default function TopBar() {
 
       <div className="ml-auto no-drag flex items-center gap-2">
         {currentShop && (
-          <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" title="Rozłącz" onClick={logout}>
-            <LogOut className="h-3.5 w-3.5" /> Rozłącz
+          <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" title={t.Disconnect} onClick={logout}>
+            <LogOut className="h-3.5 w-3.5" /> {t.Disconnect}
           </Button>
         )}
         <span className="text-xs text-muted-foreground">{t.Language}</span>

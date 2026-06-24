@@ -44,7 +44,7 @@ export default function ShopForm({ editing }) {
         <CardHeader>
           <CardTitle>{isEdit ? editing.Name : t.ShopAdd}</CardTitle>
           <CardDescription>
-            {isEdit ? 'Zaloguj się ponownie, aby przełączyć na ten sklep.' : 'Połącz nowy sklep Comarch e-Sklep.'}
+            {isEdit ? t.ShopFormEditDesc : t.ShopFormNewDesc}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

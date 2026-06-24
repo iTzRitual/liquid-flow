@@ -218,12 +218,60 @@ oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic` (`dimColo
   i kieruje do `/conflicts`. Nie ma `/refresh` — `SyncSession` przelicza
   konflikty cyklicznie w tle (`POLL_MS`), wyłapując zmiany po stronie sklepu.
 
+## Tłumaczenia (i18n) — PL/EN
+
+Aplikacja jest w pełni dwujęzyczna (polski + angielski). Jedno źródło prawdy:
+`packages/core/src/translations.js` — dwie **płaskie tablice** `pl` i `en`
+(`en` to `{ ...pl, …nadpisania }`) plus helpery `tfmt`, `translationsFor`,
+`localeFor`, `LANGUAGES`, `LOCALES`. Tablica trzyma **wyłącznie stringi** (jest
+serializowana przez IPC do desktopu — żadnych funkcji).
+
+> **ZASADA TWARDA: każdy nowy tekst widoczny dla użytkownika MUSI mieć wpis w
+> obu tablicach (`pl` i `en`).** Nie hardkoduj łańcuchów w `controller.js`,
+> `syncEngine.js`, `soap.js`, `commands.js`, komponentach CLI ani w rendererze
+> desktopu — dodaj klucz do `translations.js` i sięgnij po niego. Po dodaniu
+> zweryfikuj parytet (patrz niżej).
+
+**Teksty z dynamiczną wstawką** używają tokenów `{nazwa}` i są składane przez
+`tfmt(str, params)` (np. `tfmt(t.ConnectedToShop, { name })`). W rendererze
+desktopu unikaj tokenów — składaj wartość w JSX z osobnych słów‑kluczy (np.
+`{git.commitCount} {t.Versions}`), bo renderer nie wywołuje `tfmt`.
+
+Jak `t` (tablica dla bieżącego języka) trafia do warstw:
+- **core**: `Controller` ma getter `get t()`; `SyncSession`/`ISklep24Client`
+  dostają `language` w opcjach i trzymają własne `this.t`. Logi/błędy lecą już
+  przetłumaczone. Język siedzi w `config.Language` (`setLanguage` zapisuje i
+  emituje `state`).
+- **CLI**: `useController` wystawia `t` (przeliczane na zdarzeniu `state`);
+  `App.jsx` przekazuje `t` do `ctx` (komendy) i jako **prop** do KAŻDEGO
+  komponentu, który renderuje tekst (`Header`→`StatusBar`, `Picker`, `Form`,
+  `CommandPalette`, `LogPane`). Etykiety statusu (`Sklep/Szablon/Git`) wyrównuje
+  się padem liczonym z długości słów, więc działa w obu językach.
+- **desktop**: `Controller.getTranslations()` → IPC → `App.jsx` (`t` w kontekście
+  `useApp()`). Komponenty czytają `t.Klucz`. Tray w `electron/main.js` dostaje
+  `t` przy starcie.
+
+Warstwa VCS (`git.js`) celowo trzyma **angielskie** stringi techniczne (komunikaty
+commitów/błędy plumbingu to dane repo, nie UI); teksty widoczne w historii
+(np. komunikat „restore") przekazuje `controller.js` już przetłumaczone.
+
+**Weryfikacja po zmianach i18n** (uruchamiać z katalogu repo):
+- parytet kluczy + brak „nieprzetłumaczonych" (en === pl, a w treści są polskie znaki):
+  `node -e "import('@liquidflow/core').then(m=>{const pl=m.translationsFor('pl'),en=m.translationsFor('en');const pc=/[ąćęłńóśźż]/i;console.log('untranslated:',Object.keys(pl).filter(k=>en[k]===pl[k]&&pc.test(pl[k])))})"`
+- brak hardkodowanego polskiego tekstu poza `translations.js` (skan diakrytyków
+  w stringach/JSX; pamiętaj też o słowach bez diakrytyków typu „lub/sklep/brak").
+- render obu języków: ustaw `LIQUID_FLOW_HOME` na świeży katalog z
+  `config.json` = `{"Language":"en","Shops":[]}` i wyrenderuj `App.jsx` do
+  sztucznego stdout (jak w `apps/cli/test/*`).
+
 ## Konwencje kodu
 
 - **ESM** wszędzie (`"type":"module"`), Node 18+.
-- **Język**: komentarze i UI po polsku; tłumaczenia w `translations.js` (pl/en),
-  ale uwaga — logi w `controller.js`/`commands.js` są na razie hardkodowane po
-  polsku (pełne i18n logów to dług techniczny do ewentualnego domknięcia).
+- **Język / i18n**: komentarze w kodzie po polsku; **cały tekst widoczny dla
+  użytkownika** (UI, logi, błędy, tray) przechodzi przez `translations.js`
+  (`pl`/`en`) — zero hardkodowanych łańcuchów w warstwach prezentacji. Szczegóły
+  i twarda zasada „nowy tekst = wpis PL **i** EN" — patrz sekcja „Tłumaczenia
+  (i18n) — PL/EN" niżej.
 - **Styl**: dopasuj się do otaczającego kodu; zwięzłe funkcje; bez nadmiarowych
   zależności (np. spinner/okno napisane ręcznie, nie z paczek).
 - **Commity**: Conventional Commits po angielsku (`feat(cli): …`, `fix(git): …`,
@@ -262,9 +310,12 @@ przewijany kółkiem/strzałkami + tryb zawijania `/wrap` (zamiast osobnego wido
 oraz wypełnianie wysokości okna z inputem przypiętym do dołu. Najnowsze: logi z
 podziałem na kanały (scope) i trwałą historią per‑szablon (`logs/<tplId>.jsonl`,
 wczytywanie poprzedniej sesji z separatorem), oraz ignorowanie Ctrl+C (wyjście
-tylko przez `/exit`).
+tylko przez `/exit`). **Pełne i18n (PL/EN)**: cały tekst UI/logów/błędów/tray
+przeniesiony do `translations.js`; `core` przekazuje język do `SyncSession`/SOAP,
+CLI przekazuje `t` do wszystkich komponentów, desktop czyta `t` z kontekstu —
+przełączanie języka działa na żywo w obu apkach (patrz sekcja „Tłumaczenia").
 
-Znane/otwarte tematy: pełne i18n logów (część PL na sztywno); ewentualne
+Znane/otwarte tematy: ewentualne
 ulepszenia czytelności logów (ikony poziomów `✓/ℹ/✗`, „Pobrano/Wysłano" zamiast
 etykiet przycisków, krótszy identyfikator pliku); brak `git clone/pull` z remote
 (współpracownik nie zaciągnie historii przez aplikację); desktop dostaje zdarzenie

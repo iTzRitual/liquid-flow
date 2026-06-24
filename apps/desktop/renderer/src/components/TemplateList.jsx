@@ -39,7 +39,7 @@ export default function TemplateList() {
         <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> …</div>
       )}
       {templates && templates.length === 0 && (
-        <p className="text-muted-foreground">Brak szablonów w tym sklepie.</p>
+        <p className="text-muted-foreground">{t.NoTemplatesInShop}</p>
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

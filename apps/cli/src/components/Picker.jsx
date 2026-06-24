@@ -1,5 +1,6 @@
 import { Box, Text, useInput } from 'ink';
 import React, { useState } from 'react';
+import { tfmt } from '@liquidflow/core';
 import { windowList } from '../window.js';
 
 // Generyczna lista wyboru.
@@ -8,7 +9,7 @@ import { windowList } from '../window.js';
 // ↑/↓ nawigacja, Enter wybór (akcja). Na przełączniku ←/→ (lub Enter) zmienia
 // Tak/Nie inline — bez wchodzenia w podmenu. Esc anuluje. `maxRows` ogranicza
 // wysokość (przewijanie za zaznaczeniem).
-export default function Picker({ title, items, onSelect, onCancel, onSlash, maxRows = 12 }) {
+export default function Picker({ title, items, onSelect, onCancel, onSlash, maxRows = 12, t }) {
   const [i, setI] = useState(0);
   const [toggles, setToggles] = useState({}); // lokalne (optymistyczne) wartości przełączników
 
@@ -44,9 +45,9 @@ export default function Picker({ title, items, onSelect, onCancel, onSlash, maxR
       return (
         <Text key={idx} wrap="truncate-end">
           <Text color={sel ? 'cyan' : 'gray'}>{sel ? '› ' : '  '}{it.label}: </Text>
-          <Text color={val ? 'black' : 'gray'} backgroundColor={val ? 'cyan' : undefined}> Tak </Text>
+          <Text color={val ? 'black' : 'gray'} backgroundColor={val ? 'cyan' : undefined}> {t.Yes} </Text>
           <Text> </Text>
-          <Text color={!val ? 'black' : 'gray'} backgroundColor={!val ? 'cyan' : undefined}> Nie </Text>
+          <Text color={!val ? 'black' : 'gray'} backgroundColor={!val ? 'cyan' : undefined}> {t.No} </Text>
         </Text>
       );
     }
@@ -62,15 +63,17 @@ export default function Picker({ title, items, onSelect, onCancel, onSlash, maxR
     <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
       <Text color="cyan" bold>{title}</Text>
       {items.length === 0
-        ? <Text color="gray" dimColor>— pusto —  (Esc aby wrócić)</Text>
+        ? <Text color="gray" dimColor>{t.PickerEmpty}</Text>
         : (
           <>
-            {w.above > 0 && <Text color="gray" dimColor>↑ {w.above} więcej</Text>}
+            {w.above > 0 && <Text color="gray" dimColor>{tfmt(t.MoreAbove, { count: w.above })}</Text>}
             {slice.map((it, k) => renderItem(it, w.start + k))}
-            {w.below > 0 && <Text color="gray" dimColor>↓ {w.below} więcej</Text>}
+            {w.below > 0 && <Text color="gray" dimColor>{tfmt(t.MoreBelow, { count: w.below })}</Text>}
           </>
         )}
-      <Text color="gray" dimColor>↑/↓ wybór{hasToggle ? ' · ←/→ przełącz' : ''} · Enter zatwierdź · Esc wróć{onSlash ? ' · / komenda' : ''}</Text>
+      <Text color="gray" dimColor>
+        {[t.PickerNav, hasToggle ? t.PickerToggle : null, t.PickerEnter, t.PickerEsc, onSlash ? t.PickerSlash : null].filter(Boolean).join(' · ')}
+      </Text>
     </Box>
   );
 }

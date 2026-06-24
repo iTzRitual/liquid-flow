@@ -10,6 +10,8 @@ const Header = (await import('../src/components/Header.jsx')).default;
 const mod = await import('../src/components/LogPane.jsx');
 const LogPane = mod.default;
 const { buildVlines } = mod;
+const { translationsFor } = await import('@liquidflow/core');
+const t = translationsFor('pl');
 
 const ANSI = /\x1b\[[0-9;?]*[A-Za-z]/g;
 const strip = (s) => s.replace(ANSI, '');
@@ -29,10 +31,10 @@ function Probe({ rows, cols, nLogs }) {
   const log = Array.from({ length: nLogs }, (_, i) => ({ Id: i + 1, TS: Date.now(), Color: '#2A2', Text: `log ${i + 1}` }));
   const vlines = buildVlines(log, false, cols);
   return React.createElement(Box, { flexDirection: 'column', height: rows - 1 },
-    React.createElement(Header, { state, git, mismatches, cols }),
+    React.createElement(Header, { state, git, mismatches, cols, t }),
     React.createElement(Text, { color: 'blue' }, '─'.repeat(cols)),
     React.createElement(Box, { flexDirection: 'column', flexGrow: 1, justifyContent: 'flex-end' },
-      React.createElement(LogPane, { vlines, rows: logRows, scroll: 0 })),
+      React.createElement(LogPane, { vlines, rows: logRows, scroll: 0, t })),
     React.createElement(Text, { color: 'blue' }, '─'.repeat(cols)),
     React.createElement(Box, null, React.createElement(Text, { color: 'yellow' }, '› input'))
   );

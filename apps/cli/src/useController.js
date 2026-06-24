@@ -3,7 +3,7 @@
 // aktualny stan oraz odświeżanie listy sklepów.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Controller } from '@liquidflow/core';
+import { Controller, translationsFor } from '@liquidflow/core';
 
 const LOG_LIMIT = 500;
 
@@ -15,6 +15,9 @@ export function useController() {
   const ctrl = ref.current;
 
   const [state, setState] = useState(() => ctrl.getState());
+  // Tłumaczenia dla bieżącego języka — odświeżane przy każdej zmianie stanu
+  // (zmiana języka emituje 'state'). App przekazuje `t` do komponentów i komend.
+  const [t, setT] = useState(() => translationsFor(ctrl.getState().language));
   const [mismatches, setMismatches] = useState([]);
   const [log, setLog] = useState([]);
   // Rośnie przy każdym przełączeniu kanału logu (zmiana sklepu/szablonu) — App
@@ -29,15 +32,16 @@ export function useController() {
     // Pełna podmiana bufora po przełączeniu kanału (osobny log per szablon/sklep).
     const onLogReset = (entries) => { setLog(entries.slice(-LOG_LIMIT)); setLogVersion((v) => v + 1); };
     const onMis = (m) => setMismatches(m);
-    const onState = (s) => setState(s);
+    const onState = (s) => { setState(s); setT(translationsFor(s.language)); };
     const onGit = (g) => setGit(g);
     const onProgress = (p) => {
+      const tr = translationsFor(ctrl.getState().language);
       if (p.phase === 'download') {
         if (p.state === 'done') setProgress(null);
-        else setProgress({ kind: 'download', label: 'Pobieranie plików ze sklepu', done: p.done || 0, total: p.total || 0, indeterminate: p.state === 'start' });
+        else setProgress({ kind: 'download', label: tr.DownloadingFiles, done: p.done || 0, total: p.total || 0, indeterminate: p.state === 'start' });
       } else if (p.phase === 'check') {
         if (p.state === 'done') setProgress(null);
-        else setProgress({ kind: 'check', label: 'Sprawdzanie niezgodności plików', indeterminate: true });
+        else setProgress({ kind: 'check', label: tr.CheckingMismatch, indeterminate: true });
       } else if (p.phase === 'ready') {
         setProgress(null);
       }
@@ -68,5 +72,5 @@ export function useController() {
   const refreshShops = useCallback(() => setShops(ctrl.listShops()), [ctrl]);
   const clearLog = useCallback(() => setLog([]), []);
 
-  return { ctrl, state, mismatches, log, logVersion, git, shops, progress, refreshShops, clearLog };
+  return { ctrl, t, state, mismatches, log, logVersion, git, shops, progress, refreshShops, clearLog };
 }

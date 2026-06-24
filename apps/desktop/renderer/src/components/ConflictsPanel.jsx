@@ -19,7 +19,7 @@ export default function ConflictsPanel() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
         <CheckCircle2 className="h-10 w-10 text-success" />
-        <p className="text-sm">Wszystko zsynchronizowane — brak konfliktów.</p>
+        <p className="text-sm">{t.AllSyncedNoConflicts}</p>
       </div>
     );
   }

@@ -9,6 +9,7 @@ import https from 'node:https';
 import http from 'node:http';
 import { URL } from 'node:url';
 import { escapeXml, parseXml, findDeep, findAll, find, text, localName } from './xml.js';
+import { translationsFor, tfmt } from './translations.js';
 
 const NS = 'http://www.icomarch24.pl/iSklep24';
 const SOAP_ENV = 'http://schemas.xmlsoap.org/soap/envelope/';
@@ -66,7 +67,7 @@ class CookieJar {
   }
 }
 
-function rawRequest(endpoint, soapAction, body, { insecureTLS = false, timeout = 120000, jar = null } = {}) {
+function rawRequest(endpoint, soapAction, body, { insecureTLS = false, timeout = 120000, jar = null, timeoutMsg = 'Connection timed out' } = {}) {
   return new Promise((resolve, reject) => {
     const u = new URL(endpoint);
     const lib = u.protocol === 'https:' ? https : http;
@@ -97,7 +98,7 @@ function rawRequest(endpoint, soapAction, body, { insecureTLS = false, timeout =
         );
       }
     );
-    req.setTimeout(timeout, () => req.destroy(new Error('Przekroczono limit czasu połączenia (timeout)')));
+    req.setTimeout(timeout, () => req.destroy(new Error(timeoutMsg)));
     req.on('error', reject);
     req.write(data);
     req.end();
@@ -138,6 +139,8 @@ export class ISklep24Client {
   constructor(shopUrl, opts = {}) {
     this.endpoint = endpointFor(shopUrl);
     this.opts = { ...opts };
+    this.t = translationsFor(opts.language);
+    this.opts.timeoutMsg = this.t.ConnectionTimeout;
     this.jar = new CookieJar();
     this.opts.jar = this.jar;
     this.credentials = null; // { login, password }
@@ -157,7 +160,7 @@ export class ISklep24Client {
     const root = parseXml(body);
     const fault = parseFault(root);
     if (fault) throw fault;
-    if (status >= 400) throw new SoapError(`HTTP ${status} z serwera SOAP`);
+    if (status >= 400) throw new SoapError(tfmt(this.t.SoapHttpError, { status }));
     const result = findDeep(root, `${method}Result`);
     return { root, result };
   }
@@ -167,7 +170,7 @@ export class ISklep24Client {
     if (!this.credentials) return;
     if (this.jar.header() && Date.now() - this.lastAuth < REAUTH_MS) return;
     const ok = await this.signIn(this.credentials.login, this.credentials.password);
-    if (!ok) throw new SoapError('Nieprawidłowa nazwa użytkownika lub hasło');
+    if (!ok) throw new SoapError(this.t.InvalidLoginOrPassword);
     this.lastAuth = Date.now();
   }
 

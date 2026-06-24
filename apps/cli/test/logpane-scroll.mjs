@@ -7,6 +7,8 @@ const { render } = await import('ink');
 const mod = await import('../src/components/LogPane.jsx');
 const LogPane = mod.default;
 const { buildVlines } = mod;
+const { translationsFor } = await import('@liquidflow/core');
+const t = translationsFor('pl');
 
 const ANSI = /\x1b\[[0-9;?]*[A-Za-z]/g;
 const strip = (s) => s.replace(ANSI, '');
@@ -34,7 +36,7 @@ const ROWS = 8;
 async function frame(cols, wrap, scroll) {
   const out = fakeStdout(cols);
   const vlines = buildVlines(log, wrap, cols);
-  const app = render(React.createElement(LogPane, { vlines, rows: ROWS, scroll }), { stdout: out, patchConsole: false });
+  const app = render(React.createElement(LogPane, { vlines, rows: ROWS, scroll, t }), { stdout: out, patchConsole: false });
   await new Promise((r) => setImmediate(r));
   app.unmount();
   return { lines: strip(out.last).replace(/\n+$/g, '').split('\n'), total: vlines.length };

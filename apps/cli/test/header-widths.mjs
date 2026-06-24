@@ -7,6 +7,8 @@ register();
 const React = (await import('react')).default;
 const { render } = await import('ink');
 const Header = (await import('../src/components/Header.jsx')).default;
+const { translationsFor } = await import('@liquidflow/core');
+const t = translationsFor('pl');
 
 const ANSI = /\x1b\[[0-9;?]*[A-Za-z]/g;
 const strip = (s) => s.replace(ANSI, '');
@@ -30,7 +32,7 @@ const mismatches = [1, 2, 3, 4];
 
 async function frameAt(columns) {
   const out = fakeStdout(columns);
-  const app = render(React.createElement(Header, { state, git, mismatches, cols: columns }), { stdout: out, patchConsole: false });
+  const app = render(React.createElement(Header, { state, git, mismatches, cols: columns, t }), { stdout: out, patchConsole: false });
   await new Promise((r) => setImmediate(r));
   app.unmount();
   return strip(out.last);

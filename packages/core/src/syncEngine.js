@@ -11,7 +11,7 @@ import path from 'node:path';
 import { ISklep24Client } from './soap.js';
 import * as store from './store.js';
 import { logInfo, logOk, logErr } from './log.js';
-import { translationsFor } from './translations.js';
+import { translationsFor, tfmt } from './translations.js';
 
 const MAX_NAME_LEN = 64;
 const MAX_FILE_SIZE = 519168;
@@ -49,6 +49,7 @@ export class SyncSession {
     this.template = template; // { Id, Name, Locked, Password }
     this.client = opts.client || new ISklep24Client(shop.Url, {
       insecureTLS: !!opts.insecureTLS,
+      language: opts.language,
     });
     this.client.setCredentials(shop.Login || 'webmaster', shop.Password || '');
     this.t = translationsFor(opts.language || 'pl');
@@ -80,18 +81,18 @@ export class SyncSession {
     if (fresh) {
       await this._initialDownload();
     } else {
-      logOk('Folder lokalny gotowy — pliki już pobrane');
+      logOk(this.t.LocalFolderReady);
     }
 
     this._progress({ phase: 'check', state: 'start' });
     await this.refreshMismatches({ silent: true });
     this._progress({ phase: 'check', state: 'done', conflicts: this.mismatches.length });
-    logOk('Sprawdzono niezgodności — konflikty: ' + this.mismatches.length);
+    logOk(tfmt(this.t.MismatchesChecked, { count: this.mismatches.length }));
 
     this._startWatcher();
     this._startPoll();
     this._progress({ phase: 'ready', template: this.template.Name });
-    logOk('Synchronizacja aktywna — hot-reload (' + this.template.Name + ')');
+    logOk(tfmt(this.t.SyncActiveHotReload, { name: this.template.Name }));
   }
 
   dispose() {
@@ -122,7 +123,7 @@ export class SyncSession {
     const prev = this.mismatches.length;
     await this.refreshMismatches({ silent: true });
     if (this.mismatches.length > prev) {
-      logInfo('⚠ Wykryto zmiany zdalne — konflikty: ' + this.mismatches.length + ' (/conflicts)');
+      logInfo(tfmt(this.t.RemoteChangesDetected, { count: this.mismatches.length }));
     }
   }
 
@@ -146,7 +147,7 @@ export class SyncSession {
     }
     store.saveMeta(this.shopName, this.templateId, meta);
     this._progress({ phase: 'download', state: 'done', count: total });
-    logOk('Pobrano ' + total + ' plików ze sklepu');
+    logOk(tfmt(this.t.FilesDownloaded, { count: total }));
   }
 
   // ---- watcher ----
@@ -391,14 +392,14 @@ export class SyncSession {
   async _removeLocal(file) {
     store.deleteLocalFile(this.shopName, this.templateId, file.Mode, file.Name);
     store.removeMetaEntry(this.shopName, this.templateId, file.Mode, file.Name);
-    logOk(this.t.FileDeleted + ' (lokalnie) — ' + this._label(file.Mode, file.Name));
+    logOk(this.t.FileDeleted + ' (' + this.t.Locally + ') — ' + this._label(file.Mode, file.Name));
     this._notify('removeLocal', file.Mode, file.Name);
   }
 
   async _removeRemote(file) {
     await this.client.liquidFileDelete({ TemplateId: this.templateId, Mode: file.Mode, Name: file.Name });
     store.removeMetaEntry(this.shopName, this.templateId, file.Mode, file.Name);
-    logOk(this.t.FileDeleted + ' (zdalnie) — ' + this._label(file.Mode, file.Name));
+    logOk(this.t.FileDeleted + ' (' + this.t.Remotely + ') — ' + this._label(file.Mode, file.Name));
     this._notify('removeRemote', file.Mode, file.Name);
   }
 }

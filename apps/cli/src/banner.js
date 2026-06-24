@@ -11,4 +11,5 @@ export const ART = [
   ' ▀███████▀',
 ];
 
-export const TAGLINE = 'Synchronizacja szablonów Liquid — Comarch e-Sklep';
+// Podpis (tagline) jest dwujęzyczny i żyje w `translations.js` jako klucz
+// `Tagline` (PL/EN) — sięgaj po `t.Tagline`, nie hardkoduj tu tekstu.

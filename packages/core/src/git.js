@@ -57,7 +57,7 @@ export async function commitAll(dir, message) {
   await run(dir, ['add', '-A']);
   const st = await run(dir, ['status', '--porcelain']);
   if (!st.stdout) return { committed: false };
-  await run(dir, ['commit', '-m', message || 'Aktualizacja']);
+  await run(dir, ['commit', '-m', message || 'Update']);
   const hash = await run(dir, ['rev-parse', '--short', 'HEAD']);
   return { committed: true, hash: hash.stdout };
 }
@@ -75,11 +75,12 @@ export async function history(dir, limit = 100) {
 }
 
 // Przywróć stan plików z danego commita (working tree), następnie zatwierdź.
-// Pliki wracają do wersji z commita; hot-reload wyśle je do sklepu.
-export async function restore(dir, hash) {
-  if (!isRepo(dir)) throw new Error('Brak repozytorium');
+// Pliki wracają do wersji z commita; hot-reload wyśle je do sklepu. Komunikat
+// commita (widoczny w historii) przekazuje wywołujący — jest już przetłumaczony.
+export async function restore(dir, hash, message) {
+  if (!isRepo(dir)) throw new Error('No git repository');
   await run(dir, ['checkout', hash, '--', '.']);
-  return commitAll(dir, `Przywrócono wersję ${hash}`);
+  return commitAll(dir, message || `Restore ${hash}`);
 }
 
 export async function getRemote(dir) {
@@ -99,10 +100,10 @@ export async function setRemote(dir, url) {
 // Wypchnij bieżącą gałąź do origin (zakłada skonfigurowane uwierzytelnianie:
 // klucz SSH lub helper poświadczeń / token w URL https).
 export async function push(dir) {
-  if (!isRepo(dir)) throw new Error('Brak repozytorium');
+  if (!isRepo(dir)) throw new Error('No git repository');
   const branch = (await run(dir, ['rev-parse', '--abbrev-ref', 'HEAD'])).stdout || 'main';
   const r = await run(dir, ['push', '-u', 'origin', branch], { allowFail: true });
-  if (r.failed) throw new Error(r.stderr || 'git push nie powiódł się');
+  if (r.failed) throw new Error(r.stderr || 'git push failed');
   return { branch, output: r.stdout || r.stderr };
 }
 

@@ -9,7 +9,7 @@ import * as logbuf from './log.js';
 import * as git from './git.js';
 import { ISklep24Client, SoapError } from './soap.js';
 import { SyncSession } from './syncEngine.js';
-import { translationsFor, LANGUAGES } from './translations.js';
+import { translationsFor, tfmt, localeFor, LANGUAGES } from './translations.js';
 
 const COMMIT_DEBOUNCE_MS = 3000;
 
@@ -38,6 +38,9 @@ export class Controller extends EventEmitter {
   }
 
   // ---------- pomocnicze ----------
+  // Tłumaczenia dla bieżącego języka (logi/błędy widoczne dla użytkownika).
+  get t() { return translationsFor(this.config.Language); }
+
   shopById(id) { return this.config.Shops.find((s) => s.Id === Number(id)); }
   currentShop() { return this.shopById(this.state.currentShopId); }
 
@@ -57,7 +60,7 @@ export class Controller extends EventEmitter {
   }
 
   clientForShop(shop) {
-    const c = new ISklep24Client(shop.Url, { insecureTLS: this.insecureTLS });
+    const c = new ISklep24Client(shop.Url, { insecureTLS: this.insecureTLS, language: this.config.Language });
     c.setCredentials(shop.Login || 'webmaster', this.shopPassword(shop));
     return c;
   }
@@ -101,7 +104,7 @@ export class Controller extends EventEmitter {
     if (!/^[A-Za-z0-9]+$/.test(name)) throw new Error(t.InvalidName_AllowedChars + ' A-Za-z0-9');
     if (!(/^https:\/\/.+$/.test(url) || /^http:\/\/localhost:\d+.*$/.test(url))) throw new Error(t.SSL_Required);
 
-    const client = new ISklep24Client(url, { insecureTLS: this.insecureTLS });
+    const client = new ISklep24Client(url, { insecureTLS: this.insecureTLS, language: this.config.Language });
     let ok;
     try {
       ok = await client.signIn('webmaster', Password || '');
@@ -128,7 +131,7 @@ export class Controller extends EventEmitter {
     this.state.templates = [];
     if (this.state.session) { this.state.session.dispose(); this.state.session = null; this.activeGit = null; }
     logbuf.setActiveChannel('shop:' + shop.Id);
-    logbuf.logOk('Połączono ze sklepem: ' + shop.Name);
+    logbuf.logOk(tfmt(t.ConnectedToShop, { name: shop.Name }));
     this.emitState();
     return this.shopPublic(shop);
   }
@@ -138,11 +141,11 @@ export class Controller extends EventEmitter {
   async signInSaved(id) {
     const t = translationsFor(this.config.Language);
     const shop = this.shopById(Number(id));
-    if (!shop) throw new Error('Nie znaleziono sklepu');
+    if (!shop) throw new Error(t.ShopNotFound);
     const pwd = this.shopPassword(shop);
-    if (!pwd) throw new Error(t.SavePassword + ': brak zapisanego hasła');
+    if (!pwd) throw new Error(t.NoSavedPassword);
 
-    const client = new ISklep24Client(shop.Url, { insecureTLS: this.insecureTLS });
+    const client = new ISklep24Client(shop.Url, { insecureTLS: this.insecureTLS, language: this.config.Language });
     let ok;
     try {
       ok = await client.signIn(shop.Login || 'webmaster', pwd);
@@ -158,7 +161,7 @@ export class Controller extends EventEmitter {
     this.state.templates = [];
     if (this.state.session) { this.state.session.dispose(); this.state.session = null; this.activeGit = null; }
     logbuf.setActiveChannel('shop:' + shop.Id);
-    logbuf.logOk('Połączono ze sklepem: ' + shop.Name + ' (zapisane hasło)');
+    logbuf.logOk(tfmt(t.ConnectedToShopSaved, { name: shop.Name }));
     this.emitState();
     return this.shopPublic(shop);
   }
@@ -176,7 +179,7 @@ export class Controller extends EventEmitter {
     this.state.templates = [];
     this.state.pendingTemplate = null;
     logbuf.setActiveChannel('app');
-    logbuf.logOk('Rozłączono' + (name ? ' ze sklepu: ' + name : ''));
+    logbuf.logOk(name ? tfmt(this.t.DisconnectedFrom, { name }) : this.t.Disconnected);
     this.emitState();
     return this.getState();
   }
@@ -211,10 +214,10 @@ export class Controller extends EventEmitter {
 
   async selectTemplate(tplId) {
     const shop = this.currentShop();
-    if (!shop) throw new Error('Brak wybranego sklepu');
+    if (!shop) throw new Error(this.t.NoShopSelected);
     if (!this.state.templates.length) await this.listTemplates();
     const tpl = this.state.templates.find((x) => x.Id === Number(tplId));
-    if (!tpl) throw new Error('Nie znaleziono szablonu');
+    if (!tpl) throw new Error(this.t.TemplateNotFound);
     this.state.pendingTemplate = tpl;
     if (!tpl.Locked) await this._startSession(tpl);
     return { Id: tpl.Id, Name: tpl.Name, Locked: tpl.Locked };
@@ -261,9 +264,9 @@ export class Controller extends EventEmitter {
       history,
     });
     if (history.length) {
-      logbuf.separator('Nowa sesja • ' + new Date().toLocaleString('pl-PL', { hour12: false }));
+      logbuf.separator(this.t.NewSession + ' • ' + new Date().toLocaleString(localeFor(this.config.Language), { hour12: false }));
     }
-    logbuf.logOk('Wybrano szablon: ' + template.Name + ' [' + template.Id + ']');
+    logbuf.logOk(tfmt(this.t.TemplateSelected, { name: template.Name, id: template.Id }));
     const session = new SyncSession(sessShop, template, {
       insecureTLS: this.insecureTLS,
       language: this.config.Language,
@@ -303,7 +306,7 @@ export class Controller extends EventEmitter {
   getMismatches() { return this.state.session ? this.state.session.mismatches : []; }
 
   async runCommand({ comm, file, type }) {
-    if (!this.state.session) throw new Error('Brak aktywnej sesji synchronizacji');
+    if (!this.state.session) throw new Error(this.t.NoActiveSyncSession);
     const result = await this.state.session.command(comm, file, type);
     this.emit('mismatches', result);
     return result;
@@ -323,22 +326,23 @@ export class Controller extends EventEmitter {
     if (!this.activeGit) return;
     const files = [...this._pendingCommitFiles];
     this._pendingCommitFiles.clear();
+    const t = this.t;
     const msg = files.length === 1
-      ? 'Sync: ' + files[0]
-      : `Sync: ${files.length} plików (${files.slice(0, 3).join(', ')}${files.length > 3 ? '…' : ''})`;
+      ? tfmt(t.GitCommitSyncOne, { file: files[0] })
+      : tfmt(t.GitCommitSyncMany, { count: files.length, files: files.slice(0, 3).join(', ') + (files.length > 3 ? '…' : '') });
     try {
       if (!git.isRepo(this.activeGit.dir)) await git.init(this.activeGit.dir);
       const r = await git.commitAll(this.activeGit.dir, msg);
       if (r.committed) {
-        logbuf.logInfo('📝 Git: zapisano wersję ' + r.hash);
+        logbuf.logInfo(tfmt(t.GitVersionSaved, { hash: r.hash }));
         if (this.activeGit.autoPush) {
-          try { await git.push(this.activeGit.dir); logbuf.logOk('⬆️ Git: wypchnięto do origin'); }
-          catch (e) { logbuf.logErr('Git push: ' + e.message); }
+          try { await git.push(this.activeGit.dir); logbuf.logOk(t.GitPushedOrigin); }
+          catch (e) { logbuf.logErr(tfmt(t.GitPushError, { msg: e.message })); }
         }
         this.emitGit();
       }
     } catch (e) {
-      logbuf.logErr('Git commit: ' + e.message);
+      logbuf.logErr(tfmt(t.GitCommitError, { msg: e.message }));
     }
   }
 
@@ -366,20 +370,20 @@ export class Controller extends EventEmitter {
   emitGit() { this.gitStatus().then((s) => this.emit('git', s)).catch(() => {}); }
 
   async gitEnable() {
-    if (!this.activeGit) throw new Error('Brak aktywnego szablonu');
-    if (!(await git.isAvailable())) throw new Error('Git nie jest zainstalowany w systemie');
+    if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
+    if (!(await git.isAvailable())) throw new Error(this.t.GitNotInstalled);
     await git.init(this.activeGit.dir);
     this.activeGit.autoCommit = true;
     const tCfg = this._currentTemplateConfig();
     tCfg.git = { ...(tCfg.git || {}), autoCommit: true };
     store.saveConfig(this.config);
-    logbuf.logOk('Git: włączono wersjonowanie dla szablonu');
+    logbuf.logOk(this.t.GitEnabledForTemplate);
     this.emitGit();
     return this.gitStatus();
   }
 
   async gitSetSettings({ autoCommit, autoPush }) {
-    if (!this.activeGit) throw new Error('Brak aktywnego szablonu');
+    if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
     if (autoCommit !== undefined) this.activeGit.autoCommit = !!autoCommit;
     if (autoPush !== undefined) this.activeGit.autoPush = !!autoPush;
     const tCfg = this._currentTemplateConfig();
@@ -396,9 +400,9 @@ export class Controller extends EventEmitter {
   }
 
   async gitRestore(hash) {
-    if (!this.activeGit) throw new Error('Brak aktywnego szablonu');
-    const r = await git.restore(this.activeGit.dir, hash);
-    logbuf.logOk('Git: przywrócono wersję ' + hash);
+    if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
+    const r = await git.restore(this.activeGit.dir, hash, tfmt(this.t.GitRestoreCommit, { hash }));
+    logbuf.logOk(tfmt(this.t.GitVersionRestored, { hash }));
     // odśwież konflikty po przywróceniu
     if (this.state.session) await this.state.session.refreshMismatches();
     this.emitGit();
@@ -406,18 +410,18 @@ export class Controller extends EventEmitter {
   }
 
   async gitSetRemote(url) {
-    if (!this.activeGit) throw new Error('Brak aktywnego szablonu');
+    if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
     if (!git.isRepo(this.activeGit.dir)) await git.init(this.activeGit.dir);
     await git.setRemote(this.activeGit.dir, url);
-    logbuf.logOk('Git: ustawiono zdalne repozytorium');
+    logbuf.logOk(this.t.GitRemoteSet);
     this.emitGit();
     return this.gitStatus();
   }
 
   async gitPush() {
-    if (!this.activeGit) throw new Error('Brak aktywnego szablonu');
+    if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
     const r = await git.push(this.activeGit.dir);
-    logbuf.logOk('Git: wypchnięto do origin (' + r.branch + ')');
+    logbuf.logOk(tfmt(this.t.GitPushedOriginBranch, { branch: r.branch }));
     this.emitGit();
     return r;
   }

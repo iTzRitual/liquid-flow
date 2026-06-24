@@ -37,7 +37,7 @@ export default function Sidebar() {
       </div>
       <div className="flex-1 space-y-1 overflow-y-auto px-2 pb-3">
         {shops.length === 0 && (
-          <p className="px-2 py-4 text-xs text-muted-foreground">Brak sklepów. Dodaj pierwszy sklep.</p>
+          <p className="px-2 py-4 text-xs text-muted-foreground">{t.NoShopsAddFirst}</p>
         )}
         {shops.map((shop) => {
           const active = currentShop && currentShop.Id === shop.Id;

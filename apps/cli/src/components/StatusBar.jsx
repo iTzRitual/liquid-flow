@@ -8,9 +8,15 @@ import { Box, Text } from 'ink';
 //  - Git tylko gdy aktywny
 // Konflikty NIE są tutaj — App.jsx przypina je do dołu kolumny nagłówka
 // (puste pole obok logo), żeby ich pojawienie się nie spychało układu.
-export default function StatusBar({ state, git }) {
+export default function StatusBar({ state, git, t }) {
   const shop = state?.currentShop;
   const tpl = state?.currentTemplate;
+
+  // Etykiety statusu (Sklep/Szablon/Git) wyrównane do wspólnej szerokości —
+  // liczonej z długości przetłumaczonych słów, by kolumna wartości była równa
+  // w obu językach.
+  const labelW = Math.max(t.ShopLabel.length, t.TemplateLabel.length, t.GitLabel.length) + 1;
+  const pad = (s) => s.padEnd(labelW);
 
   // Każdy wiersz to pojedynczy <Text wrap="truncate-end"> — przy wąskim oknie
   // przycina się jako całość zamiast łamać etykiety/dokładać puste linie.
@@ -19,16 +25,16 @@ export default function StatusBar({ state, git }) {
       <Text color="#4da3ff" bold wrap="truncate-end">Liquid Flow CLI 0.9</Text>
 
       {shop
-        ? <Text wrap="truncate-end"><Text color="gray">Sklep:   </Text><Text color="green">● {shop.Name}</Text><Text color="gray">  {shop.Url}</Text></Text>
+        ? <Text wrap="truncate-end"><Text color="gray">{pad(t.ShopLabel)}</Text><Text color="green">● {shop.Name}</Text><Text color="gray">  {shop.Url}</Text></Text>
         : <Text color="gray">~</Text>}
 
       {tpl && (
-        <Text wrap="truncate-end"><Text color="gray">Szablon: </Text><Text color="cyan">{tpl.Name}</Text><Text color="gray"> [{tpl.Id}]</Text></Text>
+        <Text wrap="truncate-end"><Text color="gray">{pad(t.TemplateLabel)}</Text><Text color="cyan">{tpl.Name}</Text><Text color="gray"> [{tpl.Id}]</Text></Text>
       )}
 
       {git?.active && (
         <Text wrap="truncate-end">
-          <Text color="gray">Git:     </Text>
+          <Text color="gray">{pad(t.GitLabel)}</Text>
           {git.autoCommit ? <Text color="green">commit ✓ </Text> : <Text color="gray">commit ✗ </Text>}
           {git.autoPush ? <Text color="green">push ✓</Text> : <Text color="gray">push ✗</Text>}
         </Text>

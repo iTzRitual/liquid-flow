@@ -21,13 +21,13 @@ export default function ConfirmButton({ children, onConfirm, message, title, var
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{title || (t.AreYouSure || 'Czy jesteś pewny?')}</DialogTitle>
+            <DialogTitle>{title || t.AreYouSure}</DialogTitle>
             {message && <DialogDescription>{message}</DialogDescription>}
           </DialogHeader>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setOpen(false)}>{t.Cancel || 'Anuluj'}</Button>
+            <Button variant="secondary" onClick={() => setOpen(false)}>{t.Cancel}</Button>
             <Button variant={variant === 'default' ? 'default' : variant} disabled={busy} onClick={go}>
-              {confirmLabel || (t.Save || 'OK')}
+              {confirmLabel || t.Save}
             </Button>
           </DialogFooter>
         </DialogContent>

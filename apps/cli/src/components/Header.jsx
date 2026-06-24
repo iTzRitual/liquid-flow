@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
+import { tfmt } from '@liquidflow/core';
 import Banner from './Banner.jsx';
 import StatusBar from './StatusBar.jsx';
 
@@ -16,13 +17,13 @@ export const HEADER_STACK_COLS = 52;
 //    kolumny, więc nie ściskają wierszy statusu (to nie trzecia kolumna).
 // Przy bardzo wąskim oknie (cols < HEADER_STACK_COLS) przełączamy się na układ
 // pionowy: logo na górze, informacje pod spodem (na pełną szerokość).
-export default function Header({ state, git, mismatches, cols = 80 }) {
+export default function Header({ state, git, mismatches, cols = 80, t }) {
   const conflicts = mismatches?.length || 0;
   const stacked = cols < HEADER_STACK_COLS;
 
   const conflictRow = conflicts > 0 ? (
     <Box justifyContent="flex-end">
-      <Text color="red" wrap="truncate-end">⚠ Konflikty: {conflicts} (/conflicts)</Text>
+      <Text color="red" wrap="truncate-end">{tfmt(t.ConflictsIndicator, { count: conflicts })}</Text>
     </Box>
   ) : null;
 
@@ -32,7 +33,7 @@ export default function Header({ state, git, mismatches, cols = 80 }) {
       <Box marginTop={1} flexDirection="column">
         <Box paddingLeft={1} flexShrink={0}><Banner /></Box>
         <Box marginTop={1} paddingLeft={1} flexDirection="column">
-          <StatusBar state={state} git={git} />
+          <StatusBar state={state} git={git} t={t} />
           {conflictRow}
         </Box>
       </Box>
@@ -44,7 +45,7 @@ export default function Header({ state, git, mismatches, cols = 80 }) {
     <Box marginTop={1}>
       <Box paddingLeft={1} flexShrink={0}><Banner /></Box>
       <Box marginLeft={3} marginTop={1} flexGrow={1} flexShrink={1} flexDirection="column" justifyContent="space-between">
-        <StatusBar state={state} git={git} />
+        <StatusBar state={state} git={git} t={t} />
         {conflictRow}
       </Box>
     </Box>

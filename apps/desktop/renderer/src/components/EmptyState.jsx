@@ -14,7 +14,7 @@ export default function EmptyState({ loading }) {
       <div>
         <h2 className="text-xl font-semibold">Liquid Flow</h2>
         <p className="max-w-sm text-sm text-muted-foreground">
-          {shops.length ? 'Wybierz sklep z listy po lewej, aby rozpocząć synchronizację.' : 'Dodaj swój pierwszy sklep Comarch e-Sklep, aby rozpocząć.'}
+          {shops.length ? t.WelcomePickShop : t.WelcomeAddFirst}
         </p>
       </div>
       <Button onClick={() => navigate('shopForm', { editing: null })}>
