@@ -32,7 +32,9 @@ export function useController() {
     // Pełna podmiana bufora po przełączeniu kanału (osobny log per szablon/sklep).
     const onLogReset = (entries) => { setLog(entries.slice(-LOG_LIMIT)); setLogVersion((v) => v + 1); };
     const onMis = (m) => setMismatches(m);
-    const onState = (s) => { setState(s); setT(translationsFor(s.language)); };
+    // Zmiana stanu = potencjalna zmiana połączenia (login/logout) → odśwież listę
+    // sklepów, żeby flaga isCurrent (● bieżący / URL) była zawsze aktualna.
+    const onState = (s) => { setState(s); setT(translationsFor(s.language)); setShops(ctrl.listShops()); };
     const onGit = (g) => setGit(g);
     const onProgress = (p) => {
       const tr = translationsFor(ctrl.getState().language);
