@@ -212,7 +212,13 @@ const LOG_MAX_LINES = 1000;
 export function appendLogEntry(shopName, templateId, entry) {
   try {
     ensureDir(logsDir(shopName));
-    const line = JSON.stringify({ TS: entry.TS, Text: entry.Text, Color: entry.Color, kind: entry.kind }) + '\n';
+    // Zapisujemy też deskryptor i18n (msg/params lub sepKey/sepTs), żeby po
+    // ponownym wczytaniu historię dało się wyrenderować w bieżącym języku.
+    // `Text` zostaje jako wartość zapasowa (literały, stare pliki).
+    const line = JSON.stringify({
+      TS: entry.TS, Text: entry.Text, Color: entry.Color, kind: entry.kind,
+      msg: entry.msg, params: entry.params, sepKey: entry.sepKey, sepTs: entry.sepTs,
+    }) + '\n';
     fs.appendFileSync(logPath(shopName, templateId), line);
   } catch {}
 }

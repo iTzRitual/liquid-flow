@@ -10,8 +10,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ISklep24Client } from './soap.js';
 import * as store from './store.js';
-import { logInfo, logOk, logErr } from './log.js';
-import { translationsFor, tfmt } from './translations.js';
+import { logInfo, logOk, logErr, tmsg } from './log.js';
+import { translationsFor } from './translations.js';
 
 const MAX_NAME_LEN = 64;
 const MAX_FILE_SIZE = 519168;
@@ -81,18 +81,18 @@ export class SyncSession {
     if (fresh) {
       await this._initialDownload();
     } else {
-      logOk(this.t.LocalFolderReady);
+      logOk(tmsg('LocalFolderReady'));
     }
 
     this._progress({ phase: 'check', state: 'start' });
     await this.refreshMismatches({ silent: true });
     this._progress({ phase: 'check', state: 'done', conflicts: this.mismatches.length });
-    logOk(tfmt(this.t.MismatchesChecked, { count: this.mismatches.length }));
+    logOk(tmsg('MismatchesChecked', { count: this.mismatches.length }));
 
     this._startWatcher();
     this._startPoll();
     this._progress({ phase: 'ready', template: this.template.Name });
-    logOk(tfmt(this.t.SyncActiveHotReload, { name: this.template.Name }));
+    logOk(tmsg('SyncActiveHotReload', { name: this.template.Name }));
   }
 
   dispose() {
@@ -100,7 +100,7 @@ export class SyncSession {
     this._stopWatcher();
     for (const tm of this._debounce.values()) clearTimeout(tm);
     this._debounce.clear();
-    logInfo(this.t.SyncStopped);
+    logInfo(tmsg('SyncStopped'));
   }
 
   // ---- cykliczne przeliczanie konfliktów (zmiany zdalne) ----
@@ -123,7 +123,7 @@ export class SyncSession {
     const prev = this.mismatches.length;
     await this.refreshMismatches({ silent: true });
     if (this.mismatches.length > prev) {
-      logInfo(tfmt(this.t.RemoteChangesDetected, { count: this.mismatches.length }));
+      logInfo(tmsg('RemoteChangesDetected', { count: this.mismatches.length }));
     }
   }
 
@@ -147,7 +147,7 @@ export class SyncSession {
     }
     store.saveMeta(this.shopName, this.templateId, meta);
     this._progress({ phase: 'download', state: 'done', count: total });
-    logOk(tfmt(this.t.FilesDownloaded, { count: total }));
+    logOk(tmsg('FilesDownloaded', { count: total }));
   }
 
   // ---- watcher ----
@@ -205,7 +205,7 @@ export class SyncSession {
       if (known) {
         await this.client.liquidFileDelete({ TemplateId: this.templateId, Mode: mode, Name: name });
         store.removeMetaEntry(this.shopName, this.templateId, mode, name);
-        logOk(this.t.FileDeleted + ' — ' + this._label(mode, name));
+        logOk(tmsg('LogFileDeleted', { label: this._label(mode, name) }));
         this._notify('delete', mode, name);
       }
       return;
@@ -216,12 +216,12 @@ export class SyncSession {
 
     if (known) {
       await this.client.liquidFileSet(tpl);
-      logOk(this.t.FileChanged + ' — ' + this._label(mode, name));
+      logOk(tmsg('LogFileChanged', { label: this._label(mode, name) }));
     } else {
       const ok = await this.client.liquidFileIsValid({ TemplateId: this.templateId, Mode: mode, Name: name });
       if (!ok) throw new Error(this.t.PathExist);
       await this.client.liquidFileAdd(tpl);
-      logOk(this.t.FileCreated + ' — ' + this._label(mode, name));
+      logOk(tmsg('LogFileCreated', { label: this._label(mode, name) }));
     }
     // pobierz nowy zdalny timestamp i zapisz meta
     const metaList = await this.client.liquidFilesMetaGet({ TemplateId: this.templateId, Mode: mode, Name: name });
@@ -256,7 +256,7 @@ export class SyncSession {
 
   // ---- wykrywanie konfliktów ----
   async refreshMismatches(opts = {}) {
-    if (!opts.silent) logInfo(this.t.CheckingMismatch);
+    if (!opts.silent) logInfo(tmsg('CheckingMismatch'));
     const remote = await this.client.liquidFilesMetaGet({ TemplateId: this.templateId });
     const local = store.listLocalFiles(this.shopName, this.templateId);
     const meta = store.loadMeta(this.shopName, this.templateId);
@@ -367,7 +367,7 @@ export class SyncSession {
     if (!f) return;
     const localts = store.writeLocalFile(this.shopName, this.templateId, f.Mode, f.Name, f.Template || Buffer.alloc(0));
     store.setMetaEntry(this.shopName, this.templateId, f.Mode, f.Name, localts, f.Date);
-    logOk(this.t.Download + ' ✓ — ' + this._label(f.Mode, f.Name));
+    logOk(tmsg('LogDownloaded', { label: this._label(f.Mode, f.Name) }));
     this._notify('download', f.Mode, f.Name);
   }
 
@@ -385,21 +385,21 @@ export class SyncSession {
     const metaList = await this.client.liquidFilesMetaGet({ TemplateId: this.templateId, Mode: file.Mode, Name: file.Name });
     const remote = metaList[0];
     store.setMetaEntry(this.shopName, this.templateId, file.Mode, file.Name, store.mtimeUtc(abs), remote ? remote.Date : null);
-    logOk(this.t.Upload + ' ✓ — ' + this._label(file.Mode, file.Name));
+    logOk(tmsg('LogUploaded', { label: this._label(file.Mode, file.Name) }));
     this._notify('upload', file.Mode, file.Name);
   }
 
   async _removeLocal(file) {
     store.deleteLocalFile(this.shopName, this.templateId, file.Mode, file.Name);
     store.removeMetaEntry(this.shopName, this.templateId, file.Mode, file.Name);
-    logOk(this.t.FileDeleted + ' (' + this.t.Locally + ') — ' + this._label(file.Mode, file.Name));
+    logOk(tmsg('LogFileDeletedLocal', { label: this._label(file.Mode, file.Name) }));
     this._notify('removeLocal', file.Mode, file.Name);
   }
 
   async _removeRemote(file) {
     await this.client.liquidFileDelete({ TemplateId: this.templateId, Mode: file.Mode, Name: file.Name });
     store.removeMetaEntry(this.shopName, this.templateId, file.Mode, file.Name);
-    logOk(this.t.FileDeleted + ' (' + this.t.Remotely + ') — ' + this._label(file.Mode, file.Name));
+    logOk(tmsg('LogFileDeletedRemote', { label: this._label(file.Mode, file.Name) }));
     this._notify('removeRemote', file.Mode, file.Name);
   }
 }

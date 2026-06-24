@@ -9,7 +9,7 @@ import * as logbuf from './log.js';
 import * as git from './git.js';
 import { ISklep24Client, SoapError } from './soap.js';
 import { SyncSession } from './syncEngine.js';
-import { translationsFor, tfmt, localeFor, LANGUAGES } from './translations.js';
+import { translationsFor, tfmt, LANGUAGES } from './translations.js';
 
 const COMMIT_DEBOUNCE_MS = 3000;
 
@@ -89,6 +89,9 @@ export class Controller extends EventEmitter {
   setLanguage(id) {
     this.config.Language = id;
     store.saveConfig(this.config);
+    // Przerysuj bieżący log na nowy język (wpisy z deskryptorem i18n) — emituje
+    // 'reset' → 'log:reset', więc UI podmienia cały widoczny strumień.
+    logbuf.setLanguage(id);
     this.emitState();
     return this.getTranslations();
   }
@@ -131,7 +134,7 @@ export class Controller extends EventEmitter {
     this.state.templates = [];
     if (this.state.session) { this.state.session.dispose(); this.state.session = null; this.activeGit = null; }
     logbuf.setActiveChannel('shop:' + shop.Id);
-    logbuf.logOk(tfmt(t.ConnectedToShop, { name: shop.Name }));
+    logbuf.logOk(logbuf.tmsg('ConnectedToShop', { name: shop.Name }));
     this.emitState();
     return this.shopPublic(shop);
   }
@@ -161,7 +164,7 @@ export class Controller extends EventEmitter {
     this.state.templates = [];
     if (this.state.session) { this.state.session.dispose(); this.state.session = null; this.activeGit = null; }
     logbuf.setActiveChannel('shop:' + shop.Id);
-    logbuf.logOk(tfmt(t.ConnectedToShopSaved, { name: shop.Name }));
+    logbuf.logOk(logbuf.tmsg('ConnectedToShopSaved', { name: shop.Name }));
     this.emitState();
     return this.shopPublic(shop);
   }
@@ -179,7 +182,7 @@ export class Controller extends EventEmitter {
     this.state.templates = [];
     this.state.pendingTemplate = null;
     logbuf.setActiveChannel('app');
-    logbuf.logOk(name ? tfmt(this.t.DisconnectedFrom, { name }) : this.t.Disconnected);
+    logbuf.logOk(name ? logbuf.tmsg('DisconnectedFrom', { name }) : logbuf.tmsg('Disconnected'));
     this.emitState();
     return this.getState();
   }
@@ -264,9 +267,9 @@ export class Controller extends EventEmitter {
       history,
     });
     if (history.length) {
-      logbuf.separator(this.t.NewSession + ' • ' + new Date().toLocaleString(localeFor(this.config.Language), { hour12: false }));
+      logbuf.separator({ key: 'NewSession', ts: new Date().toISOString() });
     }
-    logbuf.logOk(tfmt(this.t.TemplateSelected, { name: template.Name, id: template.Id }));
+    logbuf.logOk(logbuf.tmsg('TemplateSelected', { name: template.Name, id: template.Id }));
     const session = new SyncSession(sessShop, template, {
       insecureTLS: this.insecureTLS,
       language: this.config.Language,
@@ -334,15 +337,15 @@ export class Controller extends EventEmitter {
       if (!git.isRepo(this.activeGit.dir)) await git.init(this.activeGit.dir);
       const r = await git.commitAll(this.activeGit.dir, msg);
       if (r.committed) {
-        logbuf.logInfo(tfmt(t.GitVersionSaved, { hash: r.hash }));
+        logbuf.logInfo(logbuf.tmsg('GitVersionSaved', { hash: r.hash }));
         if (this.activeGit.autoPush) {
-          try { await git.push(this.activeGit.dir); logbuf.logOk(t.GitPushedOrigin); }
-          catch (e) { logbuf.logErr(tfmt(t.GitPushError, { msg: e.message })); }
+          try { await git.push(this.activeGit.dir); logbuf.logOk(logbuf.tmsg('GitPushedOrigin')); }
+          catch (e) { logbuf.logErr(logbuf.tmsg('GitPushError', { msg: e.message })); }
         }
         this.emitGit();
       }
     } catch (e) {
-      logbuf.logErr(tfmt(t.GitCommitError, { msg: e.message }));
+      logbuf.logErr(logbuf.tmsg('GitCommitError', { msg: e.message }));
     }
   }
 
@@ -377,7 +380,7 @@ export class Controller extends EventEmitter {
     const tCfg = this._currentTemplateConfig();
     tCfg.git = { ...(tCfg.git || {}), autoCommit: true };
     store.saveConfig(this.config);
-    logbuf.logOk(this.t.GitEnabledForTemplate);
+    logbuf.logOk(logbuf.tmsg('GitEnabledForTemplate'));
     this.emitGit();
     return this.gitStatus();
   }
@@ -402,7 +405,7 @@ export class Controller extends EventEmitter {
   async gitRestore(hash) {
     if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
     const r = await git.restore(this.activeGit.dir, hash, tfmt(this.t.GitRestoreCommit, { hash }));
-    logbuf.logOk(tfmt(this.t.GitVersionRestored, { hash }));
+    logbuf.logOk(logbuf.tmsg('GitVersionRestored', { hash }));
     // odśwież konflikty po przywróceniu
     if (this.state.session) await this.state.session.refreshMismatches();
     this.emitGit();
@@ -413,7 +416,7 @@ export class Controller extends EventEmitter {
     if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
     if (!git.isRepo(this.activeGit.dir)) await git.init(this.activeGit.dir);
     await git.setRemote(this.activeGit.dir, url);
-    logbuf.logOk(this.t.GitRemoteSet);
+    logbuf.logOk(logbuf.tmsg('GitRemoteSet'));
     this.emitGit();
     return this.gitStatus();
   }
@@ -421,7 +424,7 @@ export class Controller extends EventEmitter {
   async gitPush() {
     if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
     const r = await git.push(this.activeGit.dir);
-    logbuf.logOk(tfmt(this.t.GitPushedOriginBranch, { branch: r.branch }));
+    logbuf.logOk(logbuf.tmsg('GitPushedOriginBranch', { branch: r.branch }));
     this.emitGit();
     return r;
   }

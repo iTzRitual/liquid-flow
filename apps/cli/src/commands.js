@@ -74,7 +74,7 @@ export function buildCommands(ctx) {
 
   // /templates: od razu pokaż loader, potem listę.
   const goTemplates = () => {
-    if (!ctrl.getCurrentShop()) { log.logErr(t.LoginFirst); return; }
+    if (!ctrl.getCurrentShop()) { log.logErr(log.tmsg('LoginFirst')); return; }
     withLoading(t.LoadingTemplates, openTemplatesPicker);
   };
 
@@ -107,8 +107,8 @@ export function buildCommands(ctx) {
   // usuń) + na końcu operacje seryjne („wszystkie”) z potwierdzeniem. Wejście
   // przez wskaźnik konfliktów w nagłówku → /conflicts.
   const showConflicts = () => {
-    if (!hasTemplate) { log.logErr(t.NoActiveTemplateHint); return; }
-    if (!mismatches.length) { log.logOk(t.NoConflicts); return; }
+    if (!hasTemplate) { log.logErr(log.tmsg('NoActiveTemplateHint')); return; }
+    if (!mismatches.length) { log.logOk(log.tmsg('NoConflicts')); return; }
 
     // ile plików obejmie każda operacja seryjna (te same filtry co w syncEngine)
     const nDownload = mismatches.filter((m) => m.Type === MismatchType.LocalMissing || m.Type === MismatchType.Timestamp).length;
@@ -150,9 +150,9 @@ export function buildCommands(ctx) {
 
   // --- git ---
   const gitMenu = () => safe(async () => {
-    if (!hasTemplate) { log.logErr(t.NoActiveTemplateHint); return; }
+    if (!hasTemplate) { log.logErr(log.tmsg('NoActiveTemplateHint')); return; }
     const st = await ctrl.gitStatus();
-    if (!st.available) { log.logErr(t.GitNotInstalled); return; }
+    if (!st.available) { log.logErr(log.tmsg('GitNotInstalled')); return; }
 
     // Brak repozytorium → jedyna opcja to inicjalizacja. Po niej wracamy do
     // pełnego menu (a nie do ekranu głównego).
@@ -184,7 +184,7 @@ export function buildCommands(ctx) {
           break;
         case 'history': {
           const hist = await ctrl.gitHistory(50);
-          if (!hist.length) { log.logInfo(t.GitNoHistory); break; }
+          if (!hist.length) { log.logInfo(log.tmsg('GitNoHistory')); break; }
           openPicker(t.GitHistoryPick, hist.map((h) => ({
             label: `${h.hash} ${h.message || ''}`.trim(),
             hint: h.relative || '',
@@ -201,7 +201,7 @@ export function buildCommands(ctx) {
     { name: '/connect', desc: t.CmdConnect, run: () => connect() },
     { name: '/login', desc: t.CmdLogin, run: () => loginForm() },
     { name: '/shops', desc: t.CmdShops, run: () => {
-        if (!shops.length) { log.logInfo(t.NoSavedShops); return; }
+        if (!shops.length) { log.logInfo(log.tmsg('NoSavedShops')); return; }
         openPicker(t.Shops, shops.map((s) => ({
           label: s.Name,
           hint: s.isCurrent ? t.CurrentShop : s.Url,
@@ -223,21 +223,21 @@ export function buildCommands(ctx) {
     { name: '/templates', desc: t.CmdTemplates, run: () => goTemplates() },
     { name: '/conflicts', desc: t.CmdConflicts, run: () => showConflicts() },
     { name: '/git', desc: t.CmdGit, run: () => gitMenu() },
-    { name: '/open', desc: t.CmdOpen, run: () => { const d = ctrl.currentFolder(); if (d) { openExternal(d); log.logInfo(tfmt(t.Opening, { path: d })); } else log.logErr(t.NoActiveTemplate); } },
-    { name: '/lang', desc: t.CmdLang, run: () => openPicker(t.Language, LANGUAGES.map((l) => ({ label: l.Name, value: l })), (it) => { ctrl.setLanguage(it.value.Id); log.logInfo(tfmt(t.LanguageSet, { name: it.value.Name })); }) },
+    { name: '/open', desc: t.CmdOpen, run: () => { const d = ctrl.currentFolder(); if (d) { openExternal(d); log.logInfo(log.tmsg('Opening', { path: d })); } else log.logErr(log.tmsg('NoActiveTemplate')); } },
+    { name: '/lang', desc: t.CmdLang, run: () => openPicker(t.Language, LANGUAGES.map((l) => ({ label: l.Name, value: l })), (it) => { ctrl.setLanguage(it.value.Id); log.logInfo(log.tmsg('LanguageSet', { name: it.value.Name })); }) },
     { name: '/logout', desc: t.CmdLogout, run: () => {
-        if (!hasShop) { log.logInfo(t.NotConnectedAny); return; }
+        if (!hasShop) { log.logInfo(log.tmsg('NotConnectedAny')); return; }
         ctrl.logout();
       } },
     { name: '/remove', desc: t.CmdRemove, run: () => {
-        if (!shops.length) { log.logInfo(t.NoShopsToRemove); return; }
+        if (!shops.length) { log.logInfo(log.tmsg('NoShopsToRemove')); return; }
         openPicker(t.RemoveShopTitle, shops.map((s) => ({ label: s.Name, hint: s.Url, value: s })),
-          (it) => { ctrl.removeShop(it.value.Id); refreshShops(); log.logOk(tfmt(t.ShopRemoved, { name: it.value.Name })); });
+          (it) => { ctrl.removeShop(it.value.Id); refreshShops(); log.logOk(log.tmsg('ShopRemoved', { name: it.value.Name })); });
       } },
     { name: '/wrap', desc: t.CmdWrap, run: () => {
         const nv = !logWrap;
         setLogWrap(nv);
-        log.logInfo(nv ? t.LogWrapOn : t.LogWrapOff);
+        log.logInfo(log.tmsg(nv ? 'LogWrapOn' : 'LogWrapOff'));
       } },
     { name: '/clear', desc: t.CmdClear, run: () => clearLog() },
     { name: '/exit(quit)', desc: t.CmdExit, run: () => exit() },

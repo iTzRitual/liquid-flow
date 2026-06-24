@@ -135,6 +135,15 @@ const pl = {
   RemoteChangesDetected: '⚠ Wykryto zmiany zdalne — konflikty: {count} (/conflicts)',
   FilesDownloaded: 'Pobrano {count} plików ze sklepu',
   DownloadingFiles: 'Pobieranie plików ze sklepu',
+  // Logi zdarzeń na pliku (z etykietą pliku {label}) — pełne szablony, by
+  // dało się je przetłumaczyć na żywo (deskryptor i18n, nie sklejka).
+  LogFileChanged: 'Plik został zmieniony — {label}',
+  LogFileCreated: 'Plik został utworzony — {label}',
+  LogFileDeleted: 'Plik został usunięty — {label}',
+  LogDownloaded: 'Pobierz ✓ — {label}',
+  LogUploaded: 'Wyślij ✓ — {label}',
+  LogFileDeletedLocal: 'Plik został usunięty (lokalnie) — {label}',
+  LogFileDeletedRemote: 'Plik został usunięty (zdalnie) — {label}',
 
   // --- CLI: input / nagłówek / status ---
   InputPlaceholder: 'wpisz / aby zobaczyć komendy · /exit wyjście',
@@ -367,6 +376,13 @@ const en = {
   RemoteChangesDetected: '⚠ Remote changes detected — conflicts: {count} (/conflicts)',
   FilesDownloaded: 'Downloaded {count} files from shop',
   DownloadingFiles: 'Downloading files from shop',
+  LogFileChanged: 'File changed — {label}',
+  LogFileCreated: 'File created — {label}',
+  LogFileDeleted: 'File deleted — {label}',
+  LogDownloaded: 'Download ✓ — {label}',
+  LogUploaded: 'Upload ✓ — {label}',
+  LogFileDeletedLocal: 'File deleted (locally) — {label}',
+  LogFileDeletedRemote: 'File deleted (remotely) — {label}',
 
   // --- CLI: input / nagłówek / status ---
   InputPlaceholder: 'type / to see commands · /exit to quit',

@@ -76,6 +76,9 @@ export default function App() {
     const tr = await api.setLanguage(id);
     setT(tr.Translations || {});
     setLanguage(id);
+    // Backend przerysował bieżący log na nowy język — pobierz go ponownie, żeby
+    // już wyświetlone wpisy (z deskryptorem i18n) także się przetłumaczyły.
+    try { setLog((await api.getLog(0)).slice().reverse()); } catch { /* brak aktywnego logu */ }
   }, []);
 
   const ctx = {

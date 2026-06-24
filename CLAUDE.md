@@ -37,8 +37,9 @@ apps/cli/        @liquidflow/cli — bin/liquidflow.js + src/ (Ink)
 trzyma cały stan i emituje zdarzenia, a obie apki to „skóry" subskrybujące te
 zdarzenia:
 
-- `log` — nowy wpis logu `{ Id, TS, Text, Color, kind?, historic? }`
-- `log:reset` — pełna podmiana bufora po przełączeniu kanału logu (poniżej)
+- `log` — nowy wpis logu `{ Id, TS, Text, Color, kind?, historic?, msg?, params? }`
+  (`msg`+`params` = deskryptor i18n, `Text` renderowany dla bieżącego języka)
+- `log:reset` — pełna podmiana bufora po przełączeniu kanału **lub zmianie języka**
 - `mismatches` — lista konfliktów
 - `state` — `{ currentShop, currentTemplate, language, insecureTLS }`
 - `git` — status repo (gitStatus)
@@ -78,7 +79,19 @@ Comarch. `git push` ≠ wysyłka do sklepu (ta jest automatyczna przez watcher).
 
 `log.js` nie jest już jednym globalnym buforem — trzyma **kanały** i ma jeden
 **aktywny** naraz (bo aktywna jest tylko jedna sesja synchronizacji). Producenci
-nadal wołają `logInfo/logOk/logErr` bez wiedzy o kanale; wpis trafia do bieżącego.
+wołają `logInfo/logOk/logErr` bez wiedzy o kanale; wpis trafia do bieżącego.
+
+**Logi są i18n‑świadome (tłumaczone na żywo).** Argument log‑funkcji to ALBO
+literał (string — np. surowy `e.message`, stderr gita: zostaje jak jest), ALBO
+**deskryptor i18n** `tmsg(key, params)` → `{ msg, params }`. `log.js` trzyma
+bieżący język i renderuje `Text` z deskryptora; `log.setLanguage(lang)` (wołany
+przez `Controller.setLanguage`) przelicza `Text` wszystkich wpisów z deskryptorem
+w aktywnym kanale i emituje `'reset'` → cały widoczny log (i wczytana historia)
+zmienia język. Separator ma wariant `separator({ key, ts })` (klucz + czas;
+data formatuje się wg `localeFor`). **Zasada: log‑producenty nie sklejają
+przetłumaczonych łańcuchów — przekazują `tmsg('Klucz', params)`**; literały tylko
+dla tekstu nietłumaczalnego (wyjątki/stderr — te zostają w języku z chwili błędu).
+
 `Controller` przełącza kanał (`logbuf.setActiveChannel(key, opts)`) w punktach
 życia:
 - `app` — przed połączeniem (efemeryczny),
@@ -93,12 +106,16 @@ sekwencję `Id`.
 
 **Trwała historia per‑szablon**: `store.appendLogEntry` / `store.readLogTail`
 (plik `Shops/<Nazwa>/logs/<tplId>.jsonl`, JSON‑per‑linia, przycinany do 1000
-linii). Plik żyje **poza** `files/<id>/`, więc nie trafia do synchronizacji ani
-do repo git szablonu. Przy starcie sesji (`_startSession`) Controller: wczytuje
-ogon historii (wpisy dostają `historic:true` → wyszarzone w `LogPane`), dokłada
-`logbuf.separator('Nowa sesja • …')` (`kind:'separator'`, renderowany jako linia
-działowa „── … ─────"), dopiero potem płynie nowa sesja. `buildVlines` obsługuje
-oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic` (`dimColor`).
+linii). W linii zapisujemy też deskryptor i18n (`msg`/`params` lub `sepKey`/
+`sepTs`) obok `Text`, więc po ponownym wczytaniu historia renderuje się w
+bieżącym języku (stare pliki bez deskryptora → fallback do zapisanego `Text`).
+Plik żyje **poza** `files/<id>/`, więc nie trafia do synchronizacji ani do repo
+git szablonu. Przy starcie sesji (`_startSession`) Controller: wczytuje ogon
+historii (wpisy dostają `historic:true` → wyszarzone w `LogPane`), dokłada
+`logbuf.separator({ key:'NewSession', ts })` (`kind:'separator'`, renderowany jako
+linia działowa „── … ─────"), dopiero potem płynie nowa sesja. `buildVlines`
+obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic`
+(`dimColor`).
 
 ## CLI — szczegóły (apps/cli)
 
@@ -239,9 +256,12 @@ desktopu unikaj tokenów — składaj wartość w JSX z osobnych słów‑kluczy
 
 Jak `t` (tablica dla bieżącego języka) trafia do warstw:
 - **core**: `Controller` ma getter `get t()`; `SyncSession`/`ISklep24Client`
-  dostają `language` w opcjach i trzymają własne `this.t`. Logi/błędy lecą już
-  przetłumaczone. Język siedzi w `config.Language` (`setLanguage` zapisuje i
-  emituje `state`).
+  dostają `language` w opcjach i trzymają własne `this.t` (do **rzucanych
+  błędów**, które renderują się w chwili rzutu). **Logi** idą jako deskryptory
+  `tmsg('Klucz', params)` i tłumaczą się na żywo (patrz sekcja „Logi"). Język
+  siedzi w `config.Language`; `setLanguage` zapisuje config, woła
+  `logbuf.setLanguage` (przerysowanie logu → `log:reset`) i emituje `state`.
+  Komunikaty commitów gita renderuje `controller` przez `tfmt` (to dane repo).
 - **CLI**: `useController` wystawia `t` (przeliczane na zdarzeniu `state`);
   `App.jsx` przekazuje `t` do `ctx` (komendy) i jako **prop** do KAŻDEGO
   komponentu, który renderuje tekst (`Header`→`StatusBar`, `Picker`, `Form`,
@@ -314,6 +334,10 @@ tylko przez `/exit`). **Pełne i18n (PL/EN)**: cały tekst UI/logów/błędów/t
 przeniesiony do `translations.js`; `core` przekazuje język do `SyncSession`/SOAP,
 CLI przekazuje `t` do wszystkich komponentów, desktop czyta `t` z kontekstu —
 przełączanie języka działa na żywo w obu apkach (patrz sekcja „Tłumaczenia").
+Logi są **strukturalne** (deskryptor `tmsg('Klucz', params)` zamiast gotowego
+tekstu) — `/lang` przetłumacza też **już wyświetlone** wpisy i wczytaną historię
+(zapis `msg`/`params` w `.jsonl`); literały wyjątków zostają w języku z chwili
+błędu.
 
 Znane/otwarte tematy: ewentualne
 ulepszenia czytelności logów (ikony poziomów `✓/ℹ/✗`, „Pobrano/Wysłano" zamiast

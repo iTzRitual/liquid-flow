@@ -8,9 +8,17 @@
 //   'shop:<id>'           — połączony sklep, brak szablonu (efemeryczny)
 //   'tpl:<shopId>:<tplId>' — aktywny szablon (TRWAŁY: persist do pliku)
 //
-// Wpis: { Id, TS, Text, Color, kind?, historic? }.
+// Wpis: { Id, TS, Text, Color, kind?, historic?, msg?, params?, sepKey?, sepTs? }.
 //  - kind:'separator'  — linia działowa (np. granica sesji),
-//  - historic:true     — wpis wczytany z poprzedniej sesji (renderowany wyszarzony).
+//  - historic:true     — wpis wczytany z poprzedniej sesji (renderowany wyszarzony),
+//  - msg + params      — DESKRYPTOR i18n: klucz tłumaczenia + parametry do `tfmt`.
+//    `Text` jest renderowany z deskryptora dla BIEŻĄCEGO języka. Dzięki temu
+//    `setLanguage` przerysowuje cały widoczny log (i wczytaną historię) na nowy
+//    język. Wpisy bez `msg` (literały: surowe błędy/stderr) zostają jak są.
+//  - sepKey + sepTs    — wariant deskryptora dla separatora (klucz + znacznik czasu).
+
+import { EventEmitter } from 'node:events';
+import { translationsFor, tfmt, localeFor } from './translations.js';
 
 export const COLORS = {
   red: '#F00',    // błąd
@@ -20,15 +28,34 @@ export const COLORS = {
   sep: '#82bbff', // separator (jak Divider)
 };
 
-import { EventEmitter } from 'node:events';
-
 const MAX = 1000;
 const waiters = new Set(); // long-poll: { lastId, resolve }
 
+// Bieżący język renderowania logu. Zmieniany przez Controller.setLanguage.
+let lang = 'pl';
+
 // Emiter zdarzeń: 'entry' przy każdym nowym wpisie (push dla UI),
-// 'reset' przy przełączeniu kanału (pełna podmiana bufora).
+// 'reset' przy przełączeniu kanału / zmianie języka (pełna podmiana bufora).
 export const events = new EventEmitter();
 events.setMaxListeners(50);
+
+// Pomocnik dla producentów: zbuduj deskryptor i18n `{ msg, params }`.
+// Użycie: logOk(tmsg('ConnectedToShop', { name })).
+export function tmsg(key, params = {}) {
+  return { msg: key, params };
+}
+
+// Wyrenderuj `Text` wpisu dla bieżącego języka.
+function renderText(e) {
+  if (e.kind === 'separator') {
+    if (!e.sepKey) return e.Text || '';
+    const label = translationsFor(lang)[e.sepKey] || e.sepKey;
+    const when = e.sepTs ? ' • ' + new Date(e.sepTs).toLocaleString(localeFor(lang), { hour12: false }) : '';
+    return label + when;
+  }
+  if (e.msg) return tfmt(translationsFor(lang)[e.msg] || e.msg, e.params || {});
+  return e.Text;
+}
 
 function newChannel(key, persist) {
   return { key, entries: [], nextId: 1, persist };
@@ -37,15 +64,32 @@ function newChannel(key, persist) {
 // Aktywny kanał. Domyślnie 'app' (efemeryczny) — zanim pojawi się sklep/szablon.
 let active = newChannel('app', null);
 
+// Zmień język renderowania: przelicz `Text` dla wpisów z deskryptorem i18n
+// (oraz separatorów) w aktywnym kanale i wyemituj 'reset' z odświeżonym buforem.
+// Wpisy-literały (bez `msg`/`sepKey`) pozostają nietknięte.
+export function setLanguage(newLang) {
+  lang = newLang || 'pl';
+  for (const e of active.entries) {
+    if (e.msg || e.kind === 'separator') e.Text = renderText(e);
+  }
+  events.emit('reset', active.entries.slice());
+}
+
 // Przełącz aktywny kanał. `opts.persist(entry)` zapisuje live-wpisy na dysk.
-// `opts.history` to wcześniej zapisane wpisy [{TS,Text,Color,kind}] — ładowane
-// jako historyczne (wyszarzone), bez ponownego zapisu.
+// `opts.history` to wcześniej zapisane wpisy ({TS,Text,Color,kind,msg,params,…})
+// — ładowane jako historyczne (wyszarzone), z `Text` przeliczonym na bieżący
+// język (gdy niosą deskryptor i18n), bez ponownego zapisu.
 export function setActiveChannel(key, opts = {}) {
   // odepnij oczekujących long-pollerów ze starego kanału
   for (const w of [...waiters]) { waiters.delete(w); w.resolve([]); }
   const ch = newChannel(key, opts.persist || null);
   for (const h of opts.history || []) {
-    ch.entries.push({ Id: ch.nextId++, TS: h.TS, Text: h.Text, Color: h.Color, kind: h.kind, historic: true });
+    const e = {
+      Id: ch.nextId++, TS: h.TS, Color: h.Color, kind: h.kind, historic: true,
+      msg: h.msg, params: h.params, sepKey: h.sepKey, sepTs: h.sepTs, Text: h.Text,
+    };
+    e.Text = renderText(e);
+    ch.entries.push(e);
   }
   active = ch;
   events.emit('reset', ch.entries.slice());
@@ -67,18 +111,28 @@ function push(entry) {
   return entry;
 }
 
-export function log(text, color = COLORS.gray) {
-  return push({ Id: active.nextId++, TS: new Date().toISOString(), Text: text, Color: color });
+// `spec` to literał (string) ALBO deskryptor i18n `{ msg, params }` (z tmsg()).
+export function log(spec, color = COLORS.gray) {
+  const e = { Id: active.nextId++, TS: new Date().toISOString(), Color: color };
+  if (spec && typeof spec === 'object') { e.msg = spec.msg; e.params = spec.params || {}; }
+  else { e.Text = String(spec); }
+  e.Text = renderText(e);
+  return push(e);
 }
 
-// Wpis-separator (np. granica sesji) — renderowany jako linia działowa.
-export function separator(text) {
-  return push({ Id: active.nextId++, TS: new Date().toISOString(), Text: text, Color: COLORS.sep, kind: 'separator' });
+// Wpis-separator (np. granica sesji) — renderowany jako linia działowa. `spec`
+// to literał (string) ALBO deskryptor `{ key, ts }` (klucz tłumaczenia + czas).
+export function separator(spec) {
+  const e = { Id: active.nextId++, TS: new Date().toISOString(), Color: COLORS.sep, kind: 'separator' };
+  if (spec && typeof spec === 'object') { e.sepKey = spec.key; e.sepTs = spec.ts; }
+  else { e.Text = String(spec); }
+  e.Text = renderText(e);
+  return push(e);
 }
 
-export const logInfo = (t) => log(t, COLORS.gray);
-export const logOk = (t) => log(t, COLORS.green);
-export const logErr = (t) => log(t, COLORS.red);
+export const logInfo = (s) => log(s, COLORS.gray);
+export const logOk = (s) => log(s, COLORS.green);
+export const logErr = (s) => log(s, COLORS.red);
 
 // Zwróć wpisy aktywnego kanału o Id > lastId.
 export function since(lastId) {
