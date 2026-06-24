@@ -227,16 +227,39 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
   obcinane `truncate-end` (pełne linie odsłania scroll logu albo tryb zawijania
   `/wrap`; `LogPane` i tak pilnuje budżetu wierszy), (2) listy są „okienkowane” przez
   `window.js` (`windowList`) z
-  wysokością liczoną z `termRows` i wskaźnikami `↑/↓ więcej`, (3) log chowa się
-  gdy otwarta paleta, (4) input przypięty do dołu. Przy zmianach layoutu pilnować,
+  wysokością liczoną z `termRows` i wskaźnikami `↑/↓ więcej`, (3) input/paleta/
+  ekrany przypięte do dołu (log wypełnia górę). Przy zmianach layoutu pilnować,
   by suma wysokości ≤ `termRows`.
+- **Strefa akcji zawsze na dole, log zawsze nad nią (NIE psuć!)**: jedna zasada
+  dla wszystkich trybów — to, z czym użytkownik wchodzi w interakcję (input,
+  paleta slash, ekrany picker/form/conflicts/connect/loading), lgnie do **dołu**
+  okna, a log jest kontekstem **nad** nim i nigdy nie znika. Dzięki temu oko nie
+  skacze góra↔dół przy zmianie trybu (był to świadomy redesign — wcześniej slash
+  chował log, a ekrany były wyrównane do góry).
+  - **Slash nie chowa logu**: gdy `showLogWithPalette` (`fillHeight` + są wpisy +
+    `logRows >= 10`), tryb `input` renderuje `LogPane` (rows `paletteLogRows`) **i**
+    `CommandPalette` (rows `paletteCap = min(filtered.length, logRows-4)`); poniżej
+    progu paleta zajmuje pełną wysokość (`paletteMax`) jak dawniej.
+  - **Ekrany na dole z logiem nad**: helper `wrapAction(node)` w `App.jsx` owija
+    każdą nakładkę w `flexGrow=1`+`justifyContent="flex-end"`, a nad nią wstawia
+    `LogPane` (rows `ovLogRows`). **To FUNKCJA, nie komponent** — inaczej Box
+    dostaje nową tożsamość co render i React remontuje ekran, gubiąc `useState`
+    pickerów. Budżet liczony z DANYCH: `overlayNatural` (ile pozycji + chrome),
+    `ovRows = min(natural, overlayAvail - ovReserve)`, `ovMax = ovRows-4` (body),
+    `ovLogRows = overlayAvail - ovRows`. Niezmiennik anty‑overflow:
+    `ovLogRows + wysokość_ekranu ≤ overlayAvail = termRows - HEADER - 2`. Krótki
+    ekran → duży log; długi → ekran się okienkuje, log dostaje minimum (`ovReserve`).
+  - Test: `node apps/cli/test/action-bottom.mjs` (picker+paleta, log nad, dół=ekran,
+    brak overflow dla `fillHeight`).
 - **Wypełnianie wysokości (input na dole)**: gdy okno jest sensownie wysokie
   (`fillHeight = termRows >= 16`), root dostaje `height={termRows-1}`, a obszar
   logu w trybie `input` ma `flexGrow={1}` + `justifyContent="flex-end"` — input
   stoi stabilnie na dole, a log rośnie w górę i wypełnia okno (bez sztywnego
   limitu; `logRows = termRows - HEADER - progress - 3`). Na niskim oknie
   `height` jest `undefined` → naturalny przepływ (flexGrow zwija się do treści),
-  więc nic nie wystaje. **`HEADER` musi odpowiadać REALNEJ wysokości nagłówka**
+  więc nic nie wystaje; w tym trybie nakładki wracają do przepływu od góry
+  (`wrapAction` przepuszcza `node` bez owijania) — log nad ekranem pojawia się
+  tylko przy `fillHeight`. **`HEADER` musi odpowiadać REALNEJ wysokości nagłówka**
   (non‑stacked = 8: marginTop 1 + logo 6 + górny divider 1; logo zawsze dominuje
   nad kolumną informacji): za duża → pusta linia nad logiem, za mała →
   przepełnienie. Zasadę layoutu (w tym brak pustej linii) sprawdza
