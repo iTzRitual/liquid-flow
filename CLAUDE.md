@@ -114,6 +114,12 @@ oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic` (`dimColo
   `App.jsx` obsługuje `↑/↓`/`PgUp`/`PgDn` jako przewijanie `LogPane` (`logScroll`),
   a `setLogScroll(0)` po komendzie wraca na dół. Sekwencje włącza/wyłącza się
   parami przy starcie/zakończeniu.
+- **Ctrl+C jest celowo ignorowany** (żeby przypadkowe naciśnięcie nie ubiło
+  sesji synchronizacji): `render(<App/>, { exitOnCtrlC: false })` + no‑op
+  `process.on('SIGINT', …)` w `index.jsx` (zabezpieczenie na brak trybu raw, np.
+  pipe). Wyjście **tylko** przez komendę `/exit` (woła `exit()` z Ink → czyste
+  odmontowanie + `leaveAlt`) albo zamknięcie terminala. Podpowiedź w polu input
+  mówi „/exit wyjście".
 - **Model trybów w `App.jsx`** (`mode.type`): `input` (prompt + paleta), `picker`
   (lista wyboru), `form` (sekwencyjny formularz), `loading` (spinner na czas
   pobierania). Helpery w `ctx`: `openPicker`, `openForm`, `withLoading`,
@@ -253,7 +259,10 @@ potwierdzeniem, 3 znaczniki czasu, „która strona nowsza"), cykliczne przelicz
 konfliktów w tle (`POLL_MS`, bez `/refresh`), responsywny nagłówek (2 kolumny ↔
 2 wiersze, pełne przerysowanie przy resize, spacery 100%), log na ekranie głównym
 przewijany kółkiem/strzałkami + tryb zawijania `/wrap` (zamiast osobnego widoku),
-oraz wypełnianie wysokości okna z inputem przypiętym do dołu.
+oraz wypełnianie wysokości okna z inputem przypiętym do dołu. Najnowsze: logi z
+podziałem na kanały (scope) i trwałą historią per‑szablon (`logs/<tplId>.jsonl`,
+wczytywanie poprzedniej sesji z separatorem), oraz ignorowanie Ctrl+C (wyjście
+tylko przez `/exit`).
 
 Znane/otwarte tematy: pełne i18n logów (część PL na sztywno); ewentualne
 ulepszenia czytelności logów (ikony poziomów `✓/ℹ/✗`, „Pobrano/Wysłano" zamiast
