@@ -75,7 +75,17 @@ export function buildCommands(ctx) {
     withLoading(t.LoadingTemplates, openTemplatesPicker);
   };
 
-  // --- łączenie ze sklepem (lista + dodanie nowego) ---
+  // Picker usuwania zapisanego sklepu (współdzielony: /connect → „Usuń sklep”).
+  const removeShopPicker = () => {
+    if (!shops.length) { log.logInfo(log.tmsg('NoShopsToRemove')); return; }
+    openPicker(t.RemoveShopTitle, shops.map((s) => ({ label: s.Name, hint: s.Url, value: s })),
+      (it) => { ctrl.removeShop(it.value.Id); refreshShops(); log.logOk(log.tmsg('ShopRemoved', { name: it.value.Name })); });
+  };
+
+  // --- łączenie ze sklepem (lista + dodanie nowego + cykl życia) ---
+  // Wybór sklepu = szybka ścieżka połączenia (jeden krok). Na dole akcje cyklu
+  // życia: rozłączenie (gdy połączony) i usuwanie zapisanych sklepów — wcześniej
+  // osobne /logout i /remove, zwinięte tutaj, bo i tak operują na tej liście.
   const connect = () => {
     const items = shops.map((s) => ({
       label: s.Name,
@@ -83,9 +93,13 @@ export function buildCommands(ctx) {
       value: { kind: 'shop', shop: s },
     }));
     items.push({ label: t.AddNewConnection, value: { kind: 'add' } });
+    if (hasShop) items.push({ label: t.Disconnect, value: { kind: 'logout' } });
+    if (shops.length) items.push({ label: t.RemoveShopTitle, value: { kind: 'remove' } });
     openPicker(t.ConnectToShop, items, (it) => {
       const v = it.value;
       if (v.kind === 'add') { loginForm(); return; }
+      if (v.kind === 'logout') { ctrl.logout(); return; }
+      if (v.kind === 'remove') { removeShopPicker(); return; }
       const s = v.shop;
       if (s.SavePassword) {
         withLoading(t.ConnectingToShop, async () => {
@@ -98,6 +112,17 @@ export function buildCommands(ctx) {
       }
     }, { onSlash: skipToInput });
   };
+
+  // --- ustawienia (język + zawijanie logów) ---
+  // Wybór języka: lista LANGUAGES → setLanguage (na żywo retłumaczy UI i log).
+  const langPicker = () => openPicker(t.Language, LANGUAGES.map((l) => ({ label: l.Name, value: l })),
+    (it) => { ctrl.setLanguage(it.value.Id); log.logInfo(log.tmsg('LanguageSet', { name: it.value.Name })); });
+
+  // Menu ustawień: toggle zawijania logów (wzorzec /git) + pozycja języka.
+  const settingsMenu = () => openPicker(t.Settings, [
+    { kind: 'toggle', label: t.SettingsWrap, on: !!logWrap, onToggle: (v) => { setLogWrap(v); log.logInfo(log.tmsg(v ? 'LogWrapOn' : 'LogWrapOff')); } },
+    { label: t.Language, value: 'lang' },
+  ], (it) => { if (it.value === 'lang') langPicker(); });
 
   // --- konflikty ---
   // Jeden ekran rozwiązywania konfliktów. Każdy plik to wiersz z DWIEMA akcjami
@@ -255,22 +280,8 @@ export function buildCommands(ctx) {
     { name: '/conflicts', desc: t.CmdConflicts, run: () => showConflicts() },
     { name: '/git', desc: t.CmdGit, run: () => gitMenu() },
     { name: '/open', desc: t.CmdOpen, run: () => { const d = ctrl.currentFolder(); if (d) { openExternal(d); log.logInfo(log.tmsg('Opening', { path: d })); } else log.logErr(log.tmsg('NoActiveTemplate')); } },
-    { name: '/lang', desc: t.CmdLang, run: () => openPicker(t.Language, LANGUAGES.map((l) => ({ label: l.Name, value: l })), (it) => { ctrl.setLanguage(it.value.Id); log.logInfo(log.tmsg('LanguageSet', { name: it.value.Name })); }) },
-    { name: '/logout', desc: t.CmdLogout, run: () => {
-        if (!hasShop) { log.logInfo(log.tmsg('NotConnectedAny')); return; }
-        ctrl.logout();
-      } },
-    { name: '/remove', desc: t.CmdRemove, run: () => {
-        if (!shops.length) { log.logInfo(log.tmsg('NoShopsToRemove')); return; }
-        openPicker(t.RemoveShopTitle, shops.map((s) => ({ label: s.Name, hint: s.Url, value: s })),
-          (it) => { ctrl.removeShop(it.value.Id); refreshShops(); log.logOk(log.tmsg('ShopRemoved', { name: it.value.Name })); });
-      } },
-    { name: '/wrap', desc: t.CmdWrap, run: () => {
-        const nv = !logWrap;
-        setLogWrap(nv);
-        log.logInfo(log.tmsg(nv ? 'LogWrapOn' : 'LogWrapOff'));
-      } },
     { name: '/clear', desc: t.CmdClear, run: () => clearLog() },
+    { name: '/settings', desc: t.CmdSettings, run: () => settingsMenu() },
     { name: '/exit(quit)', desc: t.CmdExit, run: () => exit() },
   ];
 

@@ -240,9 +240,12 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
   przepełnienie. Zasadę layoutu (w tym brak pustej linii) sprawdza
   `node apps/cli/test/fill-height.mjs`.
 - **Slash‑komendy** (`commands.js`, `buildCommands(ctx)`): `/connect /templates
-  /conflicts /git /open /lang /logout /wrap /clear /remove /exit(quit)`. `/connect`
-  łączy oba scenariusze (lista zapisanych sklepów **i** „dodaj nowy") — nie ma
-  osobnych `/login`/`/shops`. `/wrap` przełącza zawijanie logów. Wpisanie `/`
+  /conflicts /git /open /clear /settings /exit(quit)`. `/connect` łączy oba
+  scenariusze (lista zapisanych sklepów **i** „dodaj nowy") — nie ma osobnych
+  `/login`/`/shops`; do tej samej listy **zwinięte są** rozłączanie i usuwanie
+  sklepu (akcje na dole, dawne `/logout`/`/remove`). `/settings` to menu
+  preferencji: toggle zawijania logów (dawne `/wrap`, wzorzec togglów z `/git`) +
+  wybór języka (dawne `/lang`). Wpisanie `/`
   filtruje paletę; lista startowa „Połącz ze sklepem" otwiera się automatycznie
   gdy niepołączony, a `/` ją przeskakuje. Operacje seryjne (pobierz/wyślij
   wszystkie) nie są osobnymi komendami — to stopka ekranu `/conflicts` (sens mają
