@@ -426,9 +426,10 @@ Siatka testów chroni rdzeń przed regresją przy iteracjach. **Runner: Vitest**
 (root). Uruchamianie:
 
 ```bash
-npm test           # vitest run — cały pakiet (CI/jednorazowo)
+npm test           # vitest run — unit/integracja/komponenty (szybkie, deterministyczne)
 npm run test:watch # tryb watch
 npm run test:cov   # z pokryciem
+npm run test:e2e   # e2e CLI pod pseudo-TTY (wolniejsze, OSOBNY config — NIE w `npm test`)
 ```
 
 - **Lokalizacja**: testy leżą **obok źródeł** — logika jako `*.test.js`
@@ -462,11 +463,27 @@ npm run test:cov   # z pokryciem
 - **Wstrzykiwanie klienta**: `new SyncSession(shop, tpl, { client })` — testy
   logiki konfliktów/sync wstrzykują atrapę klienta i sprawdzają efekt na realnym
   `store` (tmp‑dir), bez SOAP.
+- **E2e CLI (czarna skrzynka, `node-pty`)**: osobny config `vitest.e2e.config.js`
+  (`npm run test:e2e`), pliki `apps/cli/test/e2e/*.e2e.js`. Helper
+  `test/helpers/cliPty.js` (`startCli`/`makeHome`/`keys`) odpala **prawdziwy**
+  `bin/liquidflow.js` pod pseudo‑TTY (CLI wymaga TTY: alt‑screen + raw mode),
+  wpisuje klawisze i czeka na tekst (`waitFor`). `makeHome(config)` seeduje
+  `config.json` — np. zapisany sklep z `Url` wskazującym na **mock SOAP** z
+  Fazy 1 (osobny proces testowy, realne gniazdo): `connect.e2e.js` przechodzi
+  ConnectList → SignIn → Liquid_Get → picker szablonów przez całą binarkę.
+  **Trzy pułapki** (zakodowane w helperze, nie ruszać): (1) node‑pty rozpakowuje
+  prebuilt `spawn-helper` BEZ bitu `+x` → `posix_spawnp failed`; `ensureSpawnHelper()`
+  robi `chmod` (samonaprawa, przeżywa `npm install`). (2) **Nie** ustawiać `CI=1`
+  — Ink wtedy nie renderuje (pusty ekran). (3) Vitest wstrzykuje do workerów
+  `NODE_OPTIONS`/`VITEST_*`/`TINYPOOL_*` — dziedziczone przez spawnięty `node`
+  rozbijają start CLI; helper je czyści z otoczenia dziecka. E2e jest **wyłączone
+  z `npm test`** (wolne/mniej deterministyczne) — własny config, `fileParallelism:
+  false`, jeden worker.
 - **Zasada**: każdy nowy moduł logiki w `core` (lub czysta logika CLI jak
   `window.js`) dostaje `*.test.js`. Nowy tekst i18n → test parytetu PL/EN już to
-  łapie (`translations.test.js`). Kolejne fazy: komponenty Ink
-  (`ink-testing-library`), renderer web (`@testing-library/react`+jsdom), e2e
-  (`node-pty` dla CLI, Playwright `_electron` dla desktopu).
+  łapie (`translations.test.js`). Pozostałe tory Fazy 3 (do zrobienia): renderer
+  web (`@testing-library/react`+jsdom; wymaga atrapy `window.api` z preload) oraz
+  e2e desktop (Playwright `_electron` na zbudowanym Electronie).
 
 ## Aktualny stan prac
 

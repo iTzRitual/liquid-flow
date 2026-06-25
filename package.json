@@ -18,13 +18,15 @@
     "cli": "npm start --workspace @liquidflow/cli",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:cov": "vitest run --coverage"
+    "test:cov": "vitest run --coverage",
+    "test:e2e": "vitest run --config vitest.e2e.config.js"
   },
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
     "ink-testing-library": "^4.0.0",
+    "node-pty": "^1.1.0",
     "vitest": "^4.1.9"
   }
 }
