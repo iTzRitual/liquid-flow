@@ -15,9 +15,15 @@
     "build:mac": "npm run build:mac --workspace @liquidflow/desktop",
     "build:win": "npm run build:win --workspace @liquidflow/desktop",
     "build:linux": "npm run build:linux --workspace @liquidflow/desktop",
-    "cli": "npm start --workspace @liquidflow/cli"
+    "cli": "npm start --workspace @liquidflow/cli",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.9"
   }
 }

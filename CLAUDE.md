@@ -419,6 +419,42 @@ npm run build:mac|win|linux  # paczki desktop -> apps/desktop/release/
 npm run cli                # CLI z repo (albo: npm link --workspace @liquidflow/cli && liquidflow)
 ```
 
+## Testy (Vitest)
+
+Siatka testów chroni rdzeń przed regresją przy iteracjach. **Runner: Vitest**
+(jeden dla całego monorepo, natywne ESM). Konfiguracja: `vitest.config.js`
+(root). Uruchamianie:
+
+```bash
+npm test           # vitest run — cały pakiet (CI/jednorazowo)
+npm run test:watch # tryb watch
+npm run test:cov   # z pokryciem
+```
+
+- **Lokalizacja**: testy leżą **obok źródeł** jako `*.test.js`
+  (`packages/core/src/*.test.js`, `apps/cli/src/*.test.js`). Ręczne skrypty
+  render‑smoke (`apps/cli/test/*.mjs`) zostają — odpalasz je przez `node`, Vitest
+  ich **nie** zbiera (`include` celuje tylko w `*.test.js`).
+- **Izolacja stanu na dysku**: `test/setup/tmpHome.js` (setupFile) tworzy świeży
+  `LIQUID_FLOW_HOME` (tmp‑dir) **per plik testowy**, ZANIM `store.js` policzy
+  `APP_DIR` przy imporcie, i sprząta po `afterAll`. W obrębie jednego pliku testy
+  współdzielą ten katalog → **izoluj nazwą sklepu** (`TestShop${n++}`), nie licz
+  na czysty dysk między `it()`.
+- **Mock SOAP**: `test/helpers/mockSoapServer.js` to lokalny `http.createServer`
+  udający `iSklep24Service.asmx`. Klient wskazujesz na `srv.url`
+  (`http://127.0.0.1:PORT`) — testy integracyjne `ISklep24Client` chodzą po
+  PRAWDZIWYM gnieździe bez sieci. `handlers[Metoda] = (req) => wynik`
+  (string/bool → `<MethodResult>`, `{resultXml}`, `{fault}`, `{setCookie}`,
+  `{raw}`); `srv.requests` przechwytuje żądania.
+- **Wstrzykiwanie klienta**: `new SyncSession(shop, tpl, { client })` — testy
+  logiki konfliktów/sync wstrzykują atrapę klienta i sprawdzają efekt na realnym
+  `store` (tmp‑dir), bez SOAP.
+- **Zasada**: każdy nowy moduł logiki w `core` (lub czysta logika CLI jak
+  `window.js`) dostaje `*.test.js`. Nowy tekst i18n → test parytetu PL/EN już to
+  łapie (`translations.test.js`). Kolejne fazy: komponenty Ink
+  (`ink-testing-library`), renderer web (`@testing-library/react`+jsdom), e2e
+  (`node-pty` dla CLI, Playwright `_electron` dla desktopu).
+
 ## Aktualny stan prac
 
 Zrealizowane: monorepo + rdzeń, przeniesienie desktopu, pełny rebranding na
