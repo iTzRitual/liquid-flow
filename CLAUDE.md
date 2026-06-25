@@ -405,6 +405,20 @@ commitów/błędy plumbingu to dane repo, nie UI); teksty widoczne w historii
   (feat/fix/style/etc.) + krótkie streszczenie (jedna linia, co się zmieniło).
   Pracujemy bezpośrednio na `main`. Remote:
   `git@github.com:iTzRitual/comarch-liquid-sync-2026.git`.
+- **Bramka testów przed commitem (OBOWIĄZKOWE)**: po KAŻDEJ zmianie kodu, ZANIM
+  zacommitujesz, uruchom `npm test`. Musi być **w 100% zielone**. Jeśli coś jest
+  czerwone:
+  1. Najpierw ustal, czy to **regresja** (zepsuty kod produkcyjny) czy **test
+     wymagał aktualizacji** (świadoma zmiana zachowania).
+  2. Regresja → **napraw kod**, nie „podkręcaj" testu pod zły wynik. Test zmieniaj
+     tylko, gdy zachowanie zmieniło się celowo — wtedy zaktualizuj asercję, by
+     opisywała nowe, poprawne zachowanie.
+  3. Dopiero gdy `npm test` przechodzi → commit + push.
+  Dodatkowo, zależnie od obszaru zmiany: dotykasz `bin/liquidflow.js`/bootu CLI/
+  pty → także `npm run test:e2e`; zmieniasz teksty UI → kontrola parytetu i18n
+  (sekcja „Tłumaczenia"). Nowa logika = nowy/zmieniony `*.test.js` w tym samym
+  commicie (patrz „Zasada" w sekcji Testy). Nie commituj kodu z czerwoną suitą,
+  żeby „naprawić później".
 - **Weryfikacja CLI**: render testuje się pod pseudo‑terminalem, np.
   `script -q /dev/null node apps/cli/bin/liquidflow.js` (kolory: `FORCE_COLOR=3`).
   Błąd „Raw mode is not supported" pojawia się tylko bez TTY (np. `node -e`/potok)
