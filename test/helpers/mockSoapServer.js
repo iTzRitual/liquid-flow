@@ -48,7 +48,7 @@ function methodFromAction(action = '') {
   return m || '';
 }
 
-export function startMockSoap({ handlers = {} } = {}) {
+export function startMockSoap({ handlers = {}, host = '127.0.0.1' } = {}) {
   const requests = [];
   const server = http.createServer((req, res) => {
     const chunks = [];
@@ -83,10 +83,12 @@ export function startMockSoap({ handlers = {} } = {}) {
   });
 
   return new Promise((resolve) => {
-    server.listen(0, '127.0.0.1', () => {
+    server.listen(0, host, () => {
       const { port } = server.address();
       resolve({
-        url: `http://127.0.0.1:${port}`,
+        url: `http://${host}:${port}`,
+        host,
+        port,
         requests,
         close: () => new Promise((r) => server.close(r)),
       });

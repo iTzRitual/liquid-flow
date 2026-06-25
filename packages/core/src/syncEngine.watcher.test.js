@@ -1,0 +1,158 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import fs from 'node:fs';
+import { SyncSession, MismatchType } from './syncEngine.js';
+import * as store from './store.js';
+
+// Atrapa klienta SOAP z rejestrem wywołań i sterowalnym stanem zdalnym.
+function fakeClient() {
+  return {
+    calls: [],
+    remoteMeta: [],            // [{ Mode, Name, Date }]
+    files: [],                 // liquidFilesGet → [{ Mode, Name, Template, Date }]
+    valid: true,               // liquidFileIsValid
+    setCredentials() {},
+    async liquidFilesGet() { this.calls.push(['get']); return this.files; },
+    async liquidFilesMetaGet(tpl) {
+      this.calls.push(['meta', tpl?.Name]);
+      if (tpl && tpl.Name != null) return this.remoteMeta.filter((r) => r.Mode === tpl.Mode && r.Name === tpl.Name);
+      return this.remoteMeta;
+    },
+    async liquidFileSet(t) { this.calls.push(['set', t.Name]); },
+    async liquidFileAdd(t) { this.calls.push(['add', t.Name]); },
+    async liquidFileIsValid() { this.calls.push(['isValid']); return this.valid; },
+    async liquidFileDelete(t) { this.calls.push(['delete', t.Name]); },
+  };
+}
+
+const template = { Id: 7, Name: 'Topaz' };
+let shop, client, session, synced, progress, n = 0;
+beforeEach(() => {
+  shop = { Id: 1, Name: `WatchShop${n++}`, Url: 'http://x', Login: 'webmaster', Password: '' };
+  client = fakeClient();
+  synced = [];
+  progress = [];
+  session = new SyncSession(shop, template, {
+    client, language: 'pl',
+    onSynced: (e) => synced.push(e),
+    onProgress: (p) => progress.push(p),
+  });
+});
+afterEach(() => { try { session.dispose(); } catch {} });
+
+const writeLocal = (mode, name, content) =>
+  store.writeLocalFile(shop.Name, template.Id, mode, name, Buffer.from(content));
+
+describe('_processChange — hot-reload zmian lokalnych', () => {
+  it('zmiana znanego pliku → liquidFileSet + aktualizacja meta + onSynced(change)', async () => {
+    const ts = writeLocal(0, 'a.liquid', 'nowa treść');
+    store.setMetaEntry(shop.Name, template.Id, 0, 'a.liquid', ts, '2026-01-01T00:00:00');
+    client.remoteMeta = [{ Mode: 0, Name: 'a.liquid', Date: '2026-06-06T00:00:00' }];
+
+    await session._processChange(store.localFilePath(shop.Name, template.Id, 0, 'a.liquid'));
+
+    expect(client.calls.some(([m, n]) => m === 'set' && n === 'a.liquid')).toBe(true);
+    expect(client.calls.some(([m]) => m === 'add')).toBe(false);
+    expect(store.getMetaEntry(store.loadMeta(shop.Name, template.Id), 0, 'a.liquid').remotets).toBe('2026-06-06T00:00:00');
+    expect(synced.at(-1)).toMatchObject({ action: 'change', name: 'a.liquid' });
+  });
+
+  it('nowy plik → walidacja + liquidFileAdd + onSynced(add)', async () => {
+    writeLocal(0, 'new.liquid', 'treść');
+    client.remoteMeta = [{ Mode: 0, Name: 'new.liquid', Date: '2026-02-02T00:00:00' }];
+
+    await session._processChange(store.localFilePath(shop.Name, template.Id, 0, 'new.liquid'));
+
+    expect(client.calls.some(([m]) => m === 'isValid')).toBe(true);
+    expect(client.calls.some(([m, n]) => m === 'add' && n === 'new.liquid')).toBe(true);
+    expect(synced.at(-1)).toMatchObject({ action: 'add', name: 'new.liquid' });
+  });
+
+  it('nowy plik, ale ścieżka zajęta (isValid=false) → rzuca', async () => {
+    writeLocal(0, 'busy.liquid', 'x');
+    client.valid = false;
+    await expect(session._processChange(store.localFilePath(shop.Name, template.Id, 0, 'busy.liquid'))).rejects.toThrow();
+    expect(client.calls.some(([m]) => m === 'add')).toBe(false);
+  });
+
+  it('usunięcie znanego pliku → liquidFileDelete + usunięcie meta + onSynced(delete)', async () => {
+    const ts = writeLocal(0, 'del.liquid', 'x');
+    store.setMetaEntry(shop.Name, template.Id, 0, 'del.liquid', ts, '2026-01-01T00:00:00');
+    const abs = store.localFilePath(shop.Name, template.Id, 0, 'del.liquid');
+    fs.unlinkSync(abs);
+
+    await session._processChange(abs);
+
+    expect(client.calls.some(([m, n]) => m === 'delete' && n === 'del.liquid')).toBe(true);
+    expect(store.getMetaEntry(store.loadMeta(shop.Name, template.Id), 0, 'del.liquid')).toBeNull();
+    expect(synced.at(-1)).toMatchObject({ action: 'delete', name: 'del.liquid' });
+  });
+
+  it('zmiana poza katalogiem szablonu (parseLocalPath=null) → ignorowana', async () => {
+    await session._processChange('/etc/hosts');
+    expect(client.calls).toHaveLength(0);
+  });
+});
+
+describe('_readValidated — limity i walidacja plików', () => {
+  it('plik tekstowy ze znakiem sterującym (<TAB) → rzuca', () => {
+    writeLocal(0, 'ctrl.liquid', 'ok\x01zły');
+    const abs = store.localFilePath(shop.Name, template.Id, 0, 'ctrl.liquid');
+    expect(() => session._readValidated(abs, 'ctrl.liquid')).toThrow();
+  });
+
+  it('obraz z bajtami binarnymi → OK (walidacja tekstu pomijana)', () => {
+    writeLocal(0, 'logo.png', '\x00\x01\x02');
+    const abs = store.localFilePath(shop.Name, template.Id, 0, 'logo.png');
+    expect(() => session._readValidated(abs, 'logo.png')).not.toThrow();
+  });
+});
+
+describe('_initialDownload — pierwsze pobranie', () => {
+  it('zapisuje pliki, meta i emituje postęp + log', async () => {
+    client.files = [
+      { Mode: 0, Name: 'a.liquid', Template: Buffer.from('AAA'), Date: '2026-01-01T00:00:00' },
+      { Mode: 2, Name: 'b.liquid', Template: Buffer.from('BBB'), Date: '2026-02-02T00:00:00' },
+    ];
+    await session._initialDownload();
+
+    expect(fs.readFileSync(store.localFilePath(shop.Name, template.Id, 0, 'a.liquid'), 'utf8')).toBe('AAA');
+    expect(fs.readFileSync(store.localFilePath(shop.Name, template.Id, 2, 'b.liquid'), 'utf8')).toBe('BBB');
+    const meta = store.loadMeta(shop.Name, template.Id);
+    expect(store.getMetaEntry(meta, 0, 'a.liquid').remotets).toBe('2026-01-01T00:00:00');
+    // postęp: start … done
+    expect(progress.some((p) => p.phase === 'download' && p.state === 'start')).toBe(true);
+    expect(progress.some((p) => p.phase === 'download' && p.state === 'done')).toBe(true);
+  });
+});
+
+describe('cykl życia start()/dispose()', () => {
+  it('start: pobiera (świeży), sprawdza konflikty, uruchamia watcher; dispose sprząta', async () => {
+    client.files = [{ Mode: 0, Name: 'a.liquid', Template: Buffer.from('x'), Date: '2026-01-01T00:00:00' }];
+    client.remoteMeta = [{ Mode: 0, Name: 'a.liquid', Date: '2026-01-01T00:00:00' }];
+
+    await session.start();
+    expect(session.watcherActive).toBe(true);
+    // etapy postępu prezentowane użytkownikowi
+    expect(progress.some((p) => p.phase === 'check')).toBe(true);
+    expect(progress.some((p) => p.phase === 'ready')).toBe(true);
+
+    session.dispose();
+    expect(session.watcherActive).toBe(false);
+    expect(session.watcher).toBeNull();
+  });
+});
+
+describe('_pollRefresh — wykrywanie zmian zdalnych', () => {
+  it('przyrost konfliktów po stronie sklepu jest wychwytywany', async () => {
+    // start bez konfliktów
+    client.remoteMeta = [];
+    await session.refreshMismatches({ silent: true });
+    expect(session.mismatches).toHaveLength(0);
+
+    // sklep dodał plik → poll wykrywa nowy konflikt (LocalMissing)
+    client.remoteMeta = [{ Mode: 0, Name: 'remote-new.liquid', Date: '2026-03-03T00:00:00' }];
+    await session._pollRefresh();
+    expect(session.mismatches).toHaveLength(1);
+    expect(session.mismatches[0].Type).toBe(MismatchType.LocalMissing);
+  });
+});
