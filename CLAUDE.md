@@ -455,14 +455,38 @@ npm run test:e2e   # e2e CLI pod pseudo-TTY (wolniejsze, OSOBNY config — NIE w
   współdzielą ten katalog → **izoluj nazwą sklepu** (`TestShop${n++}`), nie licz
   na czysty dysk między `it()`.
 - **Mock SOAP**: `test/helpers/mockSoapServer.js` to lokalny `http.createServer`
-  udający `iSklep24Service.asmx`. Klient wskazujesz na `srv.url`
-  (`http://127.0.0.1:PORT`) — testy integracyjne `ISklep24Client` chodzą po
-  PRAWDZIWYM gnieździe bez sieci. `handlers[Metoda] = (req) => wynik`
-  (string/bool → `<MethodResult>`, `{resultXml}`, `{fault}`, `{setCookie}`,
-  `{raw}`); `srv.requests` przechwytuje żądania.
-- **Wstrzykiwanie klienta**: `new SyncSession(shop, tpl, { client })` — testy
-  logiki konfliktów/sync wstrzykują atrapę klienta i sprawdzają efekt na realnym
-  `store` (tmp‑dir), bez SOAP.
+  udający `iSklep24Service.asmx`. Klient wskazujesz na `srv.url` (domyślnie
+  `http://127.0.0.1:PORT`; opcja `{ host:'localhost' }` + `srv.port` dla testów
+  `signInShop`, którego walidacja URL wymaga `https://` LUB `http://localhost:…`)
+  — testy integracyjne `ISklep24Client`/`Controller` chodzą po PRAWDZIWYM
+  gnieździe bez sieci. `handlers[Metoda] = (req) => wynik` (string/bool →
+  `<MethodResult>`, `{resultXml}`, `{fault}`, `{setCookie}`, `{raw}`);
+  `srv.requests` przechwytuje żądania; `liquidTemplateXml({…})` buduje
+  `<LiquidTemplate>` do odpowiedzi `Liquid_FilesGet`/`MetaGet`.
+- **Wstrzykiwanie klienta / mock URL**: `new SyncSession(shop, tpl, { client })`
+  wstrzykuje atrapę klienta (logika konfliktów/sync/`command()`/watcher na realnym
+  `store`). `Controller` NIE ma wstrzyknięcia klienta — buduje go z `shop.Url`,
+  więc w testach seedujesz sklep z `Url` wskazującym na mock SOAP
+  (`controller.test.js`, `controller.session.test.js`: connect → `selectTemplate`
+  → start sesji → git).
+- **Izolacja stanu współdzielonego (WAŻNE)**: pliki o STAŁEJ ścieżce w tmp home
+  (`config.json`, plik `.key`) są wspólne dla testów w obrębie jednego pliku.
+  Testy pracujące na configu MUSZĄ czyścić `store.paths.CONFIG_PATH` w `beforeEach`
+  (inaczej padają pod `--sequence.shuffle` — stan sklepu/języka wycieka). Testy
+  plikowe (store/sync/git) izoluj UNIKALNĄ nazwą sklepu (`Shop${n++}`) i/lub
+  własnym `mkdtempSync`. Controllery twórz per‑test i `dispose()` w `afterEach`
+  (odpinają globalne nasłuchy `logbuf`); resetuj kanał logu `logbuf.setActiveChannel('app')`.
+- **Pokrycie (`npm run test:cov`, `@vitest/coverage-v8`)**: ~82% linii rdzenia+CLI.
+  Warstwy: `git.test.js` (PRAWDZIWY `git` w tmp‑repo, push do lokalnego bare; cała
+  suita pomijana gdy brak gita), `controller*.test.js` (sesja/sklepy/język/git
+  przez mock SOAP), `syncEngine.watcher.test.js` (`_processChange` hot‑reload,
+  `_initialDownload`, `start/dispose`, `_pollRefresh`), `syncEngine.command.test.js`
+  (`download`/`upload`/`removeLocal/Remote`/`*All`/`refresh`), `soap.methods.test.js`
+  (reszta kontraktu: `Unlock`/`FileIsValid`/`Add`/`Set`/`Delete`/`Rename`),
+  `commands.flows.test.js` (strażnicy, `/settings`+język, routing `/connect`, menu
+  `/git`, **potwierdzenie akcji usuwających**). Świadomie poza pokryciem: `open.js`
+  (spawn OS), wrappery git w controllerze delegujące do `git.js`, submit formularzy
+  CLI. Cel: najważniejsze ścieżki regresji, nie 100%.
 - **E2e CLI (czarna skrzynka, `node-pty`)**: osobny config `vitest.e2e.config.js`
   (`npm run test:e2e`), pliki `apps/cli/test/e2e/*.e2e.js`. Helper
   `test/helpers/cliPty.js` (`startCli`/`makeHome`/`keys`) odpala **prawdziwy**
