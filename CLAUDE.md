@@ -431,10 +431,23 @@ npm run test:watch # tryb watch
 npm run test:cov   # z pokryciem
 ```
 
-- **Lokalizacja**: testy leżą **obok źródeł** jako `*.test.js`
-  (`packages/core/src/*.test.js`, `apps/cli/src/*.test.js`). Ręczne skrypty
-  render‑smoke (`apps/cli/test/*.mjs`) zostają — odpalasz je przez `node`, Vitest
-  ich **nie** zbiera (`include` celuje tylko w `*.test.js`).
+- **Lokalizacja**: testy leżą **obok źródeł** — logika jako `*.test.js`
+  (`packages/core/src/*.test.js`, `apps/cli/src/*.test.js`), komponenty Ink jako
+  `*.test.jsx` (`apps/cli/src/components/*.test.jsx`; JSX klasyczny — komponenty
+  importują `React`). Ręczne skrypty render‑smoke (`apps/cli/test/*.mjs`) zostają
+  jako szybki podgląd wizualny — odpalasz je przez `node`, Vitest ich **nie**
+  zbiera (`include` celuje w `*.test.js`/`*.test.jsx`).
+- **Komponenty Ink (interakcje)**: `ink-testing-library` (`render` → `lastFrame()`
+  + `stdin.write`). Helper `test/helpers/ink.js`: `keys` (strzałki/Enter/Esc jako
+  sekwencje), `press(stdin, ...keys)` (czeka na re‑render; **pierwszy tick puszcza
+  subskrypcję `useInput`** — bez tego pierwszy klawisz ginie), `frame(api)`
+  (klatka bez ANSI). Layout o ZADANEJ szerokości (ink‑testing‑library ma sztywne
+  `columns=100`) testuje `renderFrame(el, cols)` — używany przez `Header.test.jsx`
+  (anty‑przepełnienie: żaden wiersz > `cols`, logo nie pęka). Pokryte:
+  `Picker`/`Form`/`ConflictList`/`ConnectList` (nawigacja, wybór, Esc, toggle),
+  `LogPane` (budżet wierszy + scroll), `Header` (szerokości). `commands.test.js`
+  sprawdza wiązanie slash‑komend i **bezpieczny domyślny wybór** w `/conflicts`
+  (kursor nigdy nie startuje na akcji usuwającej).
 - **Izolacja stanu na dysku**: `test/setup/tmpHome.js` (setupFile) tworzy świeży
   `LIQUID_FLOW_HOME` (tmp‑dir) **per plik testowy**, ZANIM `store.js` policzy
   `APP_DIR` przy imporcie, i sprząta po `afterAll`. W obrębie jednego pliku testy
