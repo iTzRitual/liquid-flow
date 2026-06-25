@@ -56,6 +56,11 @@ describe('parseLocalPath', () => {
 });
 
 describe('config', () => {
+  // config.json ma STAŁĄ ścieżkę (nie zależy od nazwy sklepu), więc w obrębie
+  // pliku testy konfiguracji dzielą jeden plik. Czyścimy go przed każdym, by
+  // 'brak pliku' nie zależał od kolejności (np. pod `--sequence.shuffle`).
+  beforeEach(() => { try { fs.rmSync(store.paths.CONFIG_PATH); } catch {} });
+
   it('domyślna konfiguracja gdy brak pliku', () => {
     const cfg = store.loadConfig();
     expect(cfg.Language).toBe('pl');

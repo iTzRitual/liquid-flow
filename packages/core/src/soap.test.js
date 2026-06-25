@@ -1,6 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { ISklep24Client, SoapError } from './soap.js';
-import { endpointFor } from './soap.js';
+import { ISklep24Client, SoapError, endpointFor } from './soap.js';
 import { startMockSoap, liquidTemplateXml } from '../../../test/helpers/mockSoapServer.js';
 
 let srv;

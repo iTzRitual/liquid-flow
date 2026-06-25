@@ -26,7 +26,9 @@
   },
   "devDependencies": {
     "ink-testing-library": "^4.0.0",
-    "node-pty": "^1.1.0",
     "vitest": "^4.1.9"
+  },
+  "optionalDependencies": {
+    "node-pty": "^1.1.0"
   }
 }

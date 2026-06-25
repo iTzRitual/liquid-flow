@@ -51,7 +51,11 @@ export function makeHome(config) {
 
 export async function startCli({ home, env = {}, cols = 100, rows = 30 } = {}) {
   ensureSpawnHelper();
-  const { spawn } = await import('node-pty');
+  // node-pty jest optionalDependency (natywny build) — daj czytelny komunikat,
+  // gdy go brak, zamiast surowego ERR_MODULE_NOT_FOUND.
+  let spawn;
+  try { ({ spawn } = await import('node-pty')); }
+  catch { throw new Error('node-pty nie jest zainstalowany — e2e CLI wymaga `npm i -D node-pty` (build natywny).'); }
   // Czyste otoczenie dla dziecka. Vitest wstrzykuje do workerów NODE_OPTIONS
   // (loader/register) oraz zmienne VITEST_*/TINYPOOL_* — odziedziczone przez
   // spawnięty `node` rozbiłyby start CLI (pusty ekran). Usuwamy je. Nie

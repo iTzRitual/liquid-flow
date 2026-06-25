@@ -34,7 +34,8 @@ describe('Header — anty-przepełnienie i nierozpadające się logo', () => {
   it('pokazuje nazwę sklepu i wskaźnik konfliktów, gdy są konflikty', async () => {
     const f = (await renderFrame(<Header state={state} git={git} mismatches={[1, 2, 3, 4]} cols={90} t={t} />, 90)).join('\n');
     expect(f).toContain('walter');
-    expect(f).toContain('4'); // liczba konfliktów we wskaźniku
+    expect(f).toContain('Konflikty: 4'); // wskaźnik konfliktów z liczbą
+    expect(f).toContain('/conflicts');
   });
 
   it('bez konfliktów nie renderuje wskaźnika', async () => {
