@@ -25,6 +25,7 @@
     "node": ">=18"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.9",
     "ink-testing-library": "^4.0.0",
     "vitest": "^4.1.9"
   },
