@@ -257,8 +257,8 @@ export function buildCommands(ctx) {
     // Repozytorium istnieje → wszystkie pozycje wprost (bez zagnieżdżania).
     const title = tfmt(t.GitMenuRepoTitle, { count: st.commitCount, remote: st.remote ? t.GitRemoteSetSuffix : '' });
     const items = [
-      { kind: 'toggle', label: 'Auto-commit', on: !!st.autoCommit, onToggle: (v) => safe(() => ctrl.gitSetSettings({ autoCommit: v })) },
-      { kind: 'toggle', label: 'Auto-push', on: !!st.autoPush, onToggle: (v) => safe(() => ctrl.gitSetSettings({ autoPush: v })) },
+      { kind: 'toggle', label: t.AutoCommit, on: !!st.autoCommit, onToggle: (v) => safe(() => ctrl.gitSetSettings({ autoCommit: v })) },
+      { kind: 'toggle', label: t.AutoPush, on: !!st.autoPush, onToggle: (v) => safe(() => ctrl.gitSetSettings({ autoPush: v })) },
       { label: t.GitHistoryRestore, value: 'history' },
       { label: t.GitSetRemote, value: 'remote' },
       { label: t.GitPushToOrigin, value: 'push' },

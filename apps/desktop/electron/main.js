@@ -23,7 +23,7 @@ async function getController() {
     const { Controller } = await import('@liquidflow/core');
     controller = new Controller({ insecureTLS: process.env.LIQUID_FLOW_INSECURE === '1' });
     // przekaż zdarzenia kontrolera do renderera
-    for (const type of ['log', 'mismatches', 'state', 'git', 'progress']) {
+    for (const type of ['log', 'log:reset', 'mismatches', 'state', 'git', 'progress']) {
       controller.on(type, (payload) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('event', { type, payload });
@@ -59,9 +59,9 @@ function createWindow() {
     mainWindow.loadFile(path.join(ROOT, 'dist', 'renderer', 'index.html'));
   }
 
-  // linki zewnętrzne otwieraj w przeglądarce systemowej
+  // linki zewnętrzne otwieraj w przeglądarce systemowej — tylko http/https
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (/^https?:\/\//.test(url)) shell.openExternal(url);
     return { action: 'deny' };
   });
 
@@ -119,7 +119,7 @@ function registerIpc(ctrl) {
 
     'sys.openFolder': () => { const d = ctrl.currentFolder(); if (d) shell.openPath(d); return d; },
     'sys.openShop': () => { const u = ctrl.currentShopUrl(); if (u) shell.openExternal(u); return u; },
-    'sys.openExternal': (url) => { if (url) shell.openExternal(url); },
+    'sys.openExternal': (url) => { if (url && /^https?:\/\//.test(url)) shell.openExternal(url); },
   };
 
   ipcMain.handle('invoke', async (_e, method, arg) => {

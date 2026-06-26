@@ -175,6 +175,7 @@ export class Controller extends EventEmitter {
   logout() {
     if (!this.state.currentShopId) return this.getState();
     const name = this.currentShop() ? this.currentShop().Name : '';
+    this.passwords.delete(this.state.currentShopId);
     if (this.state.session) { this.state.session.dispose(); this.state.session = null; }
     this.activeGit = null;
     this.state.currentShopId = null;
@@ -198,9 +199,11 @@ export class Controller extends EventEmitter {
       this.state.templates = [];
       logbuf.setActiveChannel('app');
     }
+    const shopName = shop.Name;
     this.config.Shops = this.config.Shops.filter((s) => s.Id !== id);
     store.saveConfig(this.config);
     this.passwords.delete(id);
+    store.deleteShopDir(shopName);
     this.emitState();
   }
 

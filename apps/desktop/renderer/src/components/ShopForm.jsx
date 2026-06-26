@@ -50,7 +50,7 @@ export default function ShopForm({ editing }) {
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
             <Label>{t.ShopName}</Label>
-            <Input value={name} disabled={isEdit} maxLength={20} onChange={(e) => setName(e.target.value)} placeholder="MojSklep" />
+            <Input value={name} disabled={isEdit} onChange={(e) => setName(e.target.value)} placeholder="MojSklep" />
             {!nameValid && name.length > 0 && <p className="text-xs text-destructive">{t.InvalidName_AllowedChars} A-Za-z0-9</p>}
           </div>
           <div className="space-y-1.5">

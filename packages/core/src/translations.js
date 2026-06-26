@@ -122,6 +122,8 @@ const pl = {
   GitPushedOriginBranch: 'Git: wypchnięto do origin ({branch})',
   GitPushError: 'Git push: {msg}',
   GitCommitError: 'Git commit: {msg}',
+  AutoCommit: 'Auto-commit',
+  AutoPush: 'Auto-push',
   GitVersionRestored: 'Git: przywrócono wersję {hash}',
   GitRemoteSet: 'Git: ustawiono zdalne repozytorium',
   GitRestoreCommit: 'Przywrócono wersję {hash}',

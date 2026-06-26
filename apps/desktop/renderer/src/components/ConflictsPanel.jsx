@@ -32,7 +32,7 @@ export default function ConflictsPanel() {
         const meta = TYPE_META[m.Type] || TYPE_META.Timestamp;
         const Icon = meta.icon;
         return (
-          <Card key={i} className="flex flex-wrap items-center gap-3 p-3">
+          <Card key={`${m.File.Mode}/${m.File.Name}`} className="flex flex-wrap items-center gap-3 p-3">
             <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">

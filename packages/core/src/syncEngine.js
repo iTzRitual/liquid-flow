@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ISklep24Client } from './soap.js';
 import * as store from './store.js';
+import * as git from './git.js';
 import { logInfo, logOk, logErr, tmsg } from './log.js';
 import { translationsFor } from './translations.js';
 
@@ -77,7 +78,11 @@ export class SyncSession {
   //   → sprawdzanie niezgodności (loader) → synchronizacja aktywna (hot-reload).
   async start() {
     const dir = store.templateDir(this.shopName, this.templateId);
-    const fresh = !fs.existsSync(dir) || store.listLocalFiles(this.shopName, this.templateId).length === 0;
+    // Katalog z samym .git (brak plików szablonu) traktujemy jak fresh — repo jest
+    // inicjalizowane przed plikami; git.isRepo chroni przed nadpisaniem danych
+    // w zainicjowanym, niepustym repo (nie ma tu takiego przypadku).
+    const localFiles = store.listLocalFiles(this.shopName, this.templateId);
+    const fresh = !fs.existsSync(dir) || (localFiles.length === 0 && !git.isRepo(dir));
     if (fresh) {
       await this._initialDownload();
     } else {
@@ -133,11 +138,13 @@ export class SyncSession {
     this._progress({ phase: 'download', state: 'start' });
     const files = await this.client.liquidFilesGet({ TemplateId: this.templateId });
     const total = files.length;
-    const meta = {};
     let done = 0;
     for (const f of files) {
       const localts = store.writeLocalFile(this.shopName, this.templateId, f.Mode, f.Name, f.Template || Buffer.alloc(0));
-      meta[`${f.Mode}/${f.Name}`] = { localts, remotets: f.Date };
+      // Zapisuj meta po każdym pliku (przyrostowo), żeby przerwanie/awaria nie
+      // zostawiła katalogu z plikami ale bez metadanych — po restarcie byłyby
+      // pokazane jako konflikty zamiast zsynchronizowanych.
+      store.setMetaEntry(this.shopName, this.templateId, f.Mode, f.Name, localts, f.Date);
       done++;
       if (done === total || done % 5 === 0) {
         this._progress({ phase: 'download', state: 'progress', done, total });
@@ -145,7 +152,6 @@ export class SyncSession {
         await new Promise((r) => setImmediate(r));
       }
     }
-    store.saveMeta(this.shopName, this.templateId, meta);
     this._progress({ phase: 'download', state: 'done', count: total });
     logOk(tmsg('FilesDownloaded', { count: total }));
   }
@@ -162,7 +168,11 @@ export class SyncSession {
       });
       this.watcherActive = true;
     } catch (e) {
-      logErr('Watcher error: ' + e.message);
+      // Rekurencyjny fs.watch na Linuksie wymaga Node >=20; na starszych wersjach rzuca.
+      const isOldNode = process.platform === 'linux' && Number(process.versions.node.split('.')[0]) < 20;
+      logErr(isOldNode
+        ? 'Watcher error: recursive watch requires Node 20+ on Linux (current: ' + process.versions.node + ')'
+        : 'Watcher error: ' + e.message);
     }
   }
 
@@ -236,7 +246,10 @@ export class SyncSession {
     const buffer = fs.readFileSync(abs);
     if (buffer.length > MAX_FILE_SIZE) throw new Error(this.t.InvalidFileSize + ' — ' + name);
     if (!isImage(name)) {
-      // walidacja: plik tekstowy nie może zawierać znaków sterujących < TAB
+      // walidacja: plik tekstowy nie może zawierać bajtów 0–8 (NUL…BS).
+      // Bajty 9 (TAB), 10 (LF), 11 (VT), 12 (FF), 13 (CR) są przepuszczane
+      // — kontrakt API Comarch nie zabrania VT/FF; jeśli okaże się inaczej,
+      // warunek należy rozszerzyć o: || buffer[i] === 11 || buffer[i] === 12.
       for (let i = 0; i < buffer.length; i++) {
         if (buffer[i] < 9) throw new Error(this.t.IncorrectFileType + ' — ' + name);
       }

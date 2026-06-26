@@ -21,8 +21,14 @@ function leaveAlt() {
 process.stdout.write(ENTER_ALT);
 // Bezpiecznik: przywróć ekran nawet przy nieoczekiwanym zakończeniu/crashu.
 process.on('exit', leaveAlt);
+
+// Referencja do unmount Inka — ustawiana poniżej po render(); sygnały
+// nie mogą przyjść przed końcem bloku synchronicznego.
+let _unmount = () => {};
 for (const sig of ['SIGTERM', 'SIGHUP']) {
-  process.on(sig, () => { leaveAlt(); process.exit(0); });
+  // unmount() uruchamia cleanup React (→ ctrl.dispose()), co zamyka sesję
+  // synchronizacji zanim proces zginie.
+  process.on(sig, () => { _unmount(); leaveAlt(); process.exit(0); });
 }
 // Świadomie ignorujemy Ctrl+C, żeby przypadkowe naciśnięcie nie ubiło sesji
 // synchronizacji. Wyjście tylko przez komendę /exit (albo zamknięcie terminala).
@@ -31,7 +37,8 @@ for (const sig of ['SIGTERM', 'SIGHUP']) {
 // braku raw mode (np. inny terminal/pipe).
 process.on('SIGINT', () => {});
 
-const { waitUntilExit } = render(<App />, { exitOnCtrlC: false });
+const { waitUntilExit, unmount } = render(<App />, { exitOnCtrlC: false });
+_unmount = unmount;
 try {
   await waitUntilExit();
 } finally {

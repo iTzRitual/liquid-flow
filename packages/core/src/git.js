@@ -6,11 +6,20 @@ import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-function run(cwd, args, { allowFail = false } = {}) {
+// GIT_TERMINAL_PROMPT=0 + puste ASKPASS zapobiegają zawieszeniu na interaktywnym
+// pytaniu o login/hasło (push bez skonfigurowanego SSH lub credential-helpera).
+const GIT_ENV = { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: '', SSH_ASKPASS: '' };
+const GIT_TIMEOUT_MS = 30_000; // 30 s na typowe operacje
+const GIT_PUSH_TIMEOUT_MS = 60_000; // 60 s na push (dłuższy transfer)
+
+function run(cwd, args, { allowFail = false, timeout = GIT_TIMEOUT_MS } = {}) {
   return new Promise((resolve, reject) => {
-    execFile('git', args, { cwd, maxBuffer: 32 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile('git', args, { cwd, maxBuffer: 32 * 1024 * 1024, timeout, env: GIT_ENV }, (err, stdout, stderr) => {
       if (err && !allowFail) {
-        const e = new Error((stderr || stdout || err.message).trim());
+        const msg = err.killed
+          ? `git ${args[0]}: timed out after ${timeout / 1000}s`
+          : (stderr || stdout || err.message).trim();
+        const e = new Error(msg);
         e.code = err.code;
         return reject(e);
       }
@@ -102,7 +111,7 @@ export async function setRemote(dir, url) {
 export async function push(dir) {
   if (!isRepo(dir)) throw new Error('No git repository');
   const branch = (await run(dir, ['rev-parse', '--abbrev-ref', 'HEAD'])).stdout || 'main';
-  const r = await run(dir, ['push', '-u', 'origin', branch], { allowFail: true });
+  const r = await run(dir, ['push', '-u', 'origin', branch], { allowFail: true, timeout: GIT_PUSH_TIMEOUT_MS });
   if (r.failed) throw new Error(r.stderr || 'git push failed');
   return { branch, output: r.stdout || r.stderr };
 }

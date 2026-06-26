@@ -32,11 +32,19 @@ function ensureDir(d) {
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 }
 
-ensureDir(APP_DIR);
-ensureDir(SHOPS_DIR);
+// Leniwa inicjalizacja — katalogi tworzone przy pierwszym użyciu, nie przy imporcie.
+// Dzięki temu sam import store.js nie ma efektów ubocznych (łatwiejsze testowanie).
+let _appDirEnsured = false;
+function ensureAppDirs() {
+  if (_appDirEnsured) return;
+  _appDirEnsured = true;
+  ensureDir(APP_DIR);
+  ensureDir(SHOPS_DIR);
+}
 
 // ---- szyfrowanie haseł (lokalny klucz na maszynie) ----
 function getKey() {
+  ensureAppDirs();
   if (!fs.existsSync(KEY_PATH)) {
     fs.writeFileSync(KEY_PATH, crypto.randomBytes(32));
     try { fs.chmodSync(KEY_PATH, 0o600); } catch {}
@@ -68,6 +76,7 @@ export function decrypt(stored) {
 const DEFAULT_CONFIG = { StartBrowser: true, Port: 45678, Language: 'pl', Shops: [] };
 
 export function loadConfig() {
+  ensureAppDirs();
   if (!fs.existsSync(CONFIG_PATH)) return { ...DEFAULT_CONFIG };
   try {
     const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
@@ -78,6 +87,7 @@ export function loadConfig() {
 }
 
 export function saveConfig(cfg) {
+  ensureAppDirs();
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
 }
 
@@ -239,6 +249,13 @@ export function readLogTail(shopName, templateId, n = 300) {
     try { out.push(JSON.parse(l)); } catch {}
   }
   return out;
+}
+
+// Usuń cały katalog sklepu z dysku (pliki, meta, logi, repo git).
+// Wywoływane przy removeShop — zapobiega osierocaniu danych.
+export function deleteShopDir(shopName) {
+  const d = shopDir(shopName);
+  try { fs.rmSync(d, { recursive: true, force: true }); } catch {}
 }
 
 export const paths = { APP_DIR, CONFIG_PATH, SHOPS_DIR };

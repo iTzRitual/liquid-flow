@@ -64,11 +64,11 @@ export default function GitPanel() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex items-center justify-between rounded-lg border border-border p-3">
-                  <span><span className="font-medium">Auto-commit</span><br /><span className="text-xs text-muted-foreground">{t.AutoCommitDesc}</span></span>
+                  <span><span className="font-medium">{t.AutoCommit}</span><br /><span className="text-xs text-muted-foreground">{t.AutoCommitDesc}</span></span>
                   <Switch checked={!!git.autoCommit} onCheckedChange={(v) => setSetting({ autoCommit: v })} />
                 </label>
                 <label className="flex items-center justify-between rounded-lg border border-border p-3">
-                  <span><span className="font-medium">Auto-push</span><br /><span className="text-xs text-muted-foreground">{t.AutoPushDesc}</span></span>
+                  <span><span className="font-medium">{t.AutoPush}</span><br /><span className="text-xs text-muted-foreground">{t.AutoPushDesc}</span></span>
                   <Switch checked={!!git.autoPush} disabled={!git.remote} onCheckedChange={(v) => setSetting({ autoPush: v })} />
                 </label>
               </div>

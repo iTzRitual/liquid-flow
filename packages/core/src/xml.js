@@ -24,8 +24,11 @@ function unescapeXml(s) {
 
 // Parsuje XML do drzewa obiektów: { name, attrs, children:[], text }
 export function parseXml(xml) {
-  // usuń deklarację, komentarze, CDATA -> text
+  // usuń deklarację XML i komentarze; sekcje CDATA nie są obsługiwane —
+  // Comarch ich nie wysyła, ale trafiłyby do tekstu bez dekodowania.
   xml = xml.replace(/<\?xml[^>]*\?>/g, '').replace(/<!--[\s\S]*?-->/g, '');
+  // Atrybuty tylko z cudzysłowem podwójnym ("..."); apostrofy ('...') nie są obsługiwane
+  // — kontrakt ASMX zawsze używa ", więc nie stanowi to problemu w praktyce.
   const tokenRe = /<(\/?)([A-Za-z_][\w.:-]*)((?:\s+[\w.:-]+\s*=\s*"[^"]*")*)\s*(\/?)>|([^<]+)/g;
   const root = { name: '#root', attrs: {}, children: [], text: '' };
   const stack = [root];

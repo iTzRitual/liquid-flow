@@ -27,6 +27,7 @@ export default function App() {
   const [mismatches, setMismatches] = useState([]);
   const [log, setLog] = useState([]);
   const [git, setGit] = useState(null);
+  const [progress, setProgress] = useState(null);
 
   const navigate = useCallback((view, data = {}) => setRoute({ view, ...data }), []);
 
@@ -46,14 +47,19 @@ export default function App() {
   // start
   useEffect(() => {
     (async () => {
-      await refreshTranslations();
-      await refreshShops();
-      const st = await api.getState();
-      setCurrentTemplate(st.currentTemplate);
-      const shopsList = await api.listShops();
-      if (st.currentTemplate) navigate('sync');
-      else if (st.currentShop) navigate('templates');
-      else navigate(shopsList.length ? 'welcome' : 'shopForm', { editing: null });
+      try {
+        await refreshTranslations();
+        await refreshShops();
+        const st = await api.getState();
+        setCurrentTemplate(st.currentTemplate);
+        const shopsList = await api.listShops();
+        if (st.currentTemplate) navigate('sync');
+        else if (st.currentShop) navigate('templates');
+        else navigate(shopsList.length ? 'welcome' : 'shopForm', { editing: null });
+      } catch (e) {
+        toast.error(e?.message || 'Startup error');
+        navigate('welcome');
+      }
     })();
   }, [refreshTranslations, refreshShops, navigate]);
 
@@ -61,12 +67,15 @@ export default function App() {
   useEffect(() => {
     const off = api.onEvent(({ type, payload }) => {
       if (type === 'log') setLog((prev) => [payload, ...prev].slice(0, 500));
+      else if (type === 'log:reset') setLog((payload || []).slice().reverse().slice(0, 500));
       else if (type === 'mismatches') setMismatches(payload || []);
       else if (type === 'git') setGit(payload);
+      else if (type === 'progress') setProgress(payload);
       else if (type === 'state') {
         setCurrentShop(payload.currentShop);
         setCurrentTemplate(payload.currentTemplate);
         setLanguage(payload.language);
+        if (!payload.currentTemplate) setProgress(null);
       }
     });
     return off;
@@ -83,7 +92,7 @@ export default function App() {
 
   const ctx = {
     t, languages, language, version, shops, currentShop, currentTemplate,
-    mismatches, log, git, route, navigate,
+    mismatches, log, git, progress, route, navigate,
     api, call, toast,
     refreshShops, refreshTranslations, changeLanguage,
     setMismatches, setLog, setGit, setCurrentTemplate, setCurrentShop,
