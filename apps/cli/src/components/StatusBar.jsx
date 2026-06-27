@@ -22,7 +22,7 @@ export default function StatusBar({ state, git, t }) {
   // przycina się jako całość zamiast łamać etykiety/dokładać puste linie.
   return (
     <Box flexDirection="column">
-      <Text color="#4da3ff" bold wrap="truncate-end">Liquid Flow CLI 0.9</Text>
+      <Text color="#4da3ff" bold wrap="truncate-end">Liquid Flow CLI 0.9.91</Text>
 
       {shop
         ? <Text wrap="truncate-end"><Text color="gray">{pad(t.ShopLabel)}</Text><Text color="green">● {shop.Name}</Text><Text color="gray">  {shop.Url}</Text></Text>

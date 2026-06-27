@@ -81,7 +81,7 @@ export class Controller extends EventEmitter {
     return {
       Translations: translationsFor(this.config.Language),
       Languages: LANGUAGES,
-      Version: '2.0.0',
+      Version: '0.9.91',
       Language: this.config.Language || 'pl',
     };
   }
