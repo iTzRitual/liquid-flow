@@ -190,7 +190,7 @@ export default function App() {
   const overlayNatural =
     mode.type === 'picker' ? (mode.items?.length || 0) + 4
     : mode.type === 'connect' ? (mode.shops?.length || 0) + 6
-    : mode.type === 'conflicts' ? (mode.files?.length || 0) * 3 + (mode.bulk?.length ? 2 : 0) + 4
+    : mode.type === 'conflicts' ? (mode.files?.length || 0) * 4 + (mode.bulk?.length ? 1 : 0) + 4
     : mode.type === 'form' ? (mode.fields?.length || 0) + 4
     : 4; // loading
   const ovShowLog = fillHeight && log.length > 0 && overlayAvail >= 12;

@@ -8,8 +8,11 @@ import { windowCards } from '../window.js';
 //   2) znaczniki czasu (lokalny / zdalny)
 //   3) która strona nowsza (słowny opis)
 //   4) pusta linia (odstęp)
-// Na dole — stała stopka: pusta linia + jeden wiersz operacji seryjnych
-// („Pobierz/Wyślij wszystkie”). Nawigacja: ↑/↓ między kartami i stopką, ←/→
+// Na dole — stała stopka: jeden wiersz operacji seryjnych („Pobierz/Wyślij
+// wszystkie”); odstęp nad nią daje końcowa pusta linia ostatniej karty (lub
+// wskaźnik „↓ więcej"), więc stopka nie dokłada własnej pustej linii. Wskaźnik
+// „↑ więcej" dostaje pustą linię POD sobą (symetria z odstępem nad „↓ więcej").
+// Nawigacja: ↑/↓ między kartami i stopką, ←/→
 // wybór akcji w wierszu, Enter wykonuje, Esc anuluje.
 //   files: [{ name, meta, note, options:[{label,value}], initial }]
 //   bulk:  [{ label, value }]  (opcjonalne)
@@ -89,9 +92,13 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
     );
   };
 
-  // budżet kart: cała wysokość minus stopka (pusta linia + wiersz przycisków)
-  const footerLines = hasBulk ? 2 : 0;
-  const budget = Math.max(CARD_LINES, maxRows - footerLines);
+  // budżet kart: cała wysokość minus stopka (sam wiersz przycisków — bez wiodącej
+  // pustej linii; odstęp nad stopką daje końcowa pusta linia ostatniej karty) i
+  // minus rezerwa na pustą linię pod wskaźnikiem „↑ więcej" (renderowaną tylko gdy
+  // jest `above`, ale rezerwowaną zawsze, by przy przewinięciu nic nie wystawało).
+  const footerLines = hasBulk ? 1 : 0;
+  const aboveReserve = 1;
+  const budget = Math.max(CARD_LINES, maxRows - footerLines - aboveReserve);
   const fileFocus = files.length ? Math.min(i, files.length - 1) : 0;
   const w = windowCards(files.length, fileFocus, budget, CARD_LINES);
   const slice = files.slice(w.start, w.start + w.count);
@@ -106,19 +113,21 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
         ? <Text dimColor>{t.NoConflicts}</Text>
         : (
           <>
-            {w.above > 0 && <Text dimColor>{tfmt(t.MoreAbove, { count: w.above })}</Text>}
+            {w.above > 0 && (
+              <>
+                <Text dimColor>{tfmt(t.MoreAbove, { count: w.above })}</Text>
+                <Text> </Text>
+              </>
+            )}
             {slice.map((f, k) => renderCard(f, w.start + k))}
             {w.below > 0 && <Text dimColor>{tfmt(t.MoreBelow, { count: w.below })}</Text>}
           </>
         )}
       {hasBulk && (
-        <>
-          <Text> </Text>
-          <Box>
-            <Text color={bulkFocused ? 'cyan' : undefined}>{bulkFocused ? '› ' : '  '}</Text>
-            {renderButtons(bulk, curCursor, bulkFocused)}
-          </Box>
-        </>
+        <Box>
+          <Text color={bulkFocused ? 'cyan' : undefined}>{bulkFocused ? '› ' : '  '}</Text>
+          {renderButtons(bulk, curCursor, bulkFocused)}
+        </Box>
       )}
       <Text dimColor>{help}</Text>
     </Box>
