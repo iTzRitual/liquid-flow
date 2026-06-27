@@ -145,3 +145,18 @@ describe('Controller — sklepy i język', () => {
     expect(shops[0].isCurrent).toBe(true);
   });
 });
+
+describe('Controller — cykl życia nasłuchów logbuf', () => {
+  it('dispose() odpina globalne nasłuchy entry/reset (brak wycieku)', () => {
+    const beforeEntry = logbuf.events.listenerCount('entry');
+    const beforeReset = logbuf.events.listenerCount('reset');
+
+    const c = new Controller();
+    expect(logbuf.events.listenerCount('entry')).toBe(beforeEntry + 1);
+    expect(logbuf.events.listenerCount('reset')).toBe(beforeReset + 1);
+
+    c.dispose();
+    expect(logbuf.events.listenerCount('entry')).toBe(beforeEntry);
+    expect(logbuf.events.listenerCount('reset')).toBe(beforeReset);
+  });
+});

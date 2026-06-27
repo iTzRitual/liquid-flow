@@ -30,11 +30,13 @@ export class Controller extends EventEmitter {
     this._commitTimer = null;
     this._pendingCommitFiles = new Set();
 
-    // przekazuj log do nasłuchujących (renderer): 'log' = nowy wpis,
-    // 'log:reset' = pełna podmiana bufora po przełączeniu kanału (zmiana
-    // sklepu/szablonu — każdy ma osobny strumień logów).
-    logbuf.events.on('entry', (e) => this.emit('log', e));
-    logbuf.events.on('reset', (entries) => this.emit('log:reset', entries));
+    // Trzymamy referencje do handlerów, żeby dispose() mógł je odpiąć od
+    // GLOBALNEGO emitera logbuf.events (inaczej każdy Controller zostawia
+    // nasłuchy na zawsze — wyciek + przekroczenie limitu listenerów).
+    this._onLogEntry = (e) => this.emit('log', e);
+    this._onLogReset = (entries) => this.emit('log:reset', entries);
+    logbuf.events.on('entry', this._onLogEntry);
+    logbuf.events.on('reset', this._onLogReset);
   }
 
   // ---------- pomocnicze ----------
@@ -454,5 +456,7 @@ export class Controller extends EventEmitter {
   dispose() {
     if (this.state.session) this.state.session.dispose();
     if (this._commitTimer) clearTimeout(this._commitTimer);
+    logbuf.events.off('entry', this._onLogEntry);
+    logbuf.events.off('reset', this._onLogReset);
   }
 }
