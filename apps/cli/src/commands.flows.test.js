@@ -81,19 +81,19 @@ describe('/templates', () => {
 });
 
 describe('/settings i język', () => {
-  it('otwiera menu z togglem zawijania i pozycją języka; wybór języka woła setLanguage', async () => {
-    const { ctx, cap } = makeCtx();
+  it('otwiera menu z dwoma inline toggleami; toggle języka woła setLanguage bez podmenu', () => {
+    const { ctx, cap } = makeCtx({ state: { currentShop: { Name: 'x' }, currentTemplate: { Id: 5, Name: 'Topaz' }, language: 'pl' } });
     run(ctx, '/settings');
+    expect(cap.pickers).toHaveLength(1);
     const menu = cap.pickers[0];
-    expect(menu.items.some((i) => i.kind === 'toggle')).toBe(true);
-    const lang = menu.items.find((i) => i.value === 'lang');
-    expect(lang).toBeTruthy();
+    const toggles = menu.items.filter((i) => i.kind === 'toggle');
+    expect(toggles).toHaveLength(2);
 
-    // wejście w język → kolejny picker z LANGUAGES
-    menu.onSelect(lang);
-    const langPicker = cap.pickers[1];
-    expect(langPicker.items.some((i) => i.label === 'English')).toBe(true);
-    langPicker.onSelect(langPicker.items.find((i) => i.label === 'English'));
+    const langToggle = menu.items.find((i) => i.options);
+    expect(langToggle).toBeTruthy();
+    expect(langToggle.options.some((o) => o.label === 'English')).toBe(true);
+    expect(langToggle.on).toBe('pl');
+    langToggle.onToggle('en');
     expect(ctx.ctrl.setLanguage).toHaveBeenCalledWith('en');
   });
 });

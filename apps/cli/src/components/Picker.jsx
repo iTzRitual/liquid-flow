@@ -26,9 +26,18 @@ export default function Picker({ title, items, onSelect, onCancel, onSlash, maxR
     const cur = items[i];
     if (cur && cur.kind === 'toggle') {
       if (key.leftArrow || key.rightArrow || key.return) {
-        const nv = !toggleVal(i);
-        setToggles((t) => ({ ...t, [i]: nv }));
-        cur.onToggle?.(nv);
+        if (cur.options) {
+          const curVal = toggleVal(i);
+          const curIdx = cur.options.findIndex((o) => o.value === curVal);
+          const dir = key.leftArrow ? -1 : 1;
+          const nv = cur.options[(curIdx + dir + cur.options.length) % cur.options.length].value;
+          setToggles((t) => ({ ...t, [i]: nv }));
+          cur.onToggle?.(nv);
+        } else {
+          const nv = !toggleVal(i);
+          setToggles((t) => ({ ...t, [i]: nv }));
+          cur.onToggle?.(nv);
+        }
       }
       return;
     }
@@ -42,6 +51,19 @@ export default function Picker({ title, items, onSelect, onCancel, onSlash, maxR
     const sel = idx === i;
     if (it.kind === 'toggle') {
       const val = toggleVal(idx);
+      if (it.options) {
+        return (
+          <Text key={idx} wrap="truncate-end">
+            <Text color={sel ? 'cyan' : undefined}>{sel ? '› ' : '  '}{it.label}: </Text>
+            {it.options.map((opt, k) => (
+              <React.Fragment key={opt.value}>
+                {k > 0 && <Text> </Text>}
+                <Text color={opt.value === val ? 'black' : undefined} backgroundColor={opt.value === val ? 'cyan' : undefined}> {opt.label} </Text>
+              </React.Fragment>
+            ))}
+          </Text>
+        );
+      }
       return (
         <Text key={idx} wrap="truncate-end">
           <Text color={sel ? 'cyan' : undefined}>{sel ? '› ' : '  '}{it.label}: </Text>

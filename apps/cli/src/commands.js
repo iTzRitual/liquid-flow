@@ -124,15 +124,11 @@ export function buildCommands(ctx) {
   };
 
   // --- ustawienia (język + zawijanie logów) ---
-  // Wybór języka: lista LANGUAGES → setLanguage (na żywo retłumaczy UI i log).
-  const langPicker = () => openPicker(t.Language, LANGUAGES.map((l) => ({ label: l.Name, value: l })),
-    (it) => { ctrl.setLanguage(it.value.Id); log.logInfo(log.tmsg('LanguageSet', { name: it.value.Name })); });
-
-  // Menu ustawień: toggle zawijania logów (wzorzec /git) + pozycja języka.
+  // Menu ustawień: dwa inline toggle — zawijanie logów i język (←/→ bez podmenu).
   const settingsMenu = () => openPicker(t.Settings, [
     { kind: 'toggle', label: t.SettingsWrap, on: !!logWrap, onToggle: (v) => { setLogWrap(v); log.logInfo(log.tmsg(v ? 'LogWrapOn' : 'LogWrapOff')); } },
-    { label: t.Language, value: 'lang' },
-  ], (it) => { if (it.value === 'lang') langPicker(); });
+    { kind: 'toggle', label: t.Language, options: LANGUAGES.map((l) => ({ label: l.Name, value: l.Id })), on: state?.language || 'pl', onToggle: (v) => { const lang = LANGUAGES.find((l) => l.Id === v); ctrl.setLanguage(v); log.logInfo(log.tmsg('LanguageSet', { name: lang?.Name || v })); } },
+  ]);
 
   // --- konflikty ---
   // Jeden ekran rozwiązywania konfliktów. Każdy plik to wiersz z DWIEMA akcjami
