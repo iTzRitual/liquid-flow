@@ -55,6 +55,28 @@ describe('parseLocalPath', () => {
   });
 });
 
+describe('isSafeRelName / ochrona przed path traversal (zapis)', () => {
+  it('przepuszcza zwykłe zagnieżdżone nazwy', () => {
+    expect(store.isSafeRelName('snippets/foo.liquid')).toBe(true);
+    expect(store.isSafeRelName('a/b/c.liquid')).toBe(true);
+  });
+
+  it('odrzuca segmenty ../. , separatory Windows i puste/NUL', () => {
+    expect(store.isSafeRelName('../evil')).toBe(false);
+    expect(store.isSafeRelName('a/../../b')).toBe(false);
+    expect(store.isSafeRelName('..')).toBe(false);
+    expect(store.isSafeRelName('a\\b')).toBe(false);
+    expect(store.isSafeRelName('')).toBe(false);
+    expect(store.isSafeRelName('a\0b')).toBe(false);
+  });
+
+  it('writeLocalFile rzuca i NIE pisze pliku poza katalogiem szablonu', () => {
+    const escaped = path.join(store.templateModeDir(shop, 5, 0), '..', '..', 'escape.txt');
+    expect(() => store.writeLocalFile(shop, 5, 0, '../../escape.txt', Buffer.from('x'))).toThrow();
+    expect(fs.existsSync(escaped)).toBe(false);
+  });
+});
+
 describe('config', () => {
   // config.json ma STAŁĄ ścieżkę (nie zależy od nazwy sklepu), więc w obrębie
   // pliku testy konfiguracji dzielą jeden plik. Czyścimy go przed każdym, by

@@ -130,7 +130,21 @@ export function parseLocalPath(shopName, templateId, absPath) {
   return { mode, name };
 }
 
+// Czy nazwa pliku (pochodzi z odpowiedzi SOAP sklepu — NIEZAUFANA) trzyma się
+// wewnątrz katalogu trybu szablonu? Odrzuca puste nazwy, NUL, separatory
+// Windows ('\\') oraz segmenty '.'/'..', czyli wszystko, czym path.join mógłby
+// uciec poza katalog danych (path traversal). Strona zapisu nie miała takiej
+// bramki (czytająca parseLocalPath miała) — to jest ta bramka.
+export function isSafeRelName(name) {
+  const s = String(name);
+  if (!s || s.includes('\0') || s.includes('\\')) return false;
+  const parts = s.split('/').filter((p) => p.length);
+  if (!parts.length) return false;
+  return !parts.some((p) => p === '.' || p === '..');
+}
+
 export function writeLocalFile(shopName, templateId, mode, name, buffer) {
+  if (!isSafeRelName(name)) throw new Error(`Unsafe file path rejected: ${name}`);
   const abs = localFilePath(shopName, templateId, mode, name);
   ensureDir(path.dirname(abs));
   fs.writeFileSync(abs, buffer);
@@ -138,6 +152,7 @@ export function writeLocalFile(shopName, templateId, mode, name, buffer) {
 }
 
 export function deleteLocalFile(shopName, templateId, mode, name) {
+  if (!isSafeRelName(name)) return;
   const abs = localFilePath(shopName, templateId, mode, name);
   try { fs.unlinkSync(abs); } catch {}
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
+import path from 'node:path';
 import { SyncSession, MismatchType } from './syncEngine.js';
 import * as store from './store.js';
 
@@ -122,6 +123,22 @@ describe('_initialDownload — pierwsze pobranie', () => {
     // postęp: start … done
     expect(progress.some((p) => p.phase === 'download' && p.state === 'start')).toBe(true);
     expect(progress.some((p) => p.phase === 'download' && p.state === 'done')).toBe(true);
+  });
+
+  it('odrzuca plik o niebezpiecznej nazwie (path traversal) — nie pisze poza katalog', async () => {
+    client.files = [
+      { Mode: 0, Name: '../../escape.liquid', Template: Buffer.from('EVIL'), Date: '2026-01-01T00:00:00' },
+      { Mode: 0, Name: 'ok.liquid', Template: Buffer.from('OK'), Date: '2026-01-01T00:00:00' },
+    ];
+    await session._initialDownload();
+
+    // bezpieczny plik zapisany
+    expect(fs.existsSync(store.localFilePath(shop.Name, template.Id, 0, 'ok.liquid'))).toBe(true);
+    // złośliwy plik NIE trafił poza katalog
+    const escaped = path.join(store.templateModeDir(shop.Name, template.Id, 0), '..', '..', 'escape.liquid');
+    expect(fs.existsSync(escaped)).toBe(false);
+    // brak meta dla złośliwego wpisu
+    expect(store.getMetaEntry(store.loadMeta(shop.Name, template.Id), 0, '../../escape.liquid')).toBeNull();
   });
 });
 

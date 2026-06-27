@@ -140,12 +140,16 @@ export class SyncSession {
     const total = files.length;
     let done = 0;
     for (const f of files) {
-      const localts = store.writeLocalFile(this.shopName, this.templateId, f.Mode, f.Name, f.Template || Buffer.alloc(0));
-      // Zapisuj meta po każdym pliku (przyrostowo), żeby przerwanie/awaria nie
-      // zostawiła katalogu z plikami ale bez metadanych — po restarcie byłyby
-      // pokazane jako konflikty zamiast zsynchronizowanych.
-      store.setMetaEntry(this.shopName, this.templateId, f.Mode, f.Name, localts, f.Date);
       done++;
+      if (!store.isSafeRelName(f.Name)) {
+        logErr(tmsg('UnsafeRemotePath', { name: f.Name }));
+      } else {
+        const localts = store.writeLocalFile(this.shopName, this.templateId, f.Mode, f.Name, f.Template || Buffer.alloc(0));
+        // Zapisuj meta po każdym pliku (przyrostowo), żeby przerwanie/awaria nie
+        // zostawiła katalogu z plikami ale bez metadanych — po restarcie byłyby
+        // pokazane jako konflikty zamiast zsynchronizowanych.
+        store.setMetaEntry(this.shopName, this.templateId, f.Mode, f.Name, localts, f.Date);
+      }
       if (done === total || done % 5 === 0) {
         this._progress({ phase: 'download', state: 'progress', done, total });
         // ustąp pętli, by UI zdążyło przerysować pasek postępu (inaczej skok 0→100%)
@@ -378,6 +382,7 @@ export class SyncSession {
     const list = await this.client.liquidFilesGet({ TemplateId: this.templateId, Mode: file.Mode, Name: file.Name });
     const f = list[0];
     if (!f) return;
+    if (!store.isSafeRelName(f.Name)) { logErr(tmsg('UnsafeRemotePath', { name: f.Name })); return; }
     const localts = store.writeLocalFile(this.shopName, this.templateId, f.Mode, f.Name, f.Template || Buffer.alloc(0));
     store.setMetaEntry(this.shopName, this.templateId, f.Mode, f.Name, localts, f.Date);
     logOk(tmsg('LogDownloaded', { label: this._label(f.Mode, f.Name) }));

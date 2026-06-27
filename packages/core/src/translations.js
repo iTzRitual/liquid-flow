@@ -146,6 +146,7 @@ const pl = {
   LogUploaded: 'Wyślij ✓ — {label}',
   LogFileDeletedLocal: 'Plik został usunięty (lokalnie) — {label}',
   LogFileDeletedRemote: 'Plik został usunięty (zdalnie) — {label}',
+  UnsafeRemotePath: 'Pominięto plik o niebezpiecznej ścieżce — {name}',
 
   // --- CLI: input / nagłówek / status ---
   InputPlaceholder: 'wpisz / aby zobaczyć komendy · /exit wyjście',
@@ -391,6 +392,7 @@ const en = {
   LogUploaded: 'Upload ✓ — {label}',
   LogFileDeletedLocal: 'File deleted (locally) — {label}',
   LogFileDeletedRemote: 'File deleted (remotely) — {label}',
+  UnsafeRemotePath: 'Skipped file with unsafe path — {name}',
 
   // --- CLI: input / nagłówek / status ---
   InputPlaceholder: 'type / to see commands · /exit to quit',
