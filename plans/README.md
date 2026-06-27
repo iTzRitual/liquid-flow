@@ -14,7 +14,7 @@ Repo convention: Conventional Commits in English, **no `Co-Authored-By` footer**
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 001  | Reject server-supplied file names that escape the template dir (path traversal) | P1 | M | — | DONE |
-| 002  | Fix the README so it documents the CLI that actually ships | P1 | S | — | TODO |
+| 002  | Fix the README so it documents the CLI that actually ships | P1 | S | — | DONE |
 | 003  | Detach the Controller's global log listeners on dispose() | P2 | S | — | TODO |
 | 004  | Regression tests for fixed P1 bugs (git-push failure, interrupted download) | P3 | M | — | TODO |
 

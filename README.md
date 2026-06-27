@@ -45,7 +45,7 @@ Obie aplikacje to dwie warstwy prezentacji nad tym samym `Controller` z
 
 ## Wymagania
 
-- [Node.js](https://nodejs.org) 18+
+- [Node.js](https://nodejs.org) 20+
 - [Git](https://git-scm.com) — opcjonalnie, tylko dla wersjonowania/backupu
 
 ## Instalacja
@@ -86,23 +86,19 @@ szablon, konflikty, Git), panel logu na żywo oraz prompt. Wpisz `/`, aby
 otworzyć **paletę komend** z autouzupełnianiem.
 
 **Nawigacja:** `/` paleta · `↑`/`↓` wybór · `Enter` zatwierdź · `Tab`
-autouzupełnij · `Esc` wróć · `Ctrl+C` wyjście.
+autouzupełnij · `Esc` wróć · `/exit` wyjście (Ctrl+C jest celowo ignorowany,
+aby nie ubić sesji synchronizacji).
 
 **Slash-komendy:**
 
 | Komenda | Działanie |
 |---|---|
-| `/help` | lista komend |
-| `/login` | zaloguj / dodaj sklep |
-| `/shops` | przełącz sklep |
+| `/connect` | połącz ze sklepem; dodaj / przełącz / rozłącz / usuń (lista sklepów + akcje) |
 | `/templates` | wybierz szablon |
-| `/files` | konflikty i akcje (pobierz / wyślij / usuń) |
-| `/download-all`, `/upload-all`, `/refresh` | operacje zbiorcze i przeliczenie |
+| `/conflicts` | konflikty i akcje — pobierz / wyślij / usuń, pojedynczo lub zbiorczo |
 | `/git` | wersjonowanie i backup (auto-commit, push, historia, przywróć, remote) |
 | `/open` | otwórz folder lokalny szablonu |
-| `/lang` | zmień język |
-| `/status` | szczegóły bieżącej sesji |
-| `/remove` | usuń sklep |
+| `/settings` | ustawienia: zawijanie logów, język |
 | `/clear` | wyczyść panel logu |
 | `/exit` (`/quit`) | zakończ |
 
