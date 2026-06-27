@@ -4,3 +4,8 @@ release/
 coverage/
 .DS_Store
 *.log
+
+# Local AI tooling (Claude Code skills / agents) — not part of the product
+.claude/
+.agents/
+skills-lock.json
