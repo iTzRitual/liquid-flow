@@ -3,14 +3,15 @@ import React, { useState } from 'react';
 import { tfmt } from '@liquidflow/core';
 import { windowCards } from '../window.js';
 
-// Ekran konfliktów. Każdy plik to KARTA (3 wiersze):
+// Ekran konfliktów. Każdy plik to KARTA (4 wiersze):
 //   1) nazwa (do lewej, przycinana) + przyciski akcji (do prawej, nie kurczą się)
-//   2) metadane (znaczniki czasu / która strona nowsza)
-//   3) pusta linia (odstęp)
+//   2) znaczniki czasu (lokalny / zdalny)
+//   3) która strona nowsza (słowny opis)
+//   4) pusta linia (odstęp)
 // Na dole — stała stopka: pusta linia + jeden wiersz operacji seryjnych
 // („Pobierz/Wyślij wszystkie”). Nawigacja: ↑/↓ między kartami i stopką, ←/→
 // wybór akcji w wierszu, Enter wykonuje, Esc anuluje.
-//   files: [{ name, meta, options:[{label,value}], initial }]
+//   files: [{ name, meta, note, options:[{label,value}], initial }]
 //   bulk:  [{ label, value }]  (opcjonalne)
 //
 // Kursor ←/→ należy WYŁĄCZNIE do bieżącego wiersza i NIE jest pamiętany — przy
@@ -18,7 +19,7 @@ import { windowCards } from '../window.js';
 // Liczy się dopiero Enter (działa natychmiast na bieżącej karcie), więc
 // zapamiętywanie pozycji na innych kartach nic nie wnosi. Wszystkie przyciski są
 // pełnokontrastowe; podświetlenie (cyan tło) ma tylko kursor bieżącego wiersza.
-const CARD_LINES = 3;
+const CARD_LINES = 4;
 
 export default function ConflictList({ title, files, bulk, onAction, onBulk, onCancel, maxRows = 12, t }) {
   const hasBulk = Array.isArray(bulk) && bulk.length > 0;
@@ -82,6 +83,7 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
           <Box flexShrink={0} marginLeft={2}>{renderButtons(f.options, curCursor, focused)}</Box>
         </Box>
         <Text dimColor wrap="truncate-end">  {f.meta}</Text>
+        {f.note ? <Text dimColor wrap="truncate-end">  {f.note}</Text> : null}
         <Text> </Text>
       </Box>
     );

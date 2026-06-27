@@ -32,11 +32,15 @@ export function buildCommands(ctx) {
     return t.HintBothChanged;
   };
 
-  // Wiersz metadanych karty konfliktu: trzy znaczniki czasu + słowny opis. Bez
-  // emoji — warianty U+FE0F bywają liczone jako 1, a rysowane jako 2 znaki, co
-  // rozjeżdża przycinanie i łamie prawą ramkę karty.
+  // Wiersz metadanych karty konfliktu: dwa znaczniki czasu (lokalny = aktualny
+  // plik na dysku, zdalny = wersja w sklepie). Baseline z meta/ jest techniczny,
+  // więc go nie pokazujemy — liczy się porównanie „moja wersja ↔ sklep". Słowny
+  // opis „która nowsza” idzie OSOBNYM wierszem (`noteLine`). Bez emoji —
+  // warianty U+FE0F bywają liczone jako 1, a rysowane jako 2 znaki, co rozjeżdża
+  // przycinanie i łamie prawą ramkę karty.
   const metaLine = (m) =>
-    `${t.TsFile} ${fmtTs(m.FileTs)} · ${t.TsLocal} ${fmtTs(m.LocalTs)} · ${t.TsRemote} ${fmtTs(m.RemoteTs)} · ${whoNewer(m)}`;
+    `${t.TsLocal} ${fmtTs(m.FileTs)} · ${t.TsRemote} ${fmtTs(m.RemoteTs)}`;
+  const noteLine = (m) => whoNewer(m);
 
   // --- formularz logowania (gałąź „dodaj nowy” / edycja w /connect) ---
   const loginForm = (prefill = {}) =>
@@ -201,7 +205,7 @@ export function buildCommands(ctx) {
 
     const files = mm.map((m) => {
       const { options, initial } = fileOptions(m);
-      return { name: m.File.Name, meta: metaLine(m), options, initial, m };
+      return { name: m.File.Name, meta: metaLine(m), note: noteLine(m), options, initial, m };
     });
 
     const bulk = [];
