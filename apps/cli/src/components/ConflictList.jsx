@@ -70,10 +70,7 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
       );
     });
 
-  // `noTrailing` pomija końcową pustą linię karty. Używane dla OSTATNIEJ widocznej
-  // karty, gdy jest wskaźnik „↓ więcej" — wtedy wskaźnik przylega do treści karty
-  // tak samo, jak „↑ więcej" przylega do pierwszej karty (symetria brzegów okna).
-  const renderCard = (f, idx, noTrailing) => {
+  const renderCard = (f, idx) => {
     const focused = idx === i;
     return (
       <Box key={idx} flexDirection="column">
@@ -87,7 +84,7 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
         </Box>
         <Text dimColor wrap="truncate-end">  {f.meta}</Text>
         {f.note ? <Text dimColor wrap="truncate-end">  {f.note}</Text> : null}
-        {noTrailing ? null : <Text> </Text>}
+        <Text> </Text>
       </Box>
     );
   };
@@ -110,7 +107,7 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
         : (
           <>
             {w.above > 0 && <Text dimColor>{tfmt(t.MoreAbove, { count: w.above })}</Text>}
-            {slice.map((f, k) => renderCard(f, w.start + k, w.below > 0 && k === slice.length - 1))}
+            {slice.map((f, k) => renderCard(f, w.start + k))}
             {w.below > 0 && <Text dimColor>{tfmt(t.MoreBelow, { count: w.below })}</Text>}
           </>
         )}
