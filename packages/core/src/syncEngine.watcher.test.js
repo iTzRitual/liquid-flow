@@ -140,6 +140,29 @@ describe('_initialDownload — pierwsze pobranie', () => {
     // brak meta dla złośliwego wpisu
     expect(store.getMetaEntry(store.loadMeta(shop.Name, template.Id), 0, '../../escape.liquid')).toBeNull();
   });
+
+  it('przerwane pobieranie zostawia meta dla już zapisanych plików (przyrostowo)', async () => {
+    // Plik 'b.liquid' jest niezapisywalny: w jego miejscu tworzymy KATALOG,
+    // więc fs.writeFileSync rzuci EISDIR w trakcie pętli. To symuluje awarię w
+    // środku pobierania. 'a.liquid' (przetworzony wcześniej) powinien mieć meta.
+    client.files = [
+      { Mode: 0, Name: 'a.liquid', Template: Buffer.from('A'), Date: '2026-01-01T00:00:00' },
+      { Mode: 0, Name: 'b.liquid', Template: Buffer.from('B'), Date: '2026-01-02T00:00:00' },
+      { Mode: 0, Name: 'c.liquid', Template: Buffer.from('C'), Date: '2026-01-03T00:00:00' },
+    ];
+    // Utwórz katalog dokładnie tam, gdzie miałby powstać plik 'b.liquid'.
+    const bPath = store.localFilePath(shop.Name, template.Id, 0, 'b.liquid');
+    fs.mkdirSync(bPath, { recursive: true });
+
+    await expect(session._initialDownload()).rejects.toThrow();
+
+    const meta = store.loadMeta(shop.Name, template.Id);
+    // plik 'a' przetworzony przed awarią → meta zapisane przyrostowo
+    expect(store.getMetaEntry(meta, 0, 'a.liquid')).toMatchObject({ remotets: '2026-01-01T00:00:00' });
+    // 'b'/'c' nie zdążyły → brak meta
+    expect(store.getMetaEntry(meta, 0, 'b.liquid')).toBeNull();
+    expect(store.getMetaEntry(meta, 0, 'c.liquid')).toBeNull();
+  });
 });
 
 describe('cykl życia start()/dispose()', () => {

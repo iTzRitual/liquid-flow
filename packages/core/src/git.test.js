@@ -92,6 +92,17 @@ describe.runIf(true)('git.js', () => {
     fs.rmSync(bare, { recursive: true, force: true });
   });
 
+  it('push: niedostępny/nieprawidłowy remote → odrzuca (nie wisi)', async () => {
+    write('a.liquid', 'x'); await git.init(dir);
+    // remote wskazuje na pusty katalog, który NIE jest repozytorium gita →
+    // push pada natychmiast (bez sieci, bez interaktywnego pytania o hasło,
+    // dzięki GIT_TERMINAL_PROMPT=0), więc push() musi się odrzucić, nie zawisnąć.
+    const badRemote = fs.mkdtempSync(path.join(os.tmpdir(), 'lf-noremote-'));
+    await git.setRemote(dir, badRemote);
+    await expect(git.push(dir)).rejects.toThrow();
+    fs.rmSync(badRemote, { recursive: true, force: true });
+  });
+
   it('status: pełny obraz repo (dirty/commitCount/remote)', async () => {
     write('a.liquid', 'x'); await git.init(dir);
     let st = await git.status(dir);
