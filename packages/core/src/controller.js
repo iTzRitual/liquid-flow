@@ -4,6 +4,7 @@
 // 'mismatches', 'state', 'git'.
 
 import { EventEmitter } from 'node:events';
+import { readFileSync } from 'node:fs';
 import * as store from './store.js';
 import * as logbuf from './log.js';
 import * as git from './git.js';
@@ -12,6 +13,10 @@ import { SyncSession } from './syncEngine.js';
 import { translationsFor, tfmt, LANGUAGES } from './translations.js';
 
 const COMMIT_DEBOUNCE_MS = 3000;
+
+// Wersja aplikacji — czytana z package.json rdzenia (jedyne źródło prawdy; trzy
+// package.json są zawsze zsynchronizowane), żeby nie dryfowała przy bumpie.
+const APP_VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
 export class Controller extends EventEmitter {
   constructor(opts = {}) {
@@ -83,7 +88,7 @@ export class Controller extends EventEmitter {
     return {
       Translations: translationsFor(this.config.Language),
       Languages: LANGUAGES,
-      Version: '0.9.92',
+      Version: APP_VERSION,
       Language: this.config.Language || 'pl',
     };
   }

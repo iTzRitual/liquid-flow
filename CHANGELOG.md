@@ -6,6 +6,13 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.93] — 2026-06-28
+
+### Changed
+- App version is now read from `package.json` at runtime (CLI `StatusBar`, core `Controller.getTranslations`) instead of hand-maintained literals — bumping the package version is the single source of truth.
+
+---
+
 ## [0.9.92] — 2026-06-28
 
 ### Changed
