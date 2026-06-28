@@ -20,6 +20,8 @@ export const FULL_HEADER_MIN_TERM_ROWS = 16;
 
 // Ile wierszy treści POD nagłówkiem potrzebuje dany tryb, by był użyteczny.
 // (chrome nakładek = ramka 2 + tytuł 1 + pomoc/stopka 1 = 4)
+// To MINIMUM (1 pozycja / 1 karta) — używane do globalnej podłogi i guardu, NIE
+// do wyboru wariantu nagłówka (tym steruje `naturalBodyRows`).
 export function minBodyRows(mode) {
   switch (mode?.type) {
     case 'conflicts': return 4 + 3 + (mode.bulk?.length ? 1 : 0); // chrome + 1 karta (3) + stopka
@@ -28,6 +30,24 @@ export function minBodyRows(mode) {
     case 'form': return 5; // chrome + 1 pozycja
     case 'loading': return 4; // ramka + tytuł + spinner
     default: return 2; // input: minimalnie log/divider + pole
+  }
+}
+
+// Ile wierszy treści tryb chce pokazać W CAŁOŚCI (cała lista / wszystkie karty,
+// bez okienkowania) — „naturalna" wysokość nakładki. To jej steruje degradacją
+// nagłówka: wolimy zmniejszyć/ukryć nagłówek niż okienkować pozycje (patrz
+// `headerLayout`). MUSI być spójne z `overlayNatural` w App.jsx — ta sama liczba
+// decyduje, kiedy nakładka zaczyna się okienkować, więc liczby chrome (+4/+6,
+// karta = 4 wiersze) muszą się zgadzać. Dla `input`/`loading` natural = minimum:
+// log jest przewijanym wypełniaczem, a loader ma stałą, drobną treść — nie
+// wymuszają degradacji nagłówka.
+export function naturalBodyRows(mode) {
+  switch (mode?.type) {
+    case 'picker': return (mode.items?.length || 0) + 4;
+    case 'connect': return (mode.shops?.length || 0) + 6;
+    case 'conflicts': return (mode.files?.length || 0) * 4 + (mode.bulk?.length ? 1 : 0) + 4;
+    case 'form': return (mode.fields?.length || 0) + 4;
+    default: return minBodyRows(mode); // loading/input
   }
 }
 
@@ -56,22 +76,30 @@ export function appMinRows() {
 // `height` to liczba wierszy zajętych przez nagłówek (z górnym dividerem);
 // `minRows` to GLOBALNE minimum aplikacji (do komunikatu guard, spójne wszędzie).
 //
-// Guard używa globalnej podłogi (`appMinRows`), a NIE wymogu bieżącego trybu —
-// inaczej info o za małym oknie wyskakiwałoby dopiero po przejściu na cięższy
-// ekran. Sam wariant nagłówka (full/compact/none) degraduje się już per‑tryb:
-// lekki ekran (np. input) dostaje ładniejszy nagłówek niż conflicts przy tej
-// samej wysokości. Po przejściu podłogi `under(0) >= need` zachodzi dla każdego
-// trybu (podłoga = max need + 1), więc 'none' zawsze zmieści bieżący tryb.
+// Zasada doboru: bierzemy NAJWIĘKSZY wariant nagłówka, przy którym CAŁA treść
+// trybu (`naturalBodyRows`) jeszcze się mieści POD nagłówkiem — bez okienkowania.
+// Gdy treści jest dużo (np. wiele plików w /conflicts albo długa lista), pełny
+// nagłówek by ją okienkował (mniej widocznych pozycji), więc schodzimy do compact,
+// a potem chowamy nagłówek (none) — treść dostaje całą wysokość zamiast tracić
+// pozycje. Gdy nawet bez nagłówka treść się nie mieści, i tak `none` (max miejsca;
+// nakładka sama się wtedy okienkuje). Lekkie tryby (input — log przewija się;
+// loader) mają `naturalBodyRows = minimum`, więc trzymają pełny nagłówek, gdy okno
+// na to pozwala.
+//
+// Guard używa globalnej podłogi (`appMinRows`, liczonej z `minBodyRows`), a NIE
+// naturalnej wysokości — inaczej info o za małym oknie wyskakiwałoby przy każdej
+// dłuższej liście. Po przejściu podłogi `under(0) >= minBodyRows` zachodzi dla
+// każdego trybu, więc 'none' zawsze zmieści przynajmniej minimum bieżącego trybu.
 export function headerLayout({ termRows, termCols, mode }) {
   const minRows = appMinRows();
   if (termRows < minRows) return { mode: 'guard', height: 0, minRows };
 
-  const need = minBodyRows(mode);
+  const want = naturalBodyRows(mode);
   const fullH = termCols < HEADER_STACK_COLS ? FULL_HEADER_STACKED_ROWS : FULL_HEADER_ROWS;
   const under = (h) => termRows - 1 - h; // root rośnie do termRows-1
-  if (termRows >= FULL_HEADER_MIN_TERM_ROWS && under(fullH) >= need)
+  if (termRows >= FULL_HEADER_MIN_TERM_ROWS && under(fullH) >= want)
     return { mode: 'full', height: fullH, minRows };
-  if (under(COMPACT_HEADER_ROWS) >= need)
+  if (under(COMPACT_HEADER_ROWS) >= want)
     return { mode: 'compact', height: COMPACT_HEADER_ROWS, minRows };
   return { mode: 'none', height: 0, minRows };
 }

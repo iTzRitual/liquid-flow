@@ -5,7 +5,7 @@ import { log as corelog, tfmt } from '@liquidflow/core';
 
 import { useController } from './useController.js';
 import { buildCommands } from './commands.js';
-import { headerLayout } from './layout.js';
+import { headerLayout, naturalBodyRows } from './layout.js';
 import Header from './components/Header.jsx';
 import Divider from './components/Divider.jsx';
 import ProgressView from './components/ProgressView.jsx';
@@ -188,12 +188,11 @@ export default function App() {
   // (gap). Ten flex‑box jest jedynym (rosnącym) dzieckiem roota po nagłówku, więc:
   //   root(termRows-1) − HEADER = termRows − 1 − HEADER.
   const overlayAvail = Math.max(1, termRows - 1 - HEADER);
-  const overlayNatural =
-    mode.type === 'picker' ? (mode.items?.length || 0) + 4
-    : mode.type === 'connect' ? (mode.shops?.length || 0) + 6
-    : mode.type === 'conflicts' ? (mode.files?.length || 0) * 4 + (mode.bulk?.length ? 1 : 0) + 4
-    : mode.type === 'form' ? (mode.fields?.length || 0) + 4
-    : 4; // loading
+  // Naturalna (pełna) wysokość nakładki — TA SAMA liczba, którą layout.js bierze do
+  // degradacji nagłówka, więc próg „nakładka się okienkuje" == próg „nagłówek
+  // ustępuje" (jedno źródło prawdy w layout.js → header zmniejsza się dokładnie
+  // wtedy, gdy inaczej musielibyśmy okienkować treść).
+  const overlayNatural = naturalBodyRows(mode);
   const ovRows = Math.min(overlayNatural, overlayAvail);
   const ovMax = Math.max(1, ovRows - 4); // body ekranu (chrome ekranu = 4 wiersze)
   // log nad ekranem + 1 wiersz przerwy (spacer); pokazujemy tylko gdy zostają ≥2

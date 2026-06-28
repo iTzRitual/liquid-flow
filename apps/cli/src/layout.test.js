@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   headerLayout,
   minBodyRows,
+  naturalBodyRows,
   appMinRows,
   FULL_HEADER_ROWS,
   COMPACT_HEADER_ROWS,
@@ -23,23 +24,48 @@ describe('headerLayout — degradacja nagłówka z wysokością', () => {
     expect(hl.height).toBe(COMPACT_HEADER_ROWS);
   });
 
-  it('conflicts: pełny nagłówek tylko gdy realnie się mieści', () => {
-    const mode = { type: 'conflicts', files: [1, 2], bulk: [1] }; // need = 8
-    // przy 16 wierszach: under(full=8) = 16-1-8 = 7 < 8 → NIE pełny, ma być compact
-    const hl16 = headerLayout({ termRows: 16, termCols: COLS, mode });
-    expect(hl16.mode).toBe('compact');
-    // przy 18: under(8) = 9 ≥ 8 → pełny
-    expect(headerLayout({ termRows: 18, termCols: COLS, mode }).mode).toBe('full');
+  it('conflicts: nagłówek degraduje, by zmieścić WSZYSTKIE karty (nie okienkować)', () => {
+    const mode = { type: 'conflicts', files: [1, 2], bulk: [1] }; // natural = 2*4+1+4 = 13
+    // pełny nagłówek (8) mieści całą treść dopiero gdy under(8) ≥ 13 → termRows ≥ 22
+    expect(headerLayout({ termRows: 22, termCols: COLS, mode }).mode).toBe('full');
+    // 21: pełny by okienkował karty (under(8)=12 < 13) → schodzi do compact (under(2)=18 ≥ 13)
+    expect(headerLayout({ termRows: 21, termCols: COLS, mode }).mode).toBe('compact');
+    expect(headerLayout({ termRows: 16, termCols: COLS, mode }).mode).toBe('compact');
+    // 15: nawet compact by okienkował (under(2)=12 < 13) → nagłówek ukryty (under(0)=14 ≥ 13)
+    expect(headerLayout({ termRows: 15, termCols: COLS, mode }).mode).toBe('none');
+  });
+
+  it('picker z wieloma pozycjami woli mniejszy nagłówek niż okienkowanie listy', () => {
+    // 10 pozycji → natural = 14. Przy 20 wierszach pełny nagłówek (8) zostawia tylko
+    // under(8)=11 < 14 → musiałby okienkować listę. Wolimy compact (under(2)=17 ≥ 14),
+    // żeby pokazać wszystkie pozycje — to jest sedno zgłoszenia.
+    const many = { type: 'picker', items: Array.from({ length: 10 }) };
+    expect(headerLayout({ termRows: 20, termCols: COLS, mode: many }).mode).toBe('compact');
+    // mało pozycji przy tej samej wysokości → pełny nagłówek (treść i tak się mieści)
+    const few = { type: 'picker', items: [1, 2] }; // natural = 6
+    expect(headerLayout({ termRows: 20, termCols: COLS, mode: few }).mode).toBe('full');
   });
 
   it('bardzo niskie okno (conflicts) → ukryty nagłówek, potem guard', () => {
-    const mode = { type: 'conflicts', files: [1], bulk: [] }; // need = 4 + 3 = 7
-    // under(compact=2) = rows-1-2; potrzeba ≥7 → rows ≥10 dla compact
-    expect(headerLayout({ termRows: 10, termCols: COLS, mode }).mode).toBe('compact');
+    const mode = { type: 'conflicts', files: [1], bulk: [] }; // natural = 1*4 + 0 + 4 = 8
+    // 11: compact under(2)=8 ≥ 8 → compact (cała karta + nagłówek compact)
+    expect(headerLayout({ termRows: 11, termCols: COLS, mode }).mode).toBe('compact');
+    // 10: compact under(2)=7 < 8 → none (under(0)=9 ≥ 8 mieści całą kartę)
+    expect(headerLayout({ termRows: 10, termCols: COLS, mode }).mode).toBe('none');
     // rows=9 = globalna podłoga (appMinRows) → jeszcze NIE guard, nagłówek ukryty
     expect(headerLayout({ termRows: 9, termCols: COLS, mode }).mode).toBe('none');
     // rows=8 < podłoga → guard (mimo że sam conflicts bez bulk by się zmieścił)
     expect(headerLayout({ termRows: 8, termCols: COLS, mode }).mode).toBe('guard');
+  });
+
+  it('naturalBodyRows = pełna wysokość treści (spójne z App.overlayNatural)', () => {
+    expect(naturalBodyRows({ type: 'picker', items: [1, 2, 3] })).toBe(7); // 3 + 4
+    expect(naturalBodyRows({ type: 'connect', shops: [1, 2] })).toBe(8); // 2 + 6
+    expect(naturalBodyRows({ type: 'conflicts', files: [1, 2], bulk: [1] })).toBe(13);
+    expect(naturalBodyRows({ type: 'form', fields: [1, 2] })).toBe(6); // 2 + 4
+    expect(naturalBodyRows({ type: 'loading' })).toBe(4);
+    // input/loader: log przewija się / stała treść → natural = minimum (bez degradacji)
+    expect(naturalBodyRows({ type: 'input' })).toBe(minBodyRows({ type: 'input' }));
   });
 
   it('minBodyRows uwzględnia stopkę seryjną tylko gdy są operacje bulk', () => {
