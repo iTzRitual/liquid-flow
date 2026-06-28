@@ -34,6 +34,21 @@ describe('windowList', () => {
       expect(w.count + indicators).toBeLessThanOrEqual(10);
     }
   });
+
+  it('wskaźnik „1 więcej" zastępowany bezpośrednio elementem (ten sam budżet wierszy)', () => {
+    // above=1 → element wchodzi bezpośrednio; below=1 → element wchodzi bezpośrednio
+    for (let idx = 0; idx < 4; idx++) {
+      const w = windowList(4, idx, 3);
+      expect(w.above).not.toBe(1);
+      expect(w.below).not.toBe(1);
+    }
+    // nigdy nie przekracza budżetu po korekcie
+    for (let idx = 0; idx < 4; idx++) {
+      const w = windowList(4, idx, 3);
+      const ind = (w.above > 0 ? 1 : 0) + (w.below > 0 ? 1 : 0);
+      expect(w.count + ind).toBeLessThanOrEqual(3);
+    }
+  });
 });
 
 describe('windowCards (karty o stałej wysokości)', () => {

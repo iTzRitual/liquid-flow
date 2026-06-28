@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.106] — 2026-06-29
+### Fixed
+- Command palette / Picker / ConnectList: a "1 more" scroll indicator (`↑ 1 więcej` / `↓ 1 więcej`) now never appears — the hidden item is shown directly instead, since it fits in the same number of rows as the indicator it replaces. Pressing down no longer felt stuck when the last visible item had exactly one hidden neighbor.
+
 ## [0.9.105] — 2026-06-29
 ### Fixed
 - CLI bottom spacer now hides only when the window is too small to fit a full header (auto-layout), not when the user manually set header to compact in preferences.

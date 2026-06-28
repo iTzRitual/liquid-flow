@@ -14,8 +14,15 @@ export function windowList(n, index, max) {
 
   slots = cap - (top ? 1 : 0) - (bottom ? 1 : 0);
   start = Math.max(0, Math.min(index - Math.floor(slots / 2), n - slots));
-  const above = start;
-  const below = n - (start + slots);
+  let above = start;
+  let below = n - (start + slots);
+
+  // Wskaźnik „1 więcej" zajmuje dokładnie tyle wierszy co sam element —
+  // zamiast pokazywać „↑ 1 więcej" / „↓ 1 więcej", rozszerz okno o ten element.
+  // Łączna liczba wierszy (okno + wskaźniki) nie rośnie.
+  if (above === 1) { start -= 1; slots += 1; above = 0; }
+  if (below === 1) { slots += 1; below = 0; }
+
   return { start, count: slots, above, below };
 }
 
