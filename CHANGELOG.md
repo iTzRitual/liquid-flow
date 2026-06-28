@@ -6,6 +6,17 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.99] — 2026-06-28
+
+### Added
+- **Conflict diff preview**: before resolving a conflict users can now press
+  `←/→` to select "Preview" on any conflict card and see a unified line diff
+  (`+`/`-`/context) of what changed, without committing to download or upload.
+  Implemented as a read-only `diff` overlay (Esc returns to the conflict list),
+  powered by a new dependency-free LCS line-diff utility (`packages/core/src/diff.js`)
+  and `SyncSession.previewConflict` / `Controller.previewConflict`. Binary and
+  oversized files (>256 KB) show a graceful fallback message instead of a diff.
+
 ## [0.9.98] — 2026-06-28
 
 ### Changed

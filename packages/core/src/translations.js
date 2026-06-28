@@ -286,6 +286,15 @@ const pl = {
   WelcomePickShop: 'Wybierz sklep z listy po lewej, aby rozpocząć synchronizację.',
   WelcomeAddFirst: 'Dodaj swój pierwszy sklep Comarch e-Sklep, aby rozpocząć.',
 
+  // --- podgląd różnic (diff preview) ---
+  ActionPreviewShort: 'Podgląd',
+  PreviewLoading: 'Ładowanie podglądu…',
+  DiffTitle: 'Podgląd: {name}',
+  DiffBinary: 'Plik binarny — brak podglądu',
+  DiffTooLarge: 'Plik za duży do podglądu',
+  DiffSummary: '+{added} −{removed}',
+  DiffNoChanges: 'Brak różnic',
+
   // --- tray (Electron) ---
   ShowWindow: 'Pokaż okno',
   Quit: 'Zakończ',
@@ -537,6 +546,15 @@ const en = {
   NoEntries: 'No entries.',
   WelcomePickShop: 'Pick a shop from the list on the left to start syncing.',
   WelcomeAddFirst: 'Add your first Comarch e-Sklep store to get started.',
+
+  // --- podgląd różnic (diff preview) ---
+  ActionPreviewShort: 'Preview',
+  PreviewLoading: 'Loading preview…',
+  DiffTitle: 'Preview: {name}',
+  DiffBinary: 'Binary file — no preview available',
+  DiffTooLarge: 'File too large to preview',
+  DiffSummary: '+{added} −{removed}',
+  DiffNoChanges: 'No differences',
 
   // --- tray (Electron) ---
   ShowWindow: 'Show window',

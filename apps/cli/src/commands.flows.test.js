@@ -8,7 +8,7 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 // Elastyczny ctx: przechwytuje WSZYSTKIE otwarcia (pickery/formularze/connect/
 // conflicts) do tablic, a helpery wykonawcze (safe/withLoading) odpalają od razu.
 function makeCtx(overrides = {}) {
-  const cap = { pickers: [], forms: [], connect: null, conflicts: null };
+  const cap = { pickers: [], forms: [], connect: null, conflicts: null, diff: null };
   const ctx = {
     ctrl: {
       getCurrentShop: () => ({ Name: 'x' }),
@@ -32,6 +32,7 @@ function makeCtx(overrides = {}) {
     openForm: vi.fn((title, fields, onSubmit) => { cap.forms.push({ title, fields, onSubmit }); }),
     openConflicts: vi.fn((payload) => { cap.conflicts = payload; }),
     openConnect: vi.fn((payload) => { cap.connect = payload; }),
+    openDiff: vi.fn((payload) => { cap.diff = payload; }),
     logWrap: false,
     setLogWrap: vi.fn(),
     headerPref: 'auto',

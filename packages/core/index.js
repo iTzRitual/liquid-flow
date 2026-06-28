@@ -9,3 +9,4 @@ export { translationsFor, tfmt, localeFor, LANGUAGES } from './src/translations.
 export * as store from './src/store.js';
 export * as git from './src/git.js';
 export * as log from './src/log.js';
+export { lineDiff, diffSummary } from './src/diff.js';

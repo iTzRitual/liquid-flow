@@ -27,7 +27,8 @@ export function minBodyRows(mode) {
     case 'conflicts': return 4 + 3 + (mode.bulk?.length ? 1 : 0); // chrome + 1 karta (3) + stopka
     case 'picker':
     case 'connect':
-    case 'form': return 5; // chrome + 1 pozycja
+    case 'form':
+    case 'diff': return 5; // chrome + 1 pozycja/linia
     case 'loading': return 4; // ramka + tytuł + spinner
     default: return 2; // input: minimalnie log/divider + pole
   }
@@ -47,6 +48,7 @@ export function naturalBodyRows(mode) {
     case 'connect': return (mode.shops?.length || 0) + 6;
     case 'conflicts': return (mode.files?.length || 0) * 4 + (mode.bulk?.length ? 1 : 0) + 4;
     case 'form': return (mode.fields?.length || 0) + 4;
+    case 'diff': return (mode.lines || 0) + 4;
     default: return minBodyRows(mode); // loading/input
   }
 }

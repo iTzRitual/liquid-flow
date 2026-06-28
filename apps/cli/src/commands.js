@@ -15,7 +15,7 @@ function fmtTs(ts) {
 }
 
 export function buildCommands(ctx) {
-  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, openConflicts, openConnect, logWrap, setLogWrap, headerPref, setHeaderPref, exit, safe, skipToInput, backToInput, withLoading, dropParent } = ctx;
+  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, openConflicts, openConnect, openDiff, logWrap, setLogWrap, headerPref, setHeaderPref, exit, safe, skipToInput, backToInput, withLoading, dropParent } = ctx;
   const hasShop = !!state?.currentShop;
   const hasTemplate = !!state?.currentTemplate;
 
@@ -155,6 +155,7 @@ export function buildCommands(ctx) {
       return { options: [
         { label: t.ActionDownloadShort, value: 'download' },
         { label: t.ActionDeleteRemoteShort, value: 'removeRemote' },
+        { label: t.ActionPreviewShort, value: 'preview' },
       ], initial: 0 };
     }
     if (m.Type === MismatchType.RemoteMissing) {
@@ -162,6 +163,7 @@ export function buildCommands(ctx) {
       return { options: [
         { label: t.ActionUploadShort, value: 'upload' },
         { label: t.ActionDeleteLocalShort, value: 'removeLocal' },
+        { label: t.ActionPreviewShort, value: 'preview' },
       ], initial: 0 };
     }
     // Timestamp: oba istnieją → pobierz z serwera albo wyślij z lokala
@@ -171,6 +173,7 @@ export function buildCommands(ctx) {
     return { options: [
       { label: t.ActionDownloadShort, value: 'download' },
       { label: t.ActionUploadShort, value: 'upload' },
+      { label: t.ActionPreviewShort, value: 'preview' },
     ], initial: localNewer ? 1 : 0 };
   };
 
@@ -184,6 +187,14 @@ export function buildCommands(ctx) {
   // Wykonanie akcji na pliku: loader na czas SOAP, potem odśwież listę i zostaw
   // ją otwartą (kolejny konflikt rozwiązujesz bez ponownego /conflicts).
   const runFileAction = (m, value, mm) => {
+    if (value === 'preview') {
+      withLoading(t.PreviewLoading, async () => {
+        const preview = await ctrl.previewConflict(m.File, m.Type);
+        const lines = preview?.kind === 'text' ? (preview.diff?.length || 0) : 0;
+        openDiff({ title: tfmt(t.DiffTitle, { name: m.File.Name }), preview, lines });
+      });
+      return;
+    }
     const exec = () => withLoading(t.ApplyingAction, async () => {
       const fresh = await ctrl.runCommand({ comm: value, file: m.File, type: m.Type });
       renderConflicts(fresh);

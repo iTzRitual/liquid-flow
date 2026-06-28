@@ -13,6 +13,7 @@ import * as store from './store.js';
 import * as git from './git.js';
 import { logInfo, logOk, logErr, tmsg } from './log.js';
 import { translationsFor } from './translations.js';
+import { lineDiff } from './diff.js';
 
 const MAX_NAME_LEN = 64;
 const MAX_FILE_SIZE = 519168;
@@ -419,5 +420,42 @@ export class SyncSession {
     store.removeMetaEntry(this.shopName, this.templateId, file.Mode, file.Name);
     logOk(tmsg('LogFileDeletedRemote', { label: this._label(file.Mode, file.Name) }));
     this._notify('removeRemote', file.Mode, file.Name);
+  }
+
+  // Podgląd różnic przed rozwiązaniem konfliktu — wyłącznie do odczytu.
+  // file: { Mode, Name }, type: MismatchType (opcjonalny, pomija zbędne wywołania).
+  // Zwraca jedno z:
+  //   { kind: 'binary', side: 'both'|'localOnly'|'remoteOnly' }
+  //   { kind: 'tooLarge' }
+  //   { kind: 'text', local, remote, diff }   (local/remote mogą być null przy brakach)
+  async previewConflict(file, type) {
+    if (isImage(file.Name)) return { kind: 'binary', side: 'both' };
+
+    let remoteBuf = null;
+    if (type !== MismatchType.RemoteMissing) {
+      const list = await this.client.liquidFilesGet({
+        TemplateId: this.templateId, Mode: file.Mode, Name: file.Name,
+      });
+      remoteBuf = list[0]?.Template ?? null;
+    }
+
+    let localBuf = null;
+    if (type !== MismatchType.LocalMissing) {
+      const p = store.localFilePath(this.shopName, this.templateId, file.Mode, file.Name);
+      if (fs.existsSync(p)) localBuf = fs.readFileSync(p);
+    }
+
+    const hasBinary = (buf) => buf instanceof Buffer && buf.includes(0);
+    if (hasBinary(remoteBuf) || hasBinary(localBuf)) {
+      const side = !localBuf ? 'remoteOnly' : !remoteBuf ? 'localOnly' : 'both';
+      return { kind: 'binary', side };
+    }
+
+    const local = localBuf ? localBuf.toString('utf8') : null;
+    const remote = remoteBuf ? remoteBuf.toString('utf8') : null;
+    const diff = lineDiff(local ?? '', remote ?? '');
+    if (diff.tooLarge) return { kind: 'tooLarge' };
+
+    return { kind: 'text', local, remote, diff };
   }
 }

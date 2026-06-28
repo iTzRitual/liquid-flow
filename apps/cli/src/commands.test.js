@@ -23,6 +23,7 @@ function makeCtx(overrides = {}) {
     openForm: vi.fn(),
     openConflicts: vi.fn((payload) => { captured.conflicts = payload; }),
     openConnect: vi.fn(),
+    openDiff: vi.fn(),
     logWrap: false,
     setLogWrap: vi.fn(),
     exit: vi.fn(),
@@ -64,7 +65,7 @@ describe('/conflicts — mapowanie typu konfliktu na akcje', () => {
     const cap = runConflicts([{ File: { Name: 'a', Mode: 0 }, Type: MismatchType.LocalMissing, FileTs: null, LocalTs: null, RemoteTs: '2026-01-01' }]);
     await Promise.resolve();
     const f = cap.conflicts.files[0];
-    expect(f.options.map((o) => o.value)).toEqual(['download', 'removeRemote']);
+    expect(f.options.map((o) => o.value)).toEqual(['download', 'removeRemote', 'preview']);
     expect(destructive.has(f.options[f.initial].value)).toBe(false);
   });
 
@@ -72,7 +73,7 @@ describe('/conflicts — mapowanie typu konfliktu na akcje', () => {
     const cap = runConflicts([{ File: { Name: 'b', Mode: 0 }, Type: MismatchType.RemoteMissing, FileTs: '2026-01-01', LocalTs: null, RemoteTs: null }]);
     await Promise.resolve();
     const f = cap.conflicts.files[0];
-    expect(f.options.map((o) => o.value)).toEqual(['upload', 'removeLocal']);
+    expect(f.options.map((o) => o.value)).toEqual(['upload', 'removeLocal', 'preview']);
     expect(destructive.has(f.options[f.initial].value)).toBe(false);
   });
 

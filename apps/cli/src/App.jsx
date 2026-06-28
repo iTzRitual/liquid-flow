@@ -16,6 +16,7 @@ import Picker from './components/Picker.jsx';
 import ConflictList from './components/ConflictList.jsx';
 import ConnectList from './components/ConnectList.jsx';
 import Form from './components/Form.jsx';
+import DiffView from './components/DiffView.jsx';
 
 export default function App() {
   const { exit } = useApp();
@@ -110,6 +111,11 @@ export default function App() {
         const self = { type: 'connect', ...data, parent: takeParent() };
         self.onShop = (...a) => { pendingParentRef.current = self; data.onShop?.(...a); };
         self.onAction = (...a) => { pendingParentRef.current = self; data.onAction?.(...a); };
+        setMode(self);
+      },
+      // ekran podglądu diff (read-only). Esc wraca do rodzica (ekranu konfliktów).
+      openDiff: (data) => {
+        const self = { type: 'diff', ...data, parent: takeParent() };
         setMode(self);
       },
       // porzuć zapamiętanego rodzica — gdy ekran, z którego przyszliśmy, przestaje
@@ -304,6 +310,10 @@ export default function App() {
 
       {mode.type === 'connect' && wrapAction(
         <ConnectList title={mode.title} shops={mode.shops} actions={mode.actions} onShop={mode.onShop} onAction={mode.onAction} onSlash={mode.onSlash} onCancel={() => cancelTo(mode)} maxRows={ovMax} t={t} />
+      )}
+
+      {mode.type === 'diff' && wrapAction(
+        <DiffView title={mode.title} preview={mode.preview} onCancel={() => cancelTo(mode)} maxRows={ovMax} t={t} />
       )}
 
       {mode.type === 'input' && (

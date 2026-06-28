@@ -348,6 +348,11 @@ export class Controller extends EventEmitter {
     return result;
   }
 
+  async previewConflict(file, type) {
+    if (!this.state.session) return null;
+    return this.state.session.previewConflict(file, type);
+  }
+
   getLog(sinceId = 0) { return logbuf.since(sinceId); }
 
   // ---------- git ----------
