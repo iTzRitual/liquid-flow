@@ -27,7 +27,7 @@ const mismatches = [1, 2, 3, 4];
 const HEADER = 8; // wartość kandydująca dla App.jsx (logo 7 + górny divider 1)
 
 function Probe({ rows, cols, nLogs }) {
-  const logRows = Math.max(3, rows - HEADER - 3); // root = termRows
+  const logRows = Math.max(3, rows - HEADER - 3); // root = termRows; +1 za bottomSpacer (full header)
   const log = Array.from({ length: nLogs }, (_, i) => ({ Id: i + 1, TS: Date.now(), Color: '#2A2', Text: `log ${i + 1}` }));
   const vlines = buildVlines(log, false, cols);
   return React.createElement(Box, { flexDirection: 'column', height: rows },

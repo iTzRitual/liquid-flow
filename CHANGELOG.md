@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.104] — 2026-06-29
+### Changed
+- CLI input mode: bottom spacer is now hidden when the header is in compact or none mode (small window), saving the row for content.
+
 ## [0.9.103] — 2026-06-29
 ### Changed
 - CLI input mode: added one blank line below the input field so it no longer sits flush against the terminal bottom edge.

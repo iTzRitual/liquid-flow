@@ -88,7 +88,8 @@ async function runPicker(rows, cols, nItems, nLogs) {
 async function runPalette(rows, cols, nCmds, nLogs) {
   const fillHeight = rows >= 16;
   const HEADERc = 8;
-  const logRows = Math.max(3, rows - HEADERc - 3); // root = termRows
+  const bottomSpacer = fillHeight; // headerMode=full gdy fillHeight
+  const logRows = Math.max(3, rows - HEADERc - (bottomSpacer ? 3 : 2)); // root = termRows
   const showLogWithPalette = fillHeight && nLogs > 0 && logRows >= 10;
   const paletteCap = Math.max(3, Math.min(nCmds, logRows - 4));
   const paletteLogRows = Math.max(1, logRows - paletteCap);
