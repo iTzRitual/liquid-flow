@@ -73,6 +73,29 @@ describe('ConflictList — operacje seryjne (bulk)', () => {
   });
 });
 
+describe('ConflictList — stała wysokość przy nawigacji', () => {
+  // Regresja: ekran konfliktów (przyklejony do dołu, log nad nim) nie może
+  // zmieniać wysokości przy ↑/↓ — inaczej log „skacze". Lista dłuższa niż budżet
+  // (8 plików, maxRows=10 → okienkowanie); wysokość MUSI być identyczna na każdej
+  // pozycji kursora.
+  it('renderuje identyczną liczbę wierszy na każdej pozycji kursora', async () => {
+    const many = Array.from({ length: 8 }, (_, i) => ({
+      name: `file${i}.liquid`, meta: 'lokalny nowszy', note: 'lokalny nowszy', initial: 0,
+      options: [{ label: 'Pobierz', value: 'download' }, { label: 'Wyślij', value: 'upload' }],
+    }));
+    const bulk = [{ label: 'Pobierz wszystkie', value: 'downloadAll' }];
+    const api = render(
+      <ConflictList title="K" files={many} bulk={bulk} onAction={() => {}} onBulk={() => {}} maxRows={10} t={t} />
+    );
+    const heights = [];
+    for (let n = 0; n <= many.length; n++) {
+      heights.push(frame(api).split('\n').length);
+      await press(api.stdin, keys.down);
+    }
+    expect(heights.every((h) => h === heights[0])).toBe(true);
+  });
+});
+
 describe('ConflictList — brak konfliktów', () => {
   it('pokazuje komunikat o braku konfliktów', () => {
     const api = render(<ConflictList title="K" files={[]} onAction={() => {}} t={t} />);
