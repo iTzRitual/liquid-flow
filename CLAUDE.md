@@ -432,6 +432,23 @@ commitów/błędy plumbingu to dane repo, nie UI); teksty widoczne w historii
   (feat/fix/style/etc.) + krótkie streszczenie (jedna linia, co się zmieniło).
   Pracujemy bezpośrednio na `main`. Remote:
   `git@github.com:iTzRitual/comarch-liquid-sync-2026.git`.
+- **Wersjonowanie (OBOWIĄZKOWE przy każdym commicie)**: przed każdym commitem
+  zwiększ numer patch w `version` o 1 we **wszystkich trzech** plikach
+  jednocześnie: `package.json` (root), `apps/cli/package.json`,
+  `packages/core/package.json`. Aktualną wersję odczytaj z jednego z tych plików
+  (są zawsze zsynchronizowane). Przykład: `0.9.91` → `0.9.92`. Minor (`0.X.0`)
+  zwiększamy tylko przy dużych kamieniach milowych (nowa funkcja o istotnym
+  zakresie). **Nigdy nie commituj bez zbumpowania wersji.**
+- **Changelog (`CHANGELOG.md`, OBOWIĄZKOWE przy każdym commicie)**: po zbumpowaniu
+  wersji dopisz nową sekcję na górze pliku (pod nagłówkiem `# Changelog`) w formacie:
+  ```
+  ## [X.Y.Z] — YYYY-MM-DD
+  ### Added / Changed / Fixed / Removed
+  - krótki opis zmiany (po angielsku, 1–2 zdania)
+  ```
+  Używaj kategorii Keep a Changelog: `Added` (nowe), `Changed` (modyfikacje),
+  `Fixed` (bugi), `Removed` (usunięte). Wpisuj tylko to, co zmieniła bieżąca
+  sesja — nie powielaj starszych wpisów.
 - **Bramka testów przed commitem (OBOWIĄZKOWE)**: po KAŻDEJ zmianie kodu, ZANIM
   zacommitujesz, uruchom `npm test`. Musi być **w 100% zielone**. Jeśli coś jest
   czerwone:
