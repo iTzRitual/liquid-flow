@@ -299,20 +299,21 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
     `LogPane` dostaje `dim` (wyszarza CAŁY log — `dimColor`, ten sam efekt co
     `historic` dla poprzedniej sesji). Czytelnie mówi „to kontekst, akcja jest
     niżej". Przy palecie rozdziela je divider; przy ekranach (mają własną ramkę)
-    — 1 wiersz przerwy (`<Text> </Text>`, wliczony w `ovLogRows`).
+    log lgnie WPROST pod ramkę (bez wiersza przerwy — usunięty, by box nie „pływał").
   - **Ekrany na dole z logiem nad**: helper `wrapAction(node)` w `App.jsx` owija
     każdą nakładkę w `flexGrow=1`+`justifyContent="flex-end"`, a nad nią wstawia
-    `LogPane` (rows `ovLogRows`, `dim`) + wiersz przerwy. **To FUNKCJA, nie komponent** — inaczej Box
+    `LogPane` (rows `ovLogRows`, `dim`) — bez spacera między logiem a ramką.
+    **To FUNKCJA, nie komponent** — inaczej Box
     dostaje nową tożsamość co render i React remontuje ekran, gubiąc `useState`
     pickerów. Budżet liczony z DANYCH: `overlayNatural` (ile pozycji + chrome),
     `ovRows = min(natural, overlayAvail)`, `ovMax = ovRows-4` (body),
-    `ovLogRows = overlayAvail - ovRows - 1`. Niezmiennik anty‑overflow:
+    `ovLogRows = overlayAvail - ovRows`. Niezmiennik anty‑overflow:
     `ovLogRows + wysokość_ekranu ≤ overlayAvail`. **Log nad ekranem to wypełniacz,
     nie wymóg**: pokazujemy go tylko gdy `ovLogRows >= 2` (1 wiersz to sam wskaźnik
     „↑ więcej" bez treści) — przy niskim oknie znika i ekran zajmuje całą wysokość
     (nakładka „nachodzi" na miejsce po ukrytym nagłówku, patrz niżej). **`overlayAvail`
-    MUSI równać się REALNEJ wysokości flex‑boxa nakładki** = `termRows - 1 - HEADER`
-    (root `termRows-1` minus nagłówek z górnym dividerem). To jedyny rosnący potomek
+    MUSI równać się REALNEJ wysokości flex‑boxa nakładki** = `termRows - HEADER`
+    (root `termRows` minus nagłówek z górnym dividerem). To jedyny rosnący potomek
     roota po nagłówku, więc każda rozbieżność (np. dawne `-2`) sprawia, że za krótki
     stos `justifyContent:flex-end` ląduje niżej i zostaje pusty wiersz (gap) MIĘDZY
     nagłówkiem a logiem. Drugi warunek braku gapu: ekran musi renderować się
@@ -336,21 +337,23 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
   przy tej samej wysokości.
   **Guard ma GLOBALNĄ podłogę, nie per‑tryb (`appMinRows()`)**: minimalna wysokość
   całej aplikacji = wymóg NAJCIĘŻSZEGO ekranu (conflicts z operacjami seryjnymi =
-  8, +1 bo root=`termRows-1` → **9**). Poniżej tej podłogi `guard` pokazuje się
+  **8**; root = `termRows`, więc bez „+1"). Poniżej tej podłogi `guard` pokazuje się
   przy KAŻDYM trybie (też w idle `input`), więc komunikat „za małe okno" nie
   wyskakuje dopiero po wejściu w cięższy ekran w środku pracy. `minRows` w wyniku
   to zawsze ta globalna podłoga (spójny komunikat). Powyżej podłogi `none` zawsze
-  mieści bieżący tryb (podłoga = max need + 1). Przy `guard` `App.jsx` renderuje
+  mieści bieżący tryb (podłoga = max need). Przy `guard` `App.jsx` renderuje
   wyśrodkowany `WindowTooSmall` (PL/EN, `{rows}` = `minRows`) zamiast rozsypanego/
   zdublowanego widoku; po `resize` znika sam (pełny re‑render). Testy:
   `apps/cli/src/layout.test.js` (logika + globalna podłoga), `Header.test.jsx`
-  (wariant compact). **Nie ma już `fillHeight`** — root zawsze `height={termRows-1}`,
-  nakładki zawsze owijane (`wrapAction`), a przepełnieniu zapobiega guard +
-  okienkowanie, nie próg wysokości.
-- **Wypełnianie wysokości (input na dole)**: root dostaje `height={termRows-1}`,
+  (wariant compact). **Nie ma już `fillHeight`** — root zawsze `height={termRows}`
+  (pełna wysokość, bez dolnej linii marginesu — box nakładki sięga ostatniego
+  wiersza terminala; w alt‑screenie z deferred‑wrap to bezpieczne, a brak overflow
+  pilnują guard + okienkowanie), nakładki zawsze owijane (`wrapAction`).
+- **Wypełnianie wysokości (input na dole)**: root dostaje `height={termRows}`,
   a obszar logu w trybie `input` ma `flexGrow={1}` + `justifyContent="flex-end"` —
-  input stoi stabilnie na dole, a log rośnie w górę i wypełnia okno (bez sztywnego
-  limitu; `logRows = termRows - HEADER - progress - 3`). **`HEADER` to teraz
+  input stoi stabilnie na dole (ostatni wiersz terminala), a log rośnie w górę i
+  wypełnia okno (bez sztywnego limitu; `logRows = termRows - HEADER - progress - 2`).
+  **`HEADER` to teraz
   `headerLayout().height`** (nie stała) — odpowiada REALNEJ wysokości wybranego
   wariantu nagłówka: za duża → pusta linia nad logiem, za mała → przepełnienie.
   Zasadę layoutu (w tym brak pustej linii) sprawdza `node apps/cli/test/fill-height.mjs`.

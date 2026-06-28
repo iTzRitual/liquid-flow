@@ -1,6 +1,6 @@
 {
   "name": "@liquidflow/cli",
-  "version": "0.9.94",
+  "version": "0.9.95",
   "description": "Liquid Flow — interaktywne CLI (liquidflow) do synchronizacji szablonów Liquid",
   "type": "module",
   "license": "MIT",

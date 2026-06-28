@@ -64,11 +64,11 @@ const ALL_MODES = [
 ];
 
 // Globalna minimalna wysokość okna dla CAŁEJ aplikacji: tyle, ile potrzebuje
-// najcięższy ekran (+1 bo root = termRows-1). Dzięki temu komunikat „za małe
-// okno" pojawia się od razu (przy każdym ekranie), a nie dopiero po wejściu w
-// cięższy ekran w środku pracy — minimum jest spójne dla wszystkich trybów.
+// najcięższy ekran (root = termRows, więc bez „+1"). Dzięki temu komunikat „za
+// małe okno" pojawia się od razu (przy każdym ekranie), a nie dopiero po wejściu
+// w cięższy ekran w środku pracy — minimum jest spójne dla wszystkich trybów.
 export function appMinRows() {
-  return Math.max(...ALL_MODES.map(minBodyRows)) + 1;
+  return Math.max(...ALL_MODES.map(minBodyRows));
 }
 
 // Wybór wariantu nagłówka wg wysokości okna i bieżącego trybu.
@@ -96,7 +96,7 @@ export function headerLayout({ termRows, termCols, mode }) {
 
   const want = naturalBodyRows(mode);
   const fullH = termCols < HEADER_STACK_COLS ? FULL_HEADER_STACKED_ROWS : FULL_HEADER_ROWS;
-  const under = (h) => termRows - 1 - h; // root rośnie do termRows-1
+  const under = (h) => termRows - h; // root rośnie do pełnej wysokości (termRows)
   if (termRows >= FULL_HEADER_MIN_TERM_ROWS && under(fullH) >= want)
     return { mode: 'full', height: fullH, minRows };
   if (under(COMPACT_HEADER_ROWS) >= want)

@@ -167,9 +167,9 @@ export default function App() {
   const HEADER = hl.height;
   // Log wypełnia dostępną wysokość. Pasek postępu, gdy widoczny, zajmuje 1 wiersz.
   const progressRows = progress ? 1 : 0;
-  const logRows = Math.max(1, termRows - HEADER - progressRows - 3);
+  const logRows = Math.max(1, termRows - HEADER - progressRows - 2);
   // paleta (gdy log się nie mieści obok): pełna wysokość pod nagłówkiem
-  const paletteMax = Math.max(3, termRows - HEADER - 2);
+  const paletteMax = Math.max(3, termRows - HEADER - 1);
   // log: wizualne wiersze (zależne od trybu zawijania i szerokości) + zakres scrolla
   const vlines = useMemo(() => buildVlines(log, logWrap, termCols), [log, logWrap, termCols]);
   // +1, bo na górze wskaźnik „↓ nowszych" zabiera wiersz z okna; bez tego
@@ -186,8 +186,8 @@ export default function App() {
   // `overlayAvail` MUSI równać się REALNEJ wysokości flex‑boxa nakładki, inaczej
   // `justifyContent:flex-end` spycha za krótki stos w dół i zostaje pusty wiersz
   // (gap). Ten flex‑box jest jedynym (rosnącym) dzieckiem roota po nagłówku, więc:
-  //   root(termRows-1) − HEADER = termRows − 1 − HEADER.
-  const overlayAvail = Math.max(1, termRows - 1 - HEADER);
+  //   root(termRows) − HEADER = termRows − HEADER.
+  const overlayAvail = Math.max(1, termRows - HEADER);
   // Naturalna (pełna) wysokość nakładki — TA SAMA liczba, którą layout.js bierze do
   // degradacji nagłówka, więc próg „nakładka się okienkuje" == próg „nagłówek
   // ustępuje" (jedno źródło prawdy w layout.js → header zmniejsza się dokładnie
@@ -195,10 +195,11 @@ export default function App() {
   const overlayNatural = naturalBodyRows(mode);
   const ovRows = Math.min(overlayNatural, overlayAvail);
   const ovMax = Math.max(1, ovRows - 4); // body ekranu (chrome ekranu = 4 wiersze)
-  // log nad ekranem + 1 wiersz przerwy (spacer); pokazujemy tylko gdy zostają ≥2
-  // wiersze — 1‑wierszowy log to sam wskaźnik „↑ więcej" (bez treści), a log jest
-  // tu tylko wypełniaczem, więc go wtedy pomijamy (ekran zajmuje całą wysokość).
-  const ovLogRows = Math.max(0, overlayAvail - ovRows - 1);
+  // log nad ekranem (bez wiersza przerwy — ekran lgnie wprost pod log); pokazujemy
+  // tylko gdy zostają ≥2 wiersze — 1‑wierszowy log to sam wskaźnik „↑ więcej" (bez
+  // treści), a log jest tu tylko wypełniaczem, więc go wtedy pomijamy (ekran
+  // zajmuje całą wysokość).
+  const ovLogRows = Math.max(0, overlayAvail - ovRows);
   const ovShowLog = ovLogRows >= 2 && log.length > 0;
 
   // --- paleta w trybie input ---
@@ -245,12 +246,12 @@ export default function App() {
   // żeby Box miał stabilną tożsamość w drzewie i nie remontował ekranu (zachowanie
   // stanu useState pickerów). Log to wypełniacz — gdy brak miejsca (niskie okno),
   // `ovShowLog` jest false i ekran zajmuje całą wysokość (nakładka „nachodzi" na
-  // miejsce po ukrytym nagłówku).
+  // miejsce po ukrytym nagłówku). Brak wiersza przerwy między logiem a ramką —
+  // ekran lgnie wprost pod (wyszarzony) log, jak input pod divider.
   const wrapAction = (node) => {
     return (
       <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
         {ovShowLog && <LogPane vlines={vlines} rows={ovLogRows} scroll={0} t={t} dim />}
-        {ovShowLog && <Text> </Text>}
         {node}
       </Box>
     );
@@ -261,14 +262,14 @@ export default function App() {
   // dokleja kopię ramki). Komunikat mieści się w 1 wierszu (truncate-end).
   if (tooSmall) {
     return (
-      <Box height={termRows - 1} alignItems="center" justifyContent="center" paddingX={1}>
+      <Box height={termRows} alignItems="center" justifyContent="center" paddingX={1}>
         <Text color="yellow" wrap="truncate-end">{tfmt(t.WindowTooSmall, { rows: hl.minRows })}</Text>
       </Box>
     );
   }
 
   return (
-    <Box flexDirection="column" height={termRows - 1}>
+    <Box flexDirection="column" height={termRows}>
       {headerMode !== 'none' && (
         <Header state={state} git={git} mismatches={mismatches} cols={termCols} t={t} compact={headerMode === 'compact'} />
       )}

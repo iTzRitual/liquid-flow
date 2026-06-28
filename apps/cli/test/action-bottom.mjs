@@ -33,11 +33,11 @@ function layoutOverlay(termRows, cols, nItems, nLogs) {
   const mode = { type: 'picker', items: Array.from({ length: nItems }) };
   const hl = headerLayout({ termRows, termCols: cols, mode });
   const HEADER = hl.height;
-  const overlayAvail = Math.max(1, termRows - 1 - HEADER);
+  const overlayAvail = Math.max(1, termRows - HEADER); // root = termRows (pełna wysokość)
   const natural = nItems + 4;
   const ovRows = Math.min(natural, overlayAvail);
   const ovMax = Math.max(1, ovRows - 4);
-  const ovLogRows = Math.max(0, overlayAvail - ovRows - 1);
+  const ovLogRows = Math.max(0, overlayAvail - ovRows); // brak spacera nad ekranem
   const ovShowLog = ovLogRows >= 2 && nLogs > 0;
   return { headerMode: hl.mode, HEADER, ovMax, ovLogRows, ovShowLog };
 }
@@ -50,9 +50,8 @@ async function runPicker(rows, cols, nItems, nLogs) {
   const wrap = (node) =>
     React.createElement(Box, { flexDirection: 'column', flexGrow: 1, justifyContent: 'flex-end' },
       ovShowLog ? React.createElement(LogPane, { vlines, rows: ovLogRows, scroll: 0, t, dim: true }) : null,
-      ovShowLog ? React.createElement(Text, null, ' ') : null,
       node);
-  const tree = React.createElement(Box, { flexDirection: 'column', height: rows - 1 },
+  const tree = React.createElement(Box, { flexDirection: 'column', height: rows },
     headerMode !== 'none' && React.createElement(Header, { state, git, mismatches: [], cols, t, compact: headerMode === 'compact' }),
     headerMode !== 'none' && React.createElement(Text, { color: 'blue' }, '─'.repeat(cols)),
     wrap(React.createElement(Picker, { title: 'Wybierz', items, onSelect(){}, onCancel(){}, maxRows: ovMax, t })));
@@ -66,8 +65,9 @@ async function runPicker(rows, cols, nItems, nLogs) {
   const logIdx = lines.map((l, i) => (/log \d/.test(l) ? i : -1)).filter((i) => i >= 0);
   const hasLog = logIdx.length > 0;
   const screenIdx = lines.findIndex((l) => /╭/.test(l)); // górna ramka ekranu
-  // między ostatnim wierszem logu a górną ramką ekranu musi być pusty wiersz
-  const gap = hasLog && screenIdx > 0 && (lines[screenIdx - 1] || '').trim() === '';
+  // ekran lgnie WPROST pod log — tuż nad górną ramką ma być treść logu, nie pusty
+  // wiersz (spacer został usunięty). `flush` = brak pustej linii między logiem a ramką.
+  const flush = hasLog && screenIdx > 0 && (lines[screenIdx - 1] || '').trim() !== '';
   const dimmed = raw.split("\n").some((l) => /log \d/.test(strip(l)) && /\x1b\[2m/.test(l)); // log renderowany z dimColor
   const last = lines[lines.length - 1] || '';
   const bottomIsScreen = /[╰─]/.test(last) || /wybór|Enter/.test(last);
@@ -77,18 +77,18 @@ async function runPicker(rows, cols, nItems, nLogs) {
   // lub wskaźnik „↑ starszych”), a nie pusty.
   const divIdx = lines.findIndex((l) => /^─+$/.test(l.trim()));
   const noTopGap = hasLog && divIdx >= 0 && (lines[divIdx + 1] || '').trim() !== '';
-  console.log(`picker rows=${rows} items=${nItems} logi=${nLogs} header=${headerMode}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} topGap=${!noTopGap} gap=${gap} dim=${dimmed}; dół=ekran:${bottomIsScreen}`);
+  console.log(`picker rows=${rows} items=${nItems} logi=${nLogs} header=${headerMode}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} topGap=${!noTopGap} flush=${flush} dim=${dimmed}; dół=ekran:${bottomIsScreen}`);
   if (overflow) lines.forEach((l, i) => console.log(String(i).padStart(2) + '|' + l));
-  // Zawsze: brak przepełnienia i ekran przyklejony do dołu. Log/gap/dim/noTopGap
+  // Zawsze: brak przepełnienia i ekran przyklejony do dołu. Log/flush/dim/noTopGap
   // tylko, gdy log jest widoczny (przy niskim oknie jest wypełniaczem i znika).
   const base = !overflow && bottomIsScreen;
-  return ovShowLog ? (base && hasLog && gap && dimmed && noTopGap) : base;
+  return ovShowLog ? (base && hasLog && flush && dimmed && noTopGap) : base;
 }
 
 async function runPalette(rows, cols, nCmds, nLogs) {
   const fillHeight = rows >= 16;
   const HEADERc = 8;
-  const logRows = Math.max(3, rows - HEADERc - 3);
+  const logRows = Math.max(3, rows - HEADERc - 2); // root = termRows
   const showLogWithPalette = fillHeight && nLogs > 0 && logRows >= 10;
   const paletteCap = Math.max(3, Math.min(nCmds, logRows - 4));
   const paletteLogRows = Math.max(1, logRows - paletteCap);
@@ -97,13 +97,13 @@ async function runPalette(rows, cols, nCmds, nLogs) {
   const vlines = buildVlines(log, false, cols);
   // Nowy układ aktywny: log > divider > podpowiedzi > input (bez spacera, bez
   // dolnego dividera). Divider tuż pod logiem jest siblingiem flex-boxa logu.
-  const tree = React.createElement(Box, { flexDirection: 'column', height: fillHeight ? rows - 1 : undefined },
+  const tree = React.createElement(Box, { flexDirection: 'column', height: fillHeight ? rows : undefined },
     React.createElement(Header, { state, git, mismatches: [], cols, t }),
     React.createElement(Text, { color: 'blue' }, '─'.repeat(cols)),
     React.createElement(Box, { flexDirection: 'column', flexGrow: 1, justifyContent: 'flex-end' },
       showLogWithPalette ? React.createElement(LogPane, { vlines, rows: paletteLogRows, scroll: 0, t, dim: true }) : null),
     showLogWithPalette ? React.createElement(Text, { color: 'blue' }, '─'.repeat(cols)) : null,
-    React.createElement(CommandPalette, { items, index: 0, maxRows: showLogWithPalette ? paletteCap : Math.max(3, rows - HEADERc - 2), t }),
+    React.createElement(CommandPalette, { items, index: 0, maxRows: showLogWithPalette ? paletteCap : Math.max(3, rows - HEADERc - 1), t }),
     React.createElement(Box, null, React.createElement(Text, { color: 'yellow' }, '› /')));
   const out = fakeStdout(cols, rows);
   const app = render(tree, { stdout: out, stdin: fakeStdin(), patchConsole: false });

@@ -26,18 +26,19 @@ describe('headerLayout — degradacja nagłówka z wysokością', () => {
 
   it('conflicts: nagłówek degraduje, by zmieścić WSZYSTKIE karty (nie okienkować)', () => {
     const mode = { type: 'conflicts', files: [1, 2], bulk: [1] }; // natural = 2*4+1+4 = 13
-    // pełny nagłówek (8) mieści całą treść dopiero gdy under(8) ≥ 13 → termRows ≥ 22
-    expect(headerLayout({ termRows: 22, termCols: COLS, mode }).mode).toBe('full');
-    // 21: pełny by okienkował karty (under(8)=12 < 13) → schodzi do compact (under(2)=18 ≥ 13)
-    expect(headerLayout({ termRows: 21, termCols: COLS, mode }).mode).toBe('compact');
+    // root = termRows, więc under(h) = termRows − h. Pełny nagłówek (8) mieści całą
+    // treść dopiero gdy under(8) ≥ 13 → termRows ≥ 21
+    expect(headerLayout({ termRows: 21, termCols: COLS, mode }).mode).toBe('full');
+    // 20: pełny by okienkował karty (under(8)=12 < 13) → schodzi do compact (under(2)=18 ≥ 13)
+    expect(headerLayout({ termRows: 20, termCols: COLS, mode }).mode).toBe('compact');
     expect(headerLayout({ termRows: 16, termCols: COLS, mode }).mode).toBe('compact');
-    // 15: nawet compact by okienkował (under(2)=12 < 13) → nagłówek ukryty (under(0)=14 ≥ 13)
-    expect(headerLayout({ termRows: 15, termCols: COLS, mode }).mode).toBe('none');
+    // 14: nawet compact by okienkował (under(2)=12 < 13) → nagłówek ukryty (under(0)=14 ≥ 13)
+    expect(headerLayout({ termRows: 14, termCols: COLS, mode }).mode).toBe('none');
   });
 
   it('picker z wieloma pozycjami woli mniejszy nagłówek niż okienkowanie listy', () => {
     // 10 pozycji → natural = 14. Przy 20 wierszach pełny nagłówek (8) zostawia tylko
-    // under(8)=11 < 14 → musiałby okienkować listę. Wolimy compact (under(2)=17 ≥ 14),
+    // under(8)=12 < 14 → musiałby okienkować listę. Wolimy compact (under(2)=18 ≥ 14),
     // żeby pokazać wszystkie pozycje — to jest sedno zgłoszenia.
     const many = { type: 'picker', items: Array.from({ length: 10 }) };
     expect(headerLayout({ termRows: 20, termCols: COLS, mode: many }).mode).toBe('compact');
@@ -48,14 +49,14 @@ describe('headerLayout — degradacja nagłówka z wysokością', () => {
 
   it('bardzo niskie okno (conflicts) → ukryty nagłówek, potem guard', () => {
     const mode = { type: 'conflicts', files: [1], bulk: [] }; // natural = 1*4 + 0 + 4 = 8
-    // 11: compact under(2)=8 ≥ 8 → compact (cała karta + nagłówek compact)
-    expect(headerLayout({ termRows: 11, termCols: COLS, mode }).mode).toBe('compact');
-    // 10: compact under(2)=7 < 8 → none (under(0)=9 ≥ 8 mieści całą kartę)
-    expect(headerLayout({ termRows: 10, termCols: COLS, mode }).mode).toBe('none');
-    // rows=9 = globalna podłoga (appMinRows) → jeszcze NIE guard, nagłówek ukryty
+    // 10: compact under(2)=8 ≥ 8 → compact (cała karta + nagłówek compact)
+    expect(headerLayout({ termRows: 10, termCols: COLS, mode }).mode).toBe('compact');
+    // 9: compact under(2)=7 < 8 → none (under(0)=9 ≥ 8 mieści całą kartę)
     expect(headerLayout({ termRows: 9, termCols: COLS, mode }).mode).toBe('none');
-    // rows=8 < podłoga → guard (mimo że sam conflicts bez bulk by się zmieścił)
-    expect(headerLayout({ termRows: 8, termCols: COLS, mode }).mode).toBe('guard');
+    // rows=8 = globalna podłoga (appMinRows) → jeszcze NIE guard, nagłówek ukryty
+    expect(headerLayout({ termRows: 8, termCols: COLS, mode }).mode).toBe('none');
+    // rows=7 < podłoga → guard
+    expect(headerLayout({ termRows: 7, termCols: COLS, mode }).mode).toBe('guard');
   });
 
   it('naturalBodyRows = pełna wysokość treści (spójne z App.overlayNatural)', () => {
@@ -77,7 +78,7 @@ describe('headerLayout — degradacja nagłówka z wysokością', () => {
 
   it('guard to globalna podłoga — ten sam próg i minRows dla KAŻDEGO trybu', () => {
     const floor = appMinRows();
-    expect(floor).toBe(9); // conflicts z bulk (8) + 1
+    expect(floor).toBe(8); // conflicts z bulk (8); root = termRows, brak „+1"
     const modes = [
       { type: 'input' },
       { type: 'picker', items: [1] },
@@ -110,7 +111,7 @@ describe('headerLayout — degradacja nagłówka z wysokością', () => {
       for (let rows = 3; rows <= 40; rows++) {
         const hl = headerLayout({ termRows: rows, termCols: COLS, mode });
         if (hl.mode === 'guard') continue;
-        const under = rows - 1 - hl.height;
+        const under = rows - hl.height; // root = termRows
         expect(under, `tryb ${mode.type} przy ${rows} wierszach`).toBeGreaterThanOrEqual(minBodyRows(mode));
       }
     }
