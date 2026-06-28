@@ -31,22 +31,47 @@ export function minBodyRows(mode) {
   }
 }
 
+// Wszystkie tryby, które mogą się pojawić w trakcie pracy — do policzenia
+// globalnej podłogi (najcięższy ekran). `conflicts` z operacjami seryjnymi to
+// najwyższy wymóg. Bierzemy najgorszy przypadek każdego trybu.
+const ALL_MODES = [
+  { type: 'conflicts', bulk: [0] },
+  { type: 'picker' },
+  { type: 'connect' },
+  { type: 'form' },
+  { type: 'loading' },
+  { type: 'input' },
+];
+
+// Globalna minimalna wysokość okna dla CAŁEJ aplikacji: tyle, ile potrzebuje
+// najcięższy ekran (+1 bo root = termRows-1). Dzięki temu komunikat „za małe
+// okno" pojawia się od razu (przy każdym ekranie), a nie dopiero po wejściu w
+// cięższy ekran w środku pracy — minimum jest spójne dla wszystkich trybów.
+export function appMinRows() {
+  return Math.max(...ALL_MODES.map(minBodyRows)) + 1;
+}
+
 // Wybór wariantu nagłówka wg wysokości okna i bieżącego trybu.
 // Zwraca { mode: 'full'|'compact'|'none'|'guard', height, minRows }.
 // `height` to liczba wierszy zajętych przez nagłówek (z górnym dividerem);
-// `minRows` to minimalna wysokość okna potrzebna trybowi (do komunikatu guard).
+// `minRows` to GLOBALNE minimum aplikacji (do komunikatu guard, spójne wszędzie).
+//
+// Guard używa globalnej podłogi (`appMinRows`), a NIE wymogu bieżącego trybu —
+// inaczej info o za małym oknie wyskakiwałoby dopiero po przejściu na cięższy
+// ekran. Sam wariant nagłówka (full/compact/none) degraduje się już per‑tryb:
+// lekki ekran (np. input) dostaje ładniejszy nagłówek niż conflicts przy tej
+// samej wysokości. Po przejściu podłogi `under(0) >= need` zachodzi dla każdego
+// trybu (podłoga = max need + 1), więc 'none' zawsze zmieści bieżący tryb.
 export function headerLayout({ termRows, termCols, mode }) {
+  const minRows = appMinRows();
+  if (termRows < minRows) return { mode: 'guard', height: 0, minRows };
+
   const need = minBodyRows(mode);
   const fullH = termCols < HEADER_STACK_COLS ? FULL_HEADER_STACKED_ROWS : FULL_HEADER_ROWS;
-  // Root rośnie do termRows-1 (input/nakładki przypięte do dołu), więc pod
-  // nagłówkiem zostaje (termRows-1) - height wierszy.
-  const under = (h) => termRows - 1 - h;
-  const minRows = need + 1; // +1: root = termRows-1
+  const under = (h) => termRows - 1 - h; // root rośnie do termRows-1
   if (termRows >= FULL_HEADER_MIN_TERM_ROWS && under(fullH) >= need)
     return { mode: 'full', height: fullH, minRows };
   if (under(COMPACT_HEADER_ROWS) >= need)
     return { mode: 'compact', height: COMPACT_HEADER_ROWS, minRows };
-  if (under(0) >= need)
-    return { mode: 'none', height: 0, minRows };
-  return { mode: 'guard', height: 0, minRows };
+  return { mode: 'none', height: 0, minRows };
 }

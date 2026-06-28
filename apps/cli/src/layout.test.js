@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   headerLayout,
   minBodyRows,
+  appMinRows,
   FULL_HEADER_ROWS,
   COMPACT_HEADER_ROWS,
   FULL_HEADER_MIN_TERM_ROWS,
@@ -32,15 +33,13 @@ describe('headerLayout — degradacja nagłówka z wysokością', () => {
   });
 
   it('bardzo niskie okno (conflicts) → ukryty nagłówek, potem guard', () => {
-    const mode = { type: 'conflicts', files: [1], bulk: [] }; // need = 4 + 3 = 7 → minRows 8
+    const mode = { type: 'conflicts', files: [1], bulk: [] }; // need = 4 + 3 = 7
     // under(compact=2) = rows-1-2; potrzeba ≥7 → rows ≥10 dla compact
     expect(headerLayout({ termRows: 10, termCols: COLS, mode }).mode).toBe('compact');
-    // rows=8: under(2)=5<7, under(0)=7≥7 → ukryty
-    expect(headerLayout({ termRows: 8, termCols: COLS, mode }).mode).toBe('none');
-    // rows=7: under(0)=6<7 → guard
-    const guard = headerLayout({ termRows: 7, termCols: COLS, mode });
-    expect(guard.mode).toBe('guard');
-    expect(guard.minRows).toBe(8);
+    // rows=9 = globalna podłoga (appMinRows) → jeszcze NIE guard, nagłówek ukryty
+    expect(headerLayout({ termRows: 9, termCols: COLS, mode }).mode).toBe('none');
+    // rows=8 < podłoga → guard (mimo że sam conflicts bez bulk by się zmieścił)
+    expect(headerLayout({ termRows: 8, termCols: COLS, mode }).mode).toBe('guard');
   });
 
   it('minBodyRows uwzględnia stopkę seryjną tylko gdy są operacje bulk', () => {
@@ -48,6 +47,29 @@ describe('headerLayout — degradacja nagłówka z wysokością', () => {
     expect(minBodyRows({ type: 'conflicts', files: [1], bulk: [1] })).toBe(8);
     expect(minBodyRows({ type: 'picker' })).toBe(5);
     expect(minBodyRows({ type: 'input' })).toBe(2);
+  });
+
+  it('guard to globalna podłoga — ten sam próg i minRows dla KAŻDEGO trybu', () => {
+    const floor = appMinRows();
+    expect(floor).toBe(9); // conflicts z bulk (8) + 1
+    const modes = [
+      { type: 'input' },
+      { type: 'picker', items: [1] },
+      { type: 'conflicts', files: [1], bulk: [1] },
+      { type: 'form', fields: [1] },
+      { type: 'loading' },
+      { type: 'connect', shops: [1] },
+    ];
+    for (const mode of modes) {
+      // Tuż poniżej podłogi: guard niezależnie od trybu (nie wyskoczy w środku pracy).
+      const below = headerLayout({ termRows: floor - 1, termCols: COLS, mode });
+      expect(below.mode, `guard dla ${mode.type} przy ${floor - 1}`).toBe('guard');
+      expect(below.minRows).toBe(floor);
+      // Na podłodze: już nie guard (każdy tryb się mieści, choćby z ukrytym nagłówkiem).
+      const at = headerLayout({ termRows: floor, termCols: COLS, mode });
+      expect(at.mode, `nie‑guard dla ${mode.type} przy ${floor}`).not.toBe('guard');
+      expect(at.minRows).toBe(floor); // komunikat zawsze pokazuje globalne minimum
+    }
   });
 
   it('wybrany wariant nigdy nie powoduje przepełnienia (suma ≤ termRows)', () => {

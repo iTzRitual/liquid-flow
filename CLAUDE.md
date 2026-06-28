@@ -329,13 +329,21 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
   (1 wiersz „Liquid Flow │ ● Sklep │ Szablon │ ⚠ N", `Header` z propem `compact`,
   wraz z górnym dividerem = 2) → `none` (nagłówek **ukryty**: nakładka „nachodzi"
   na jego miejsce — terminal nie ma z‑indexu, więc po prostu go nie renderujemy,
-  razem z górnym dividerem) → `guard` (gdy nawet bez nagłówka nie ma miejsca na
-  minimum trybu). O wyborze decyduje `minBodyRows(mode)` = ile wierszy treści POD
-  nagłówkiem dany tryb potrzebuje (conflicts: chrome 4 + 1 karta 3 + stopka;
-  picker/connect/form: chrome 4 + 1 pozycja; input: 2). Przy `guard` `App.jsx`
-  renderuje wyśrodkowany komunikat `WindowTooSmall` (PL/EN, `{rows}` = `minRows`)
-  zamiast rozsypanego/zdublowanego widoku. Po `resize` guard znika sam (pełny
-  re‑render). Testy: `apps/cli/src/layout.test.js` (logika), `Header.test.jsx`
+  razem z górnym dividerem) → `guard` (okno za małe). O wariancie nagłówka decyduje
+  `minBodyRows(mode)` = ile wierszy treści POD nagłówkiem dany tryb potrzebuje
+  (conflicts: chrome 4 + 1 karta 3 + stopka; picker/connect/form: chrome 4 +
+  1 pozycja; input: 2) — lekki ekran dostaje ładniejszy nagłówek niż conflicts
+  przy tej samej wysokości.
+  **Guard ma GLOBALNĄ podłogę, nie per‑tryb (`appMinRows()`)**: minimalna wysokość
+  całej aplikacji = wymóg NAJCIĘŻSZEGO ekranu (conflicts z operacjami seryjnymi =
+  8, +1 bo root=`termRows-1` → **9**). Poniżej tej podłogi `guard` pokazuje się
+  przy KAŻDYM trybie (też w idle `input`), więc komunikat „za małe okno" nie
+  wyskakuje dopiero po wejściu w cięższy ekran w środku pracy. `minRows` w wyniku
+  to zawsze ta globalna podłoga (spójny komunikat). Powyżej podłogi `none` zawsze
+  mieści bieżący tryb (podłoga = max need + 1). Przy `guard` `App.jsx` renderuje
+  wyśrodkowany `WindowTooSmall` (PL/EN, `{rows}` = `minRows`) zamiast rozsypanego/
+  zdublowanego widoku; po `resize` znika sam (pełny re‑render). Testy:
+  `apps/cli/src/layout.test.js` (logika + globalna podłoga), `Header.test.jsx`
   (wariant compact). **Nie ma już `fillHeight`** — root zawsze `height={termRows-1}`,
   nakładki zawsze owijane (`wrapAction`), a przepełnieniu zapobiega guard +
   okienkowanie, nie próg wysokości.
