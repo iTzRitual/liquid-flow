@@ -17,9 +17,28 @@ export const HEADER_STACK_COLS = 52;
 //    kolumny, więc nie ściskają wierszy statusu (to nie trzecia kolumna).
 // Przy bardzo wąskim oknie (cols < HEADER_STACK_COLS) przełączamy się na układ
 // pionowy: logo na górze, informacje pod spodem (na pełną szerokość).
-export default function Header({ state, git, mismatches, cols = 80, t }) {
+export default function Header({ state, git, mismatches, cols = 80, t, compact = false }) {
   const conflicts = mismatches?.length || 0;
   const stacked = cols < HEADER_STACK_COLS;
+
+  // Wariant compact (niskie okno): jeden wiersz zamiast logo —
+  // „Liquid Flow │ ● Sklep │ Szablon │ ⚠ N", przycinany jako całość.
+  if (compact) {
+    const shop = state?.currentShop;
+    const tpl = state?.currentTemplate;
+    return (
+      <Box paddingLeft={1}>
+        <Text wrap="truncate-end">
+          <Text color="#4da3ff" bold>Liquid Flow</Text>
+          {shop
+            ? <Text><Text dimColor> │ </Text><Text color="green">● {shop.Name}</Text></Text>
+            : <Text><Text dimColor> │ </Text><Text dimColor>~</Text></Text>}
+          {tpl && <Text><Text dimColor> │ </Text><Text color="cyan">{tpl.Name}</Text></Text>}
+          {conflicts > 0 && <Text><Text dimColor> │ </Text><Text color="red">{tfmt(t.ConflictsShort, { count: conflicts })}</Text></Text>}
+        </Text>
+      </Box>
+    );
+  }
 
   const conflictRow = conflicts > 0 ? (
     <Box justifyContent="flex-end">

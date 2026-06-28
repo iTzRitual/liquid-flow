@@ -50,6 +50,22 @@ describe('LogPane — budżet wierszy i przewijanie', () => {
     }
   });
 
+  it('twardy budżet także dla małych rows (1,2,3) — wskaźnik nie wypycha wpisu poza okno', () => {
+    const vlines = buildVlines(sampleLog(20), false, 80);
+    for (const rows of [1, 2, 3]) {
+      for (const scroll of [0, 5, 19]) {
+        const api = render(<LogPane vlines={vlines} rows={rows} scroll={scroll} t={t} />);
+        expect(frameLines(api).length, `rows=${rows} scroll=${scroll}`).toBeLessThanOrEqual(rows);
+      }
+    }
+  });
+
+  it('rows=1 z treścią nad oknem nie pokazuje LogEmpty (log nie jest pusty)', () => {
+    const vlines = buildVlines(sampleLog(20), false, 80);
+    const api = render(<LogPane vlines={vlines} rows={1} scroll={0} t={t} />);
+    expect(strip(api.lastFrame())).not.toContain(t.LogEmpty);
+  });
+
   it('scroll=0 pokazuje najnowszy wpis na dole', () => {
     const vlines = buildVlines(sampleLog(20), false, 80);
     const api = render(<LogPane vlines={vlines} rows={ROWS} scroll={0} t={t} />);

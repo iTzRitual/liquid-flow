@@ -44,6 +44,28 @@ describe('Header — anty-przepełnienie i nierozpadające się logo', () => {
     expect(f).not.toMatch(/[Kk]onflikt/);
   });
 
+  it('compact: jeden wiersz, bez logo ASCII, ze sklepem/szablonem/konfliktami', async () => {
+    const lines = await renderFrame(
+      <Header state={state} git={git} mismatches={[1, 2, 3]} cols={80} t={t} compact />, 80
+    );
+    const nonEmpty = lines.filter((l) => l.trim() !== '');
+    expect(nonEmpty.length).toBe(1); // jeden wiersz treści
+    const f = nonEmpty[0];
+    expect(f).toContain('Liquid Flow');
+    expect(f).toContain('walter');
+    expect(f).toContain('new');
+    expect(f).toContain('3'); // licznik konfliktów
+    expect(f).not.toContain('████'); // brak logo ASCII
+  });
+
+  it('compact: przycina się do szerokości okna', async () => {
+    const cols = 24;
+    const lines = await renderFrame(
+      <Header state={state} git={git} mismatches={[5]} cols={cols} t={t} compact />, cols
+    );
+    for (const ln of lines) expect([...ln].length).toBeLessThanOrEqual(cols);
+  });
+
   it('układ pionowy (stacked) jest wyższy od 2-kolumnowego przy wąskim oknie', async () => {
     const wide = await renderFrame(<Header state={state} git={git} mismatches={[]} cols={90} t={t} />, 90);
     const narrow = await renderFrame(<Header state={state} git={git} mismatches={[]} cols={HEADER_STACK_COLS - 1} t={t} />, HEADER_STACK_COLS - 1);

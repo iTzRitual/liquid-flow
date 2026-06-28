@@ -1,11 +1,12 @@
 import { Box, Text, useApp, useInput, useStdout } from 'ink';
 import TextInput from 'ink-text-input';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { log as corelog } from '@liquidflow/core';
+import { log as corelog, tfmt } from '@liquidflow/core';
 
 import { useController } from './useController.js';
 import { buildCommands } from './commands.js';
-import Header, { HEADER_STACK_COLS } from './components/Header.jsx';
+import { headerLayout } from './layout.js';
+import Header from './components/Header.jsx';
 import Divider from './components/Divider.jsx';
 import ProgressView from './components/ProgressView.jsx';
 import Spinner from './components/Spinner.jsx';
@@ -155,22 +156,18 @@ export default function App() {
   useEffect(() => { setLogScroll(0); }, [logVersion]);
 
   // --- wymiary i pochodne (przed useInput, bo scroll ich używa) ---
-  // Stałe „chrome" = nagłówek (logo+marginesy) + dividery + input + zapas.
   const paletteOpen = filtered.length > 0;
-  // Wysokość „chrome" nagłówka. W układzie pionowym (wąskie okno) logo i
-  // informacje są pod sobą, więc nagłówek jest wyższy.
-  const stackedHeader = termCols < HEADER_STACK_COLS;
-  // Realna wysokość nagłówka: marginTop(1)+logo(6)=7, plus górny divider=8 (logo
-  // zawsze dominuje nad kolumną informacji). Dokładna wartość sprawia, że log
-  // przylega do górnego dividera (brak pustej linii). Stackowany jest wyższy.
-  const HEADER = stackedHeader ? 14 : 8;
-  // Log wypełnia całą dostępną wysokość (bez sztywnego limitu 16). Pasek postępu,
-  // gdy widoczny, zajmuje 1 wiersz — odejmujemy go z budżetu.
+  // Nagłówek degraduje się z wysokością okna: pełny → compact (1 wiersz) →
+  // ukryty (nakładka „nachodzi" na nagłówek), a gdy nawet bez nagłówka nie ma
+  // miejsca na minimum trybu → guard (ekran „okno za małe"). Liczone w layout.js.
+  const hl = headerLayout({ termRows, termCols, mode });
+  const headerMode = hl.mode; // 'full' | 'compact' | 'none' | 'guard'
+  const tooSmall = headerMode === 'guard';
+  // Realna wysokość nagłówka (z górnym dividerem). 0 gdy ukryty/guard.
+  const HEADER = hl.height;
+  // Log wypełnia dostępną wysokość. Pasek postępu, gdy widoczny, zajmuje 1 wiersz.
   const progressRows = progress ? 1 : 0;
-  const logRows = Math.max(3, termRows - HEADER - progressRows - 3);
-  // Na sensownie wysokim oknie przypinamy input do dołu (flexGrow w obszarze
-  // logu); na niskim wracamy do naturalnego przepływu, by nic nie wystawało.
-  const fillHeight = termRows >= 16;
+  const logRows = Math.max(1, termRows - HEADER - progressRows - 3);
   // paleta (gdy log się nie mieści obok): pełna wysokość pod nagłówkiem
   const paletteMax = Math.max(3, termRows - HEADER - 2);
   // log: wizualne wiersze (zależne od trybu zawijania i szerokości) + zakres scrolla
@@ -182,35 +179,33 @@ export default function App() {
 
   // --- nakładki (picker/form/conflicts/connect/loading) ---
   // Spójna zasada: ekran przyklejony do DOŁU (jak input), a nad nim — log jako
-  // kontekst. Wysokość ekranu liczymy z DANYCH (ile pozycji), więc krótki ekran
-  // nie zabiera całej wysokości — log dostaje resztę; długi ekran windowuje się,
-  // log dostaje minimum. Niezmiennik: logRows + wysokość_ekranu ≤ overlayAvail
-  // (anty‑overflow).
+  // kontekst (filler). Wysokość ekranu liczymy z DANYCH (ile pozycji), więc krótki
+  // ekran nie zabiera całej wysokości — log dostaje resztę; długi ekran windowuje
+  // się, a log znika (1 linia logu NIE jest wymogiem — to tylko wypełnienie).
   //
   // `overlayAvail` MUSI równać się REALNEJ wysokości flex‑boxa nakładki, inaczej
   // `justifyContent:flex-end` spycha za krótki stos w dół i zostaje pusty wiersz
-  // (gap) MIĘDZY nagłówkiem a logiem. Ten flex‑box jest jedynym (rosnącym)
-  // dzieckiem roota po nagłówku i górnym dividerze, więc:
-  //   root(termRows-1) − HEADER(logo+marginesy+górny divider) = termRows − HEADER − 1.
-  // (Wcześniej było `-2` → log zawsze 1 wiersz za nisko.)
-  const overlayAvail = Math.max(3, termRows - HEADER - 1);
+  // (gap). Ten flex‑box jest jedynym (rosnącym) dzieckiem roota po nagłówku, więc:
+  //   root(termRows-1) − HEADER = termRows − 1 − HEADER.
+  const overlayAvail = Math.max(1, termRows - 1 - HEADER);
   const overlayNatural =
     mode.type === 'picker' ? (mode.items?.length || 0) + 4
     : mode.type === 'connect' ? (mode.shops?.length || 0) + 6
     : mode.type === 'conflicts' ? (mode.files?.length || 0) * 4 + (mode.bulk?.length ? 1 : 0) + 4
     : mode.type === 'form' ? (mode.fields?.length || 0) + 4
     : 4; // loading
-  const ovShowLog = fillHeight && log.length > 0 && overlayAvail >= 12;
-  const ovReserve = ovShowLog ? 4 : 0; // minimalny log nad ekranem
-  const ovRows = Math.min(overlayNatural, overlayAvail - ovReserve);
-  const ovMax = Math.max(3, ovRows - 4); // body ekranu (chrome ekranu = 4 wiersze)
-  // log nad ekranem + 1 wiersz przerwy (spacer) między logiem a ekranem
-  const ovLogRows = ovShowLog ? Math.max(0, overlayAvail - ovRows - 1) : 0;
+  const ovRows = Math.min(overlayNatural, overlayAvail);
+  const ovMax = Math.max(1, ovRows - 4); // body ekranu (chrome ekranu = 4 wiersze)
+  // log nad ekranem + 1 wiersz przerwy (spacer); pokazujemy tylko gdy zostają ≥2
+  // wiersze — 1‑wierszowy log to sam wskaźnik „↑ więcej" (bez treści), a log jest
+  // tu tylko wypełniaczem, więc go wtedy pomijamy (ekran zajmuje całą wysokość).
+  const ovLogRows = Math.max(0, overlayAvail - ovRows - 1);
+  const ovShowLog = ovLogRows >= 2 && log.length > 0;
 
   // --- paleta w trybie input ---
-  // Slash NIE chowa już logu: paleta zajmuje kawałek przy dole (tuż nad inputem),
+  // Slash NIE chowa logu: paleta zajmuje kawałek przy dole (tuż nad inputem),
   // a log wypełnia resztę nad nią. Mieścimy się tylko gdy jest sensownie wysoko.
-  const showLogWithPalette = fillHeight && log.length > 0 && logRows >= 10;
+  const showLogWithPalette = log.length > 0 && logRows >= 10;
   const logWithPalette = paletteOpen && showLogWithPalette;
   // Aktywny tryb: log > divider > podpowiedzi > input (ten sam divider co pasywny,
   // tuż pod logiem; bez spacera). Divider(1)+input(1) już są w budżecie logRows (−3);
@@ -246,27 +241,40 @@ export default function App() {
     if (target) target.run();
   };
 
-  // Owija ekran nakładki we wspólny obszar akcji: log u góry (kontekst), ekran
-  // przyklejony do dołu — spójnie z inputem. To FUNKCJA (nie komponent), żeby Box
-  // miał stabilną tożsamość w drzewie i nie remontował ekranu (zachowanie stanu
-  // useState pickerów). Na niskim oknie (brak fillHeight) — naturalny przepływ.
+  // Owija ekran nakładki we wspólny obszar akcji: log u góry (kontekst, filler),
+  // ekran przyklejony do dołu — spójnie z inputem. To FUNKCJA (nie komponent),
+  // żeby Box miał stabilną tożsamość w drzewie i nie remontował ekranu (zachowanie
+  // stanu useState pickerów). Log to wypełniacz — gdy brak miejsca (niskie okno),
+  // `ovShowLog` jest false i ekran zajmuje całą wysokość (nakładka „nachodzi" na
+  // miejsce po ukrytym nagłówku).
   const wrapAction = (node) => {
-    if (!fillHeight) return node;
-    const showLog = ovLogRows > 0 && log.length > 0;
     return (
       <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
-        {showLog && <LogPane vlines={vlines} rows={ovLogRows} scroll={0} t={t} dim />}
-        {showLog && <Text> </Text>}
+        {ovShowLog && <LogPane vlines={vlines} rows={ovLogRows} scroll={0} t={t} dim />}
+        {ovShowLog && <Text> </Text>}
         {node}
       </Box>
     );
   };
 
-  return (
-    <Box flexDirection="column" height={fillHeight ? termRows - 1 : undefined}>
-      <Header state={state} git={git} mismatches={mismatches} cols={termCols} t={t} />
+  // Okno za niskie, by zmieścić bieżący tryb nawet bez nagłówka — pokaż prośbę o
+  // powiększenie zamiast rozsypanego/zdublowanego widoku (Ink przy przepełnieniu
+  // dokleja kopię ramki). Komunikat mieści się w 1 wierszu (truncate-end).
+  if (tooSmall) {
+    return (
+      <Box height={termRows - 1} alignItems="center" justifyContent="center" paddingX={1}>
+        <Text color="yellow" wrap="truncate-end">{tfmt(t.WindowTooSmall, { rows: hl.minRows })}</Text>
+      </Box>
+    );
+  }
 
-      <Divider />
+  return (
+    <Box flexDirection="column" height={termRows - 1}>
+      {headerMode !== 'none' && (
+        <Header state={state} git={git} mismatches={mismatches} cols={termCols} t={t} compact={headerMode === 'compact'} />
+      )}
+
+      {headerMode !== 'none' && <Divider />}
 
       {mode.type === 'loading' && wrapAction(
         <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>

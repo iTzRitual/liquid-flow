@@ -63,22 +63,29 @@ export default function LogPane({ vlines, rows = 10, scroll = 0, t, dim = false 
   const end = total - off;
 
   const hasBelow = end < total;                 // przewinięto w górę → są nowsze pod spodem
-  let avail = Math.max(1, rows - (hasBelow ? 1 : 0));
-  let start = Math.max(0, end - avail);
-  const hasAbove = start > 0;                    // są starsze nad
-  if (hasAbove) { avail = Math.max(1, avail - 1); start = Math.max(0, end - avail); }
+  // Budżet na wpisy = rows minus wskaźniki, które faktycznie pokażemy. NIE
+  // podłogujemy `avail` do 1 — przy `rows===1` ze wskaźnikiem „↑" budżet wpisów
+  // musi spaść do 0, inaczej wskaźnik + wpis = 2 wiersze przekraczają `rows`
+  // (Ink przy przepełnieniu obcina/duplikuje kadr). Lepiej pokazać sam wskaźnik.
+  let avail = rows - (hasBelow ? 1 : 0);
+  let start = Math.max(0, end - Math.max(0, avail));
+  let hasAbove = start > 0;                      // są starsze nad
+  if (hasAbove) { avail -= 1; start = Math.max(0, end - Math.max(0, avail)); hasAbove = start > 0; }
 
-  const slice = vlines.slice(start, end);
+  const slice = avail > 0 ? vlines.slice(start, end) : [];
 
-  return (
-    <Box flexDirection="column" paddingX={1}>
-      {hasAbove && <Text dimColor>{tfmt(t.OlderEntries, { count: start })}</Text>}
-      {slice.length === 0
-        ? <Text dimColor>{t.LogEmpty}</Text>
-        : slice.map((l) => (
-            <Text key={l.key} color={l.color} dimColor={l.dim || dim} wrap={l.trunc ? 'truncate-end' : 'wrap'}>{l.text}</Text>
-          ))}
-      {hasBelow && <Text dimColor>{tfmt(t.NewerEntries, { count: total - end })}</Text>}
-    </Box>
+  // Złóż wszystkie wiersze i utnij twardo do `rows` (zostaw dolne — najnowsze,
+  // najbliżej akcji). Zabezpiecza skrajny przypadek `rows===1` z treścią i nad,
+  // i pod oknem (oba wskaźniki = 2 wiersze): cap przycina do budżetu zamiast
+  // przepełnić kadr (Ink przy przepełnieniu obcina/dubluje).
+  const pieces = [];
+  if (hasAbove) pieces.push(<Text key="above" dimColor>{tfmt(t.OlderEntries, { count: start })}</Text>);
+  if (total === 0) pieces.push(<Text key="empty" dimColor>{t.LogEmpty}</Text>);
+  for (const l of slice) pieces.push(
+    <Text key={l.key} color={l.color} dimColor={l.dim || dim} wrap={l.trunc ? 'truncate-end' : 'wrap'}>{l.text}</Text>
   );
+  if (hasBelow) pieces.push(<Text key="below" dimColor>{tfmt(t.NewerEntries, { count: total - end })}</Text>);
+  const visible = pieces.length > rows ? pieces.slice(pieces.length - rows) : pieces;
+
+  return <Box flexDirection="column" paddingX={1}>{visible}</Box>;
 }

@@ -15,6 +15,7 @@ const mod = await import('../src/components/LogPane.jsx');
 const LogPane = mod.default; const { buildVlines } = mod;
 const Picker = (await import('../src/components/Picker.jsx')).default;
 const CommandPalette = (await import('../src/components/CommandPalette.jsx')).default;
+const { headerLayout } = await import('../src/layout.js');
 const { translationsFor } = await import('@liquidflow/core');
 const t = translationsFor('pl');
 
@@ -26,35 +27,34 @@ const fakeStdin = () => { const s = new PassThrough(); s.isTTY = true; s.setRawM
 
 const state = { currentShop: { Name: 'walter', Url: 'https://walter.comarch-esklep.pl' }, currentTemplate: { Id: 3, Name: 'new' } };
 const git = { active: true, autoCommit: true, autoPush: false };
-const HEADER = 8;
 
-function layoutOverlay(termRows, nItems, nLogs) {
-  const fillHeight = termRows >= 16;
-  const overlayAvail = Math.max(3, termRows - HEADER - 1);
+// Liczenie 1:1 z App.jsx, ale przez layout.js (degradacja nagłówka z wysokością).
+function layoutOverlay(termRows, cols, nItems, nLogs) {
+  const mode = { type: 'picker', items: Array.from({ length: nItems }) };
+  const hl = headerLayout({ termRows, termCols: cols, mode });
+  const HEADER = hl.height;
+  const overlayAvail = Math.max(1, termRows - 1 - HEADER);
   const natural = nItems + 4;
-  const ovShowLog = fillHeight && nLogs > 0 && overlayAvail >= 12;
-  const ovReserve = ovShowLog ? 4 : 0;
-  const ovRows = Math.min(natural, overlayAvail - ovReserve);
-  const ovMax = Math.max(3, ovRows - 4);
-  const ovLogRows = ovShowLog ? Math.max(0, overlayAvail - ovRows - 1) : 0;
-  return { fillHeight, ovMax, ovLogRows };
+  const ovRows = Math.min(natural, overlayAvail);
+  const ovMax = Math.max(1, ovRows - 4);
+  const ovLogRows = Math.max(0, overlayAvail - ovRows - 1);
+  const ovShowLog = ovLogRows >= 2 && nLogs > 0;
+  return { headerMode: hl.mode, HEADER, ovMax, ovLogRows, ovShowLog };
 }
 
 async function runPicker(rows, cols, nItems, nLogs) {
-  const { fillHeight, ovMax, ovLogRows } = layoutOverlay(rows, nItems, nLogs);
+  const { headerMode, ovMax, ovLogRows, ovShowLog } = layoutOverlay(rows, cols, nItems, nLogs);
   const items = Array.from({ length: nItems }, (_, i) => ({ label: `pozycja ${i + 1}`, value: i }));
   const log = Array.from({ length: nLogs }, (_, i) => ({ Id: i + 1, TS: Date.now(), Color: '#2A2', Text: `log ${i + 1}` }));
   const vlines = buildVlines(log, false, cols);
-  const showLog = fillHeight && ovLogRows > 0 && log.length > 0;
-  const wrap = (node) => fillHeight
-    ? React.createElement(Box, { flexDirection: 'column', flexGrow: 1, justifyContent: 'flex-end' },
-        showLog ? React.createElement(LogPane, { vlines, rows: ovLogRows, scroll: 0, t, dim: true }) : null,
-        showLog ? React.createElement(Text, null, ' ') : null,
-        node)
-    : node;
-  const tree = React.createElement(Box, { flexDirection: 'column', height: fillHeight ? rows - 1 : undefined },
-    React.createElement(Header, { state, git, mismatches: [], cols, t }),
-    React.createElement(Text, { color: 'blue' }, '─'.repeat(cols)),
+  const wrap = (node) =>
+    React.createElement(Box, { flexDirection: 'column', flexGrow: 1, justifyContent: 'flex-end' },
+      ovShowLog ? React.createElement(LogPane, { vlines, rows: ovLogRows, scroll: 0, t, dim: true }) : null,
+      ovShowLog ? React.createElement(Text, null, ' ') : null,
+      node);
+  const tree = React.createElement(Box, { flexDirection: 'column', height: rows - 1 },
+    headerMode !== 'none' && React.createElement(Header, { state, git, mismatches: [], cols, t, compact: headerMode === 'compact' }),
+    headerMode !== 'none' && React.createElement(Text, { color: 'blue' }, '─'.repeat(cols)),
     wrap(React.createElement(Picker, { title: 'Wybierz', items, onSelect(){}, onCancel(){}, maxRows: ovMax, t })));
   const out = fakeStdout(cols, rows);
   const app = render(tree, { stdout: out, stdin: fakeStdin(), patchConsole: false });
@@ -77,10 +77,12 @@ async function runPicker(rows, cols, nItems, nLogs) {
   // lub wskaźnik „↑ starszych”), a nie pusty.
   const divIdx = lines.findIndex((l) => /^─+$/.test(l.trim()));
   const noTopGap = hasLog && divIdx >= 0 && (lines[divIdx + 1] || '').trim() !== '';
-  console.log(`picker rows=${rows} items=${nItems} logi=${nLogs} fill=${fillHeight}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} topGap=${!noTopGap} gap=${gap} dim=${dimmed}; dół=ekran:${bottomIsScreen}`);
-  if (overflow && fillHeight) lines.forEach((l, i) => console.log(String(i).padStart(2) + '|' + l));
-  if (!fillHeight) return true; // niskie okno = legacy, bez asercji
-  return !overflow && bottomIsScreen && hasLog && gap && dimmed && noTopGap;
+  console.log(`picker rows=${rows} items=${nItems} logi=${nLogs} header=${headerMode}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} topGap=${!noTopGap} gap=${gap} dim=${dimmed}; dół=ekran:${bottomIsScreen}`);
+  if (overflow) lines.forEach((l, i) => console.log(String(i).padStart(2) + '|' + l));
+  // Zawsze: brak przepełnienia i ekran przyklejony do dołu. Log/gap/dim/noTopGap
+  // tylko, gdy log jest widoczny (przy niskim oknie jest wypełniaczem i znika).
+  const base = !overflow && bottomIsScreen;
+  return ovShowLog ? (base && hasLog && gap && dimmed && noTopGap) : base;
 }
 
 async function runPalette(rows, cols, nCmds, nLogs) {
@@ -131,6 +133,7 @@ ok = await runPalette(24, 80, 8, 5) && ok;   // typowe okno + paleta + log
 ok = await runPicker(40, 80, 4, 30) && ok;   // krótki picker, dużo logów → duży log nad, picker na dole
 ok = await runPicker(40, 80, 60, 30) && ok;  // długi picker → windowuje, log minimalny
 ok = await runPicker(24, 80, 5, 10) && ok;   // typowe okno
-ok = await runPicker(14, 80, 5, 10) && ok;   // niskie okno → naturalny przepływ (bez fill)
+ok = await runPicker(14, 80, 5, 10) && ok;   // niskie okno → nagłówek compact, ekran na dole
+ok = await runPicker(9, 80, 5, 0) && ok;     // bardzo niskie → nagłówek ukryty, ekran wypełnia
 console.log(ok ? '\nWSZYSTKO OK' : '\nBŁĄD');
 process.exit(ok ? 0 : 1);

@@ -153,6 +153,8 @@ const pl = {
   ShopLabel: 'Sklep:',
   TemplateLabel: 'Szablon:',
   ConflictsIndicator: '⚠ Konflikty: {count} (/conflicts)',
+  ConflictsShort: '⚠ {count}',
+  WindowTooSmall: '⚠ Okno terminala za małe — powiększ do min. {rows} wierszy',
 
   // --- CLI: listy / formularze / log (okienkowanie) ---
   MoreAbove: '↑ {count} więcej',
@@ -399,6 +401,8 @@ const en = {
   ShopLabel: 'Shop:',
   TemplateLabel: 'Template:',
   ConflictsIndicator: '⚠ Conflicts: {count} (/conflicts)',
+  ConflictsShort: '⚠ {count}',
+  WindowTooSmall: '⚠ Terminal window too small — resize to at least {rows} rows',
 
   // --- CLI: listy / formularze / log (okienkowanie) ---
   MoreAbove: '↑ {count} more',

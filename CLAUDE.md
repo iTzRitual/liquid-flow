@@ -176,6 +176,11 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
   `wrap=true` (`/wrap`) → długie wpisy zawijane przez `wrap-ansi`+hard. Render
   okienkuje vlines wg `scroll` (ile wierszy od dołu; 0 = najnowsze) i zawsze
   mieści się w budżecie `rows` — wskaźniki „↑/↓ więcej" zabierają wiersz z okna.
+  **Budżet jest twardy także przy `rows===1`**: `avail` (miejsce na wpisy) NIE jest
+  podłogowany do 1 — gdy potrzebny jest wskaźnik „↑", `avail` spada do 0 i pokazuje
+  się sam wskaźnik (bez wpisu), zamiast wskaźnik+wpis = 2 wiersze (przepełnienie →
+  Ink obcina/dubluje kadr). `LogEmpty` renderuje się tylko gdy log jest naprawdę
+  pusty (`total===0`), nie gdy zabrakło miejsca na wpisy.
   **Inwariant scrolla:** `maxScroll = vlines - rows + 1` (górny wskaźnik „↓" zabiera
   wiersz, więc bez `+1` najstarszych wpisów nie da się odsłonić) — `App.jsx`
   i `LogPane` MUSZĄ liczyć tak samo. Test: `node apps/cli/test/logpane-scroll.mjs`),
@@ -300,11 +305,13 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
     `LogPane` (rows `ovLogRows`, `dim`) + wiersz przerwy. **To FUNKCJA, nie komponent** — inaczej Box
     dostaje nową tożsamość co render i React remontuje ekran, gubiąc `useState`
     pickerów. Budżet liczony z DANYCH: `overlayNatural` (ile pozycji + chrome),
-    `ovRows = min(natural, overlayAvail - ovReserve)`, `ovMax = ovRows-4` (body),
+    `ovRows = min(natural, overlayAvail)`, `ovMax = ovRows-4` (body),
     `ovLogRows = overlayAvail - ovRows - 1`. Niezmiennik anty‑overflow:
-    `ovLogRows + wysokość_ekranu ≤ overlayAvail`. Krótki ekran → duży log; długi →
-    ekran się okienkuje, log dostaje minimum (`ovReserve`). **`overlayAvail` MUSI
-    równać się REALNEJ wysokości flex‑boxa nakładki** = `termRows - HEADER - 1`
+    `ovLogRows + wysokość_ekranu ≤ overlayAvail`. **Log nad ekranem to wypełniacz,
+    nie wymóg**: pokazujemy go tylko gdy `ovLogRows >= 2` (1 wiersz to sam wskaźnik
+    „↑ więcej" bez treści) — przy niskim oknie znika i ekran zajmuje całą wysokość
+    (nakładka „nachodzi" na miejsce po ukrytym nagłówku, patrz niżej). **`overlayAvail`
+    MUSI równać się REALNEJ wysokości flex‑boxa nakładki** = `termRows - 1 - HEADER`
     (root `termRows-1` minus nagłówek z górnym dividerem). To jedyny rosnący potomek
     roota po nagłówku, więc każda rozbieżność (np. dawne `-2`) sprawia, że za krótki
     stos `justifyContent:flex-end` ląduje niżej i zostaje pusty wiersz (gap) MIĘDZY
@@ -314,20 +321,31 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
     i ekran był niższy od budżetu → gap). Sprawdza to `action-bottom.mjs` (asercja
     `noTopGap`: tuż pod dividerem nagłówka jest treść logu, nie pusty wiersz).
   - Test: `node apps/cli/test/action-bottom.mjs` (picker+paleta, log nad, dół=ekran,
-    brak overflow dla `fillHeight`).
-- **Wypełnianie wysokości (input na dole)**: gdy okno jest sensownie wysokie
-  (`fillHeight = termRows >= 16`), root dostaje `height={termRows-1}`, a obszar
-  logu w trybie `input` ma `flexGrow={1}` + `justifyContent="flex-end"` — input
-  stoi stabilnie na dole, a log rośnie w górę i wypełnia okno (bez sztywnego
-  limitu; `logRows = termRows - HEADER - progress - 3`). Na niskim oknie
-  `height` jest `undefined` → naturalny przepływ (flexGrow zwija się do treści),
-  więc nic nie wystaje; w tym trybie nakładki wracają do przepływu od góry
-  (`wrapAction` przepuszcza `node` bez owijania) — log nad ekranem pojawia się
-  tylko przy `fillHeight`. **`HEADER` musi odpowiadać REALNEJ wysokości nagłówka**
-  (non‑stacked = 8: marginTop 1 + logo 6 + górny divider 1; logo zawsze dominuje
-  nad kolumną informacji): za duża → pusta linia nad logiem, za mała →
-  przepełnienie. Zasadę layoutu (w tym brak pustej linii) sprawdza
-  `node apps/cli/test/fill-height.mjs`.
+    brak overflow; obejmuje niskie okna z nagłówkiem compact/ukrytym).
+- **Degradacja nagłówka przy niskim oknie + ekran „za małe" (`layout.js`)**: nagłówek
+  ustępuje miejsca treści wraz ze spadkiem `termRows`. `headerLayout({termRows,
+  termCols, mode})` zwraca `{ mode, height, minRows }` z czterema piętrami:
+  `full` (logo, 8 / stacked 14 — tylko gdy `termRows>=16` i się mieści) → `compact`
+  (1 wiersz „Liquid Flow │ ● Sklep │ Szablon │ ⚠ N", `Header` z propem `compact`,
+  wraz z górnym dividerem = 2) → `none` (nagłówek **ukryty**: nakładka „nachodzi"
+  na jego miejsce — terminal nie ma z‑indexu, więc po prostu go nie renderujemy,
+  razem z górnym dividerem) → `guard` (gdy nawet bez nagłówka nie ma miejsca na
+  minimum trybu). O wyborze decyduje `minBodyRows(mode)` = ile wierszy treści POD
+  nagłówkiem dany tryb potrzebuje (conflicts: chrome 4 + 1 karta 3 + stopka;
+  picker/connect/form: chrome 4 + 1 pozycja; input: 2). Przy `guard` `App.jsx`
+  renderuje wyśrodkowany komunikat `WindowTooSmall` (PL/EN, `{rows}` = `minRows`)
+  zamiast rozsypanego/zdublowanego widoku. Po `resize` guard znika sam (pełny
+  re‑render). Testy: `apps/cli/src/layout.test.js` (logika), `Header.test.jsx`
+  (wariant compact). **Nie ma już `fillHeight`** — root zawsze `height={termRows-1}`,
+  nakładki zawsze owijane (`wrapAction`), a przepełnieniu zapobiega guard +
+  okienkowanie, nie próg wysokości.
+- **Wypełnianie wysokości (input na dole)**: root dostaje `height={termRows-1}`,
+  a obszar logu w trybie `input` ma `flexGrow={1}` + `justifyContent="flex-end"` —
+  input stoi stabilnie na dole, a log rośnie w górę i wypełnia okno (bez sztywnego
+  limitu; `logRows = termRows - HEADER - progress - 3`). **`HEADER` to teraz
+  `headerLayout().height`** (nie stała) — odpowiada REALNEJ wysokości wybranego
+  wariantu nagłówka: za duża → pusta linia nad logiem, za mała → przepełnienie.
+  Zasadę layoutu (w tym brak pustej linii) sprawdza `node apps/cli/test/fill-height.mjs`.
 - **Slash‑komendy** (`commands.js`, `buildCommands(ctx)`): `/connect /templates
   /conflicts /git /open /clear /settings /exit(quit)`. `/connect` łączy oba
   scenariusze (lista zapisanych sklepów **i** „dodaj nowy") — nie ma osobnych
