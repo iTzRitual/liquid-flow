@@ -81,6 +81,9 @@ export class Controller extends EventEmitter {
       currentTemplate: s ? { Id: s.templateId, Name: s.template.Name } : null,
       language: this.config.Language || 'pl',
       insecureTLS: this.insecureTLS,
+      // Preferencje UI (CLI) trzymane w configu, by przeżyć restart.
+      logWrap: !!this.config.LogWrap,
+      headerMode: this.config.HeaderMode || 'auto',
     };
   }
 
@@ -91,6 +94,17 @@ export class Controller extends EventEmitter {
       Version: APP_VERSION,
       Language: this.config.Language || 'pl',
     };
+  }
+
+  // Preferencje UI CLI (zawijanie logów, tryb nagłówka). Zapisywane w configu,
+  // więc pamiętane między uruchomieniami. Whitelist kluczy; po zapisie 'state'.
+  setUiPref(key, value) {
+    if (key === 'logWrap') this.config.LogWrap = !!value;
+    else if (key === 'headerMode') this.config.HeaderMode = value;
+    else return this.getState();
+    store.saveConfig(this.config);
+    this.emitState();
+    return this.getState();
   }
 
   setLanguage(id) {

@@ -28,8 +28,13 @@ export default function App() {
   const [highlight, setHighlight] = useState(0);
   const [termRows, setTermRows] = useState(stdout?.rows || 24);
   const [termCols, setTermCols] = useState(stdout?.columns || 80);
-  const [logWrap, setLogWrap] = useState(false); // /wrap: zawijanie logów
-  const [headerPref, setHeaderPref] = useState('auto'); // nagłówek: 'auto' | 'compact'
+  // Preferencje UI (zawijanie logów, tryb nagłówka) żyją w configu rdzenia — czytamy
+  // je ze `state` (pamiętane między uruchomieniami), a zapis idzie przez `ctrl`
+  // (emituje 'state' → odświeżenie). Settery zachowują dawną sygnaturę dla komend.
+  const logWrap = !!state?.logWrap;
+  const setLogWrap = (v) => ctrl.setUiPref('logWrap', v);
+  const headerPref = state?.headerMode || 'auto';
+  const setHeaderPref = (v) => ctrl.setUiPref('headerMode', v);
   const [logScroll, setLogScroll] = useState(0); // ile wizualnych wierszy od dołu (0 = najnowsze)
   // Nawigacja „wstecz”: każda otwierana nakładka dostaje wskaźnik `parent` (ekran,
   // z którego przyszliśmy). Esc wraca do rodzica, a dopiero z ekranu najwyższego

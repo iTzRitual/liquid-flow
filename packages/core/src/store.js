@@ -73,7 +73,7 @@ export function decrypt(stored) {
 }
 
 // ---- konfiguracja ----
-const DEFAULT_CONFIG = { StartBrowser: true, Port: 45678, Language: 'pl', Shops: [] };
+const DEFAULT_CONFIG = { StartBrowser: true, Port: 45678, Language: 'pl', LogWrap: false, HeaderMode: 'auto', Shops: [] };
 
 export function loadConfig() {
   ensureAppDirs();

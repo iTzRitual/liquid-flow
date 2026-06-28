@@ -133,6 +133,22 @@ describe('Controller — sklepy i język', () => {
     expect(getState().language).toBe('en');
   });
 
+  it('setUiPref zapisuje preferencje UI w configu i emituje state', async () => {
+    ctrl = new Controller();
+    const getState = lastState(ctrl);
+    ctrl.setUiPref('logWrap', true);
+    ctrl.setUiPref('headerMode', 'compact');
+    expect(store.loadConfig().LogWrap).toBe(true);
+    expect(store.loadConfig().HeaderMode).toBe('compact');
+    expect(getState().logWrap).toBe(true);
+    expect(getState().headerMode).toBe('compact');
+    // nowy Controller czyta zapisane preferencje (pamięć między uruchomieniami)
+    ctrl.dispose();
+    ctrl = new Controller();
+    expect(ctrl.getState().logWrap).toBe(true);
+    expect(ctrl.getState().headerMode).toBe('compact');
+  });
+
   it('listShops zwraca publiczny widok (bez hasła) z flagą isCurrent', async () => {
     srv = await startMockSoap({ handlers: { SignIn: () => true } });
     const cfg = store.loadConfig();
