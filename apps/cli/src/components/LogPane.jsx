@@ -60,7 +60,7 @@ export default function LogPane({ vlines, rows = 10, scroll = 0, t, dim = false 
   // najstarszych wpisów (tyle, ile zajmują wskaźniki) nie dałoby się odsłonić.
   const maxScroll = total > rows ? total - rows + 1 : 0;
   const off = Math.min(Math.max(0, scroll), maxScroll);
-  const end = total - off;
+  let end = total - off;
 
   const hasBelow = end < total;                 // przewinięto w górę → są nowsze pod spodem
   // Budżet na wpisy = rows minus wskaźniki, które faktycznie pokażemy. NIE
@@ -70,7 +70,19 @@ export default function LogPane({ vlines, rows = 10, scroll = 0, t, dim = false 
   let avail = rows - (hasBelow ? 1 : 0);
   let start = Math.max(0, end - Math.max(0, avail));
   let hasAbove = start > 0;                      // są starsze nad
-  if (hasAbove) { avail -= 1; start = Math.max(0, end - Math.max(0, avail)); hasAbove = start > 0; }
+  if (hasAbove) {
+    avail -= 1;
+    if (hasBelow) {
+      // Scrollujemy w górę: kotwica na start (odsłaniamy starsze wpisy), przytnij end.
+      // Efekt uboczny: wskaźnik „↓ nowszych" może pokazać o 1 więcej niż wynika ze
+      // scroll-offsetu, bo obydwa wskaźniki razem zmniejszają budżet treści o 1.
+      end = Math.min(end, start + Math.max(0, avail));
+    } else {
+      // Na dole (scroll=0): kotwica na end — pokazuj najnowsze wpisy.
+      start = Math.max(0, end - Math.max(0, avail));
+    }
+    hasAbove = start > 0;
+  }
 
   const slice = avail > 0 ? vlines.slice(start, end) : [];
 
