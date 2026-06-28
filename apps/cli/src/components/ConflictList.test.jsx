@@ -96,6 +96,49 @@ describe('ConflictList — stała wysokość przy nawigacji', () => {
   });
 });
 
+describe('ConflictList — niskie okno (degradacja kart)', () => {
+  // Regresja: przy niskim oknie karta degraduje wysokość, ale wiersz
+  // nazwy+przycisków MUSI zostać widoczny (kiedyś znikał — kadr się przepełniał).
+  const many = (n) => Array.from({ length: n }, (_, i) => ({
+    name: `file${i}.liquid`, meta: 'lokalny nowszy', note: 'lokalny nowszy', initial: 0,
+    options: [{ label: 'Pobierz', value: 'download' }, { label: 'Wyślij', value: 'upload' }],
+  }));
+
+  for (const maxRows of [3, 4, 5, 6]) {
+    it(`pokazuje nazwę aktywnego pliku i nie przepełnia kadru (maxRows=${maxRows})`, () => {
+      const bulk = [{ label: 'Pobierz wszystkie', value: 'downloadAll' }];
+      const api = render(
+        <ConflictList title="K" files={many(8)} bulk={bulk} onAction={() => {}} onBulk={() => {}} maxRows={maxRows} t={t} />
+      );
+      const f = frame(api);
+      // Nazwa pliku pod kursorem (pierwszy, file0) jest widoczna.
+      expect(f).toContain('file0.liquid');
+      // Brak przepełnienia: budżet boxa = maxRows + 4 (chrome: ramka 2 + tytuł 1 +
+      // pomoc 1) + stopka bulk (1). Kadr nie może go przekroczyć.
+      expect(f.split('\n').length).toBeLessThanOrEqual(maxRows + 4 + 1);
+    });
+  }
+});
+
+describe('ConflictList — symetria wskaźników „więcej"', () => {
+  // Regresja: górny i dolny wskaźnik „↑/↓ więcej" muszą lgnąć do treści tak samo
+  // (kiedyś końcowa pusta linia karty dawała dolnemu wskaźnikowi dodatkowy odstęp).
+  it('dolny wskaźnik nie ma pustej linii nad sobą (odstęp jest MIĘDZY kartami)', () => {
+    const many = Array.from({ length: 8 }, (_, i) => ({
+      name: `file${i}.liquid`, meta: 'meta', note: 'note', initial: 0,
+      options: [{ label: 'Pobierz', value: 'download' }, { label: 'Wyślij', value: 'upload' }],
+    }));
+    const api = render(
+      <ConflictList title="K" files={many} onAction={() => {}} maxRows={12} t={t} />
+    );
+    const lines = frame(api).split('\n');
+    const belowIdx = lines.findIndex((l) => /↓\s*\d+/.test(l));
+    expect(belowIdx).toBeGreaterThan(0);
+    // Wiersz tuż nad dolnym wskaźnikiem to treść karty (note/meta), NIE pusta linia.
+    expect(lines[belowIdx - 1].trim()).not.toBe('');
+  });
+});
+
 describe('ConflictList — brak konfliktów', () => {
   it('pokazuje komunikat o braku konfliktów', () => {
     const api = render(<ConflictList title="K" files={[]} onAction={() => {}} t={t} />);

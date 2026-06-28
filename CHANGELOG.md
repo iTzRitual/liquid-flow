@@ -6,6 +6,14 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.96] — 2026-06-28
+
+### Fixed
+- `/conflicts` no longer cuts off file names at low terminal heights. Conflict cards now have an **adaptive height**: the name + action buttons row always renders, while the metadata/"which side is newer" lines degrade away only when the window is too short to fit them. The component also self-protects against frame overflow regardless of the budget passed by `App.jsx` (drops the "more" indicators when there isn't room for them next to a card).
+- `/conflicts` "↑/↓ more" indicators now have **symmetric spacing**: the inter-card blank line moved from a trailing line on each card to a separator *between* cards, so the bottom indicator hugs the last card's content the same way the top indicator hugs the first — previously the trailing blank gave the bottom indicator an extra gap.
+
+---
+
 ## [0.9.95] — 2026-06-28
 
 ### Changed

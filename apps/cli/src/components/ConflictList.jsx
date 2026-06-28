@@ -2,14 +2,17 @@ import { Box, Text, useInput } from 'ink';
 import React, { useState } from 'react';
 import { tfmt } from '@liquidflow/core';
 
-// Ekran konfliktów. Każdy plik to KARTA (4 wiersze):
-//   1) nazwa (do lewej, przycinana) + przyciski akcji (do prawej, nie kurczą się)
-//   2) znaczniki czasu (lokalny / zdalny)
-//   3) która strona nowsza (słowny opis)
-//   4) pusta linia (odstęp)
+// Ekran konfliktów. Każdy plik to KARTA o ADAPTACYJNEJ wysokości `cardH`:
+//   cardH=3: nazwa+przyciski / meta (znaczniki czasu) / note (która strona nowsza)
+//   cardH=2: nazwa+przyciski / meta            (przy niskim oknie)
+//   cardH=1: sama nazwa+przyciski              (skrajnie niskie okno)
+// **Wiersz nazwy+przycisków renderuje się ZAWSZE** — to on niesie akcję, więc
+// nawet w bardzo niskim oknie nazwa pliku jest widoczna (degradują tylko meta/note).
+// Odstęp jest MIĘDZY kartami (`sep`), a NIE po ostatniej — dzięki temu górny i
+// dolny wskaźnik „↑/↓ więcej" lgną symetrycznie do treści (kiedyś końcowa pusta
+// linia karty dawała dolnemu wskaźnikowi dodatkowy odstęp → asymetria).
 // Na dole — stała stopka: jeden wiersz operacji seryjnych („Pobierz/Wyślij
-// wszystkie”); odstęp nad nią daje końcowa pusta linia ostatniej karty (lub
-// wskaźnik „↓ więcej"), więc stopka nie dokłada własnej pustej linii.
+// wszystkie”).
 // Nawigacja: ↑/↓ między kartami i stopką, ←/→
 // wybór akcji w wierszu, Enter wykonuje, Esc anuluje.
 //   files: [{ name, meta, note, options:[{label,value}], initial }]
@@ -18,19 +21,18 @@ import { tfmt } from '@liquidflow/core';
 // **Stała wysokość ekranu (NIE psuć!)**: region kart zajmuje ZAWSZE dokładnie
 // `regionTarget = maxRows − footer` wierszy, niezależnie od pozycji kursora —
 // inaczej ekran (przyklejony do dołu) zmienia wysokość przy każdym ↑/↓ i przesuwa
-// log nad nim („skakanie"). Stałość bierze się z trzech rzeczy: (1) liczba
-// widocznych kart `cap` zależy tylko od `regionTarget`, NIE od kursora (własne
-// okienkowanie zamiast `windowCards`, które przy 4‑wierszowych kartach zwracało
-// zmienny `count`); (2) oba wskaźniki „↑/↓ więcej" mają po 1 wierszu (pusty slot
-// gdy brak) — bez asymetrii „↑" = 2 wiersze; (3) region jest dopełniany pustymi
-// liniami do `regionTarget`. Test: `apps/cli/src/components/ConflictList.test.jsx`.
+// log nad nim („skakanie"). Stałość bierze się z czterech rzeczy: (1) liczba
+// widocznych kart `cap` ORAZ ich wysokość `cardH` zależą tylko od `regionTarget`,
+// NIE od kursora; (2) każda widoczna karta renderuje DOKŁADNIE `cardH` wierszy
+// (brakujący note → pusta linia); (3) oba wskaźniki „↑/↓ więcej" mają po 1
+// wierszu (pusty slot gdy brak); (4) region jest dopełniany pustymi liniami do
+// `regionTarget`. Test: `apps/cli/src/components/ConflictList.test.jsx`.
 //
 // Kursor ←/→ należy WYŁĄCZNIE do bieżącego wiersza i NIE jest pamiętany — przy
 // wejściu na kartę (↑/↓) startuje od bezpiecznego domyślnego wyboru (`initial`).
 // Liczy się dopiero Enter (działa natychmiast na bieżącej karcie), więc
 // zapamiętywanie pozycji na innych kartach nic nie wnosi. Wszystkie przyciski są
 // pełnokontrastowe; podświetlenie (cyan tło) ma tylko kursor bieżącego wiersza.
-const CARD_LINES = 4;
 
 export default function ConflictList({ title, files, bulk, onAction, onBulk, onCancel, maxRows = 12, t }) {
   const hasBulk = Array.isArray(bulk) && bulk.length > 0;
@@ -81,7 +83,9 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
       );
     });
 
-  const renderCard = (f, idx) => {
+  // Renderuje DOKŁADNIE `cardH` wierszy (1–3). Wiersz nazwy+przycisków zawsze;
+  // meta od cardH≥2; note (lub pusta linia gdy brak note) od cardH≥3.
+  const renderCard = (f, idx, cardH) => {
     const focused = idx === i;
     return (
       <Box key={idx} flexDirection="column">
@@ -93,9 +97,10 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
           </Box>
           <Box flexShrink={0} marginLeft={2}>{renderButtons(f.options, curCursor, focused)}</Box>
         </Box>
-        <Text dimColor wrap="truncate-end">  {f.meta}</Text>
-        {f.note ? <Text dimColor wrap="truncate-end">  {f.note}</Text> : null}
-        <Text> </Text>
+        {cardH >= 2 && <Text dimColor wrap="truncate-end">  {f.meta}</Text>}
+        {cardH >= 3 && (f.note
+          ? <Text dimColor wrap="truncate-end">  {f.note}</Text>
+          : <Text> </Text>)}
       </Box>
     );
   };
@@ -103,32 +108,41 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
   // Region kart o STAŁEJ wysokości `regionTarget` (= cała wysokość minus stopka),
   // niezależnej od pozycji kursora. App budżetuje box na `maxRows + 4` (chrome =
   // ramka 2 + tytuł 1 + stopka + pomoc 1), więc region kart = `maxRows − footer`.
+  const SEP = 1; // odstęp MIĘDZY kartami (nie po ostatniej → symetria wskaźników)
   const footerLines = hasBulk ? 1 : 0;
-  const regionTarget = Math.max(CARD_LINES, maxRows - footerLines);
+  const regionTarget = Math.max(1, maxRows - footerLines);
   const fileFocus = files.length ? Math.min(i, files.length - 1) : 0;
 
-  // Okienkowanie z kursoro‑NIEZALEŻNYM `cap` (rezerwa 2 wierszy na sloty
-  // wskaźników) → liczba widocznych kart stała, niezależnie od `fileFocus`.
-  const windowed = files.length * CARD_LINES > regionTarget;
-  let slice, above, below;
-  if (!windowed) {
-    slice = files;
-    above = 0;
-    below = 0;
-  } else {
-    const cap = Math.max(1, Math.floor((regionTarget - 2) / CARD_LINES));
-    const start = Math.max(0, Math.min(fileFocus - Math.floor(cap / 2), files.length - cap));
-    above = start;
-    below = files.length - (start + cap);
-    slice = files.slice(start, start + cap);
-  }
+  // Pełny widok = wszystkie karty (cardH=3) z separatorami. Gdy się nie mieści,
+  // okienkujemy i degradujemy wysokość karty do dostępnego miejsca.
+  const fullAll = files.length * 3 + Math.max(0, files.length - 1) * SEP;
+  const overflow = files.length > 0 && fullAll > regionTarget;
 
-  // Dopełnienie do `regionTarget`: stałe 2 wiersze na sloty wskaźników (przy
-  // okienkowaniu) + faktyczne wiersze kart + puste linie. Daje niezmienną
-  // wysokość także gdy karta bywa 3‑wierszowa (brak `note`).
-  const renderedCardLines = slice.reduce((s, f) => s + (f.note ? CARD_LINES : CARD_LINES - 1), 0);
-  const padLines = Math.max(0, regionTarget - (windowed ? 2 : 0) - renderedCardLines);
-  const sliceStart = windowed ? above : 0;
+  let slice, above, below, cardH, sep, padLines, sliceStart, showIndicators;
+  if (!overflow) {
+    cardH = 3; sep = SEP; sliceStart = 0; above = 0; below = 0; showIndicators = false;
+    slice = files;
+    const content = files.length * cardH + Math.max(0, files.length - 1) * sep;
+    padLines = Math.max(0, regionTarget - content);
+  } else {
+    // Sloty wskaźników (2 wiersze) tylko gdy region je pomieści obok ≥1 karty;
+    // przy skrajnie niskim oknie rezygnujemy z nich, by nie przepełnić kadru.
+    showIndicators = regionTarget >= 3;
+    const reserve = showIndicators ? 2 : 0;
+    // `avail` = miejsce na karty po rezerwie na sloty wskaźników.
+    // `cardH`/`cap` liczone z `avail` (NIE z kursora) → stała wysokość regionu.
+    const avail = Math.max(1, regionTarget - reserve);
+    cardH = avail >= 3 ? 3 : avail >= 2 ? 2 : 1;
+    sep = cardH >= 2 ? SEP : 0; // przy 1‑wierszowych kartach bez odstępów (ciasno)
+    let cap = Math.max(1, Math.floor((avail + sep) / (cardH + sep)));
+    cap = Math.min(cap, files.length);
+    while (cap > 1 && cap * cardH + (cap - 1) * sep > avail) cap--; // korekta zaokrągleń
+    const start = Math.max(0, Math.min(fileFocus - Math.floor(cap / 2), files.length - cap));
+    above = start; below = files.length - (start + cap);
+    slice = files.slice(start, start + cap); sliceStart = start;
+    const content = cap * cardH + (cap - 1) * sep;
+    padLines = Math.max(0, regionTarget - reserve - content);
+  }
 
   const bulkFocused = hasBulk && i === files.length;
   const help = [t.PickerNav, t.PickerChoose, t.PickerEnter, t.PickerEsc].filter(Boolean).join(' · ');
@@ -141,10 +155,17 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
         : (
           <>
             {/* Oba wskaźniki to STAŁE 1‑wierszowe sloty (pusty gdy brak) —
-                symetria wysokości niezależnie od położenia kursora. */}
-            {windowed && <Text dimColor>{above > 0 ? tfmt(t.MoreAbove, { count: above }) : ' '}</Text>}
-            {slice.map((f, k) => renderCard(f, sliceStart + k))}
-            {windowed && <Text dimColor>{below > 0 ? tfmt(t.MoreBelow, { count: below }) : ' '}</Text>}
+                symetria wysokości niezależnie od położenia kursora. Karty nie
+                mają końcowej pustej linii (odstęp jest MIĘDZY nimi), więc górny
+                i dolny wskaźnik lgną do treści symetrycznie. */}
+            {showIndicators && <Text dimColor>{above > 0 ? tfmt(t.MoreAbove, { count: above }) : ' '}</Text>}
+            {slice.map((f, k) => (
+              <React.Fragment key={sliceStart + k}>
+                {k > 0 && sep > 0 && <Text> </Text>}
+                {renderCard(f, sliceStart + k, cardH)}
+              </React.Fragment>
+            ))}
+            {showIndicators && <Text dimColor>{below > 0 ? tfmt(t.MoreBelow, { count: below }) : ' '}</Text>}
             {Array.from({ length: padLines }, (_, k) => <Text key={`pad${k}`}> </Text>)}
           </>
         )}
