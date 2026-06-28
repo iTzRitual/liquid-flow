@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.103] — 2026-06-29
+### Changed
+- CLI input mode: added one blank line below the input field so it no longer sits flush against the terminal bottom edge.
+
+
 ## [0.9.102] — 2026-06-28
 ### Fixed
 - Log scroll: pressing up arrow now reveals one older entry per keypress instead of just adding the "↓ newer" indicator without moving the content window. When both scroll indicators (older/newer) were active, the internal anchor logic was re-deriving `start` from `end`, keeping the visible range frozen on the first scroll step.
