@@ -300,10 +300,14 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
     `LogPane` (rows `ovLogRows`, `dim`) + wiersz przerwy. **To FUNKCJA, nie komponent** — inaczej Box
     dostaje nową tożsamość co render i React remontuje ekran, gubiąc `useState`
     pickerów. Budżet liczony z DANYCH: `overlayNatural` (ile pozycji + chrome),
-    `ovRows = min(natural, overlayAvail - ovReserve)`, `ovMax = ovRows-4` (body),
-    `ovLogRows = overlayAvail - ovRows`. Niezmiennik anty‑overflow:
+    `ovRows = min(natural, overlayAvail)`, `ovMax = ovRows-4` (body),
+    `ovLogRows = overlayAvail - ovRows - 1` (spacer). Niezmiennik anty‑overflow:
     `ovLogRows + wysokość_ekranu ≤ overlayAvail = termRows - HEADER - 2`. Krótki
-    ekran → duży log; długi → ekran się okienkuje, log dostaje minimum (`ovReserve`).
+    ekran → duży log nad nim; **długi ekran ROŚNIE aż do pełnej `overlayAvail`
+    i wypełnia cały kontener** — log jest opcjonalnym kontekstem i ustępuje
+    miejsca (skraca się aż do zniknięcia, gdy `ovLogRows ≤ 0`). Nie ma już stałej
+    rezerwy logu (`ovReserve`), która nakładała sztuczny limit wysokości ekranu na
+    większych terminalach.
   - Test: `node apps/cli/test/action-bottom.mjs` (picker+paleta, log nad, dół=ekran,
     brak overflow dla `fillHeight`).
 - **Wypełnianie wysokości (input na dole)**: gdy okno jest sensownie wysokie

@@ -183,9 +183,13 @@ export default function App() {
   // --- nakładki (picker/form/conflicts/connect/loading) ---
   // Spójna zasada: ekran przyklejony do DOŁU (jak input), a nad nim — log jako
   // kontekst. Obszar treści pod górnym dividerem: root(termRows-1) − header − div.
-  // Wysokość ekranu liczymy z DANYCH (ile pozycji), więc krótki ekran nie zabiera
-  // całej wysokości — log dostaje resztę; długi ekran windowuje się, log dostaje
-  // minimum. Niezmiennik: logRows + wysokość_ekranu ≤ overlayAvail (anty‑overflow).
+  // Wysokość ekranu liczymy z DANYCH (ile pozycji): krótki ekran nie zabiera całej
+  // wysokości — log dostaje resztę; długi ekran ROŚNIE aż do PEŁNEJ dostępnej
+  // wysokości (`overlayAvail`) i wypełnia cały kontener. Log nad ekranem jest
+  // opcjonalnym kontekstem — dostaje tylko nadmiar i ustępuje miejsca (skraca się
+  // aż do zniknięcia), gdy treść ekranu go potrzebuje. Wcześniej stała rezerwa
+  // logu nakładała sztuczny limit wysokości ekranu na większych terminalach.
+  // Niezmiennik: ovLogRows + wysokość_ekranu ≤ overlayAvail (anty‑overflow).
   const overlayAvail = Math.max(3, termRows - HEADER - 2);
   const overlayNatural =
     mode.type === 'picker' ? (mode.items?.length || 0) + 4
@@ -193,11 +197,10 @@ export default function App() {
     : mode.type === 'conflicts' ? (mode.files?.length || 0) * 4 + (mode.bulk?.length ? 1 : 0) + 4
     : mode.type === 'form' ? (mode.fields?.length || 0) + 4
     : 4; // loading
-  const ovShowLog = fillHeight && log.length > 0 && overlayAvail >= 12;
-  const ovReserve = ovShowLog ? 4 : 0; // minimalny log nad ekranem
-  const ovRows = Math.min(overlayNatural, overlayAvail - ovReserve);
+  const ovRows = Math.min(overlayNatural, overlayAvail);
   const ovMax = Math.max(3, ovRows - 4); // body ekranu (chrome ekranu = 4 wiersze)
-  // log nad ekranem + 1 wiersz przerwy (spacer) między logiem a ekranem
+  // log nad ekranem + 1 wiersz przerwy (spacer); znika, gdy ekran zajął całość
+  const ovShowLog = fillHeight && log.length > 0;
   const ovLogRows = ovShowLog ? Math.max(0, overlayAvail - ovRows - 1) : 0;
 
   // --- paleta w trybie input ---

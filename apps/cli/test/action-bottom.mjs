@@ -32,10 +32,9 @@ function layoutOverlay(termRows, nItems, nLogs) {
   const fillHeight = termRows >= 16;
   const overlayAvail = Math.max(3, termRows - HEADER - 2);
   const natural = nItems + 4;
-  const ovShowLog = fillHeight && nLogs > 0 && overlayAvail >= 12;
-  const ovReserve = ovShowLog ? 4 : 0;
-  const ovRows = Math.min(natural, overlayAvail - ovReserve);
+  const ovRows = Math.min(natural, overlayAvail);
   const ovMax = Math.max(3, ovRows - 4);
+  const ovShowLog = fillHeight && nLogs > 0;
   const ovLogRows = ovShowLog ? Math.max(0, overlayAvail - ovRows - 1) : 0;
   return { fillHeight, ovMax, ovLogRows };
 }
@@ -71,10 +70,15 @@ async function runPicker(rows, cols, nItems, nLogs) {
   const dimmed = raw.split("\n").some((l) => /log \d/.test(strip(l)) && /\x1b\[2m/.test(l)); // log renderowany z dimColor
   const last = lines[lines.length - 1] || '';
   const bottomIsScreen = /[╰─]/.test(last) || /wybór|Enter/.test(last);
-  console.log(`picker rows=${rows} items=${nItems} logi=${nLogs} fill=${fillHeight}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} gap=${gap} dim=${dimmed}; dół=ekran:${bottomIsScreen}`);
+  // Gdy ekran wypełnia całą wysokość (długa lista), log USTĘPUJE — nie ma go
+  // wcale; w przeciwnym razie log jest kontekstem nad ekranem (wyszarzony, z
+  // wierszem przerwy). expectLog rozróżnia te dwa przypadki.
+  const expectLog = ovLogRows > 0;
+  console.log(`picker rows=${rows} items=${nItems} logi=${nLogs} fill=${fillHeight} expLog=${expectLog}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} gap=${gap} dim=${dimmed}; dół=ekran:${bottomIsScreen}`);
   if (overflow && fillHeight) lines.forEach((l, i) => console.log(String(i).padStart(2) + '|' + l));
   if (!fillHeight) return true; // niskie okno = legacy, bez asercji
-  return !overflow && bottomIsScreen && hasLog && gap && dimmed;
+  if (overflow || !bottomIsScreen) return false;
+  return expectLog ? (hasLog && gap && dimmed) : !hasLog;
 }
 
 async function runPalette(rows, cols, nCmds, nLogs) {
