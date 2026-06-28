@@ -9,18 +9,14 @@ Verification gate for every plan: `npm test` must be 100% green (Vitest; 189
 tests at baseline). There is no typecheck/lint script — `npm test` is the gate.
 Repo convention: Conventional Commits in English, **no `Co-Authored-By` footer**.
 
-All four plans were executed and committed to `main` on **2026-06-27**
-(commits `fc09e79`, `7d02c9d`, `81167dd`, `470c11b`). The full write-ups are
-archived under [`done/`](done/) as the record of why each change was made.
-
 ## Execution order & status
 
-| Plan | Title | Priority | Effort | Status | Completed |
-|------|-------|----------|--------|--------|-----------|
-| [001](done/001-path-traversal-guard.md) | Reject server-supplied file names that escape the template dir (path traversal) | P1 | M | DONE | 2026-06-27 |
-| [002](done/002-readme-cli-accuracy.md) | Fix the README so it documents the CLI that actually ships | P1 | S | DONE | 2026-06-27 |
-| [003](done/003-controller-listener-leak.md) | Detach the Controller's global log listeners on dispose() | P2 | S | DONE | 2026-06-27 |
-| [004](done/004-regression-tests.md) | Regression tests for fixed P1 bugs (git-push failure, interrupted download) | P3 | M | DONE | 2026-06-27 |
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 001  | Reject server-supplied file names that escape the template dir (path traversal) | P1 | M | — | DONE |
+| 002  | Fix the README so it documents the CLI that actually ships | P1 | S | — | DONE |
+| 003  | Detach the Controller's global log listeners on dispose() | P2 | S | — | DONE |
+| 004  | Regression tests for fixed P1 bugs (git-push failure, interrupted download) | P3 | M | — | DONE |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
