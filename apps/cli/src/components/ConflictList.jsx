@@ -94,10 +94,13 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
 
   // budżet kart: cała wysokość minus stopka (sam wiersz przycisków — bez wiodącej
   // pustej linii; odstęp nad stopką daje końcowa pusta linia ostatniej karty) i
-  // minus rezerwa na pustą linię pod wskaźnikiem „↑ więcej" (renderowaną tylko gdy
-  // jest `above`, ale rezerwowaną zawsze, by przy przewinięciu nic nie wystawało).
+  // minus rezerwa na pustą linię pod wskaźnikiem „↑ więcej". Rezerwę liczymy TYLKO
+  // gdy karty faktycznie się nie mieszczą (jest okienkowanie) — w przeciwnym razie
+  // odebrałaby wiersz i bez potrzeby zwinęła jedną kartę, przez co ekran renderuje
+  // się NIŻSZY niż budżet, który dostał od App → pusty wiersz (gap) nad ekranem.
   const footerLines = hasBulk ? 1 : 0;
-  const aboveReserve = 1;
+  const fits = files.length * CARD_LINES <= maxRows - footerLines;
+  const aboveReserve = fits ? 0 : 1;
   const budget = Math.max(CARD_LINES, maxRows - footerLines - aboveReserve);
   const fileFocus = files.length ? Math.min(i, files.length - 1) : 0;
   const w = windowCards(files.length, fileFocus, budget, CARD_LINES);

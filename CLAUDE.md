@@ -301,9 +301,18 @@ obsługuje oba pola: separator (kolor `#82bbff`, pełna szerokość) i `historic
     dostaje nową tożsamość co render i React remontuje ekran, gubiąc `useState`
     pickerów. Budżet liczony z DANYCH: `overlayNatural` (ile pozycji + chrome),
     `ovRows = min(natural, overlayAvail - ovReserve)`, `ovMax = ovRows-4` (body),
-    `ovLogRows = overlayAvail - ovRows`. Niezmiennik anty‑overflow:
-    `ovLogRows + wysokość_ekranu ≤ overlayAvail = termRows - HEADER - 2`. Krótki
-    ekran → duży log; długi → ekran się okienkuje, log dostaje minimum (`ovReserve`).
+    `ovLogRows = overlayAvail - ovRows - 1`. Niezmiennik anty‑overflow:
+    `ovLogRows + wysokość_ekranu ≤ overlayAvail`. Krótki ekran → duży log; długi →
+    ekran się okienkuje, log dostaje minimum (`ovReserve`). **`overlayAvail` MUSI
+    równać się REALNEJ wysokości flex‑boxa nakładki** = `termRows - HEADER - 1`
+    (root `termRows-1` minus nagłówek z górnym dividerem). To jedyny rosnący potomek
+    roota po nagłówku, więc każda rozbieżność (np. dawne `-2`) sprawia, że za krótki
+    stos `justifyContent:flex-end` ląduje niżej i zostaje pusty wiersz (gap) MIĘDZY
+    nagłówkiem a logiem. Drugi warunek braku gapu: ekran musi renderować się
+    dokładnie na `ovRows` wierszy — `ConflictList` rezerwuje wiersz na wskaźnik
+    „↑ więcej" TYLKO przy faktycznym okienkowaniu (inaczej zwijał kartę bez potrzeby
+    i ekran był niższy od budżetu → gap). Sprawdza to `action-bottom.mjs` (asercja
+    `noTopGap`: tuż pod dividerem nagłówka jest treść logu, nie pusty wiersz).
   - Test: `node apps/cli/test/action-bottom.mjs` (picker+paleta, log nad, dół=ekran,
     brak overflow dla `fillHeight`).
 - **Wypełnianie wysokości (input na dole)**: gdy okno jest sensownie wysokie

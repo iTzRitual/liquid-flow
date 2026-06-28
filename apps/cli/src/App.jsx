@@ -182,11 +182,18 @@ export default function App() {
 
   // --- nakładki (picker/form/conflicts/connect/loading) ---
   // Spójna zasada: ekran przyklejony do DOŁU (jak input), a nad nim — log jako
-  // kontekst. Obszar treści pod górnym dividerem: root(termRows-1) − header − div.
-  // Wysokość ekranu liczymy z DANYCH (ile pozycji), więc krótki ekran nie zabiera
-  // całej wysokości — log dostaje resztę; długi ekran windowuje się, log dostaje
-  // minimum. Niezmiennik: logRows + wysokość_ekranu ≤ overlayAvail (anty‑overflow).
-  const overlayAvail = Math.max(3, termRows - HEADER - 2);
+  // kontekst. Wysokość ekranu liczymy z DANYCH (ile pozycji), więc krótki ekran
+  // nie zabiera całej wysokości — log dostaje resztę; długi ekran windowuje się,
+  // log dostaje minimum. Niezmiennik: logRows + wysokość_ekranu ≤ overlayAvail
+  // (anty‑overflow).
+  //
+  // `overlayAvail` MUSI równać się REALNEJ wysokości flex‑boxa nakładki, inaczej
+  // `justifyContent:flex-end` spycha za krótki stos w dół i zostaje pusty wiersz
+  // (gap) MIĘDZY nagłówkiem a logiem. Ten flex‑box jest jedynym (rosnącym)
+  // dzieckiem roota po nagłówku i górnym dividerze, więc:
+  //   root(termRows-1) − HEADER(logo+marginesy+górny divider) = termRows − HEADER − 1.
+  // (Wcześniej było `-2` → log zawsze 1 wiersz za nisko.)
+  const overlayAvail = Math.max(3, termRows - HEADER - 1);
   const overlayNatural =
     mode.type === 'picker' ? (mode.items?.length || 0) + 4
     : mode.type === 'connect' ? (mode.shops?.length || 0) + 6

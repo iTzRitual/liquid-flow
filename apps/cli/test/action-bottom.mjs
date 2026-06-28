@@ -30,7 +30,7 @@ const HEADER = 8;
 
 function layoutOverlay(termRows, nItems, nLogs) {
   const fillHeight = termRows >= 16;
-  const overlayAvail = Math.max(3, termRows - HEADER - 2);
+  const overlayAvail = Math.max(3, termRows - HEADER - 1);
   const natural = nItems + 4;
   const ovShowLog = fillHeight && nLogs > 0 && overlayAvail >= 12;
   const ovReserve = ovShowLog ? 4 : 0;
@@ -71,10 +71,16 @@ async function runPicker(rows, cols, nItems, nLogs) {
   const dimmed = raw.split("\n").some((l) => /log \d/.test(strip(l)) && /\x1b\[2m/.test(l)); // log renderowany z dimColor
   const last = lines[lines.length - 1] || '';
   const bottomIsScreen = /[╰─]/.test(last) || /wybór|Enter/.test(last);
-  console.log(`picker rows=${rows} items=${nItems} logi=${nLogs} fill=${fillHeight}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} gap=${gap} dim=${dimmed}; dół=ekran:${bottomIsScreen}`);
+  // BRAK pustego wiersza tuż pod górnym dividerem nagłówka — log lgnie pod nagłówek
+  // jak na ekranie podstawowym (regresja „gap u góry”). Pierwszy pełnowymiarowy
+  // wiersz `─` to divider nagłówka; następny wiersz musi być treścią logu (wpis
+  // lub wskaźnik „↑ starszych”), a nie pusty.
+  const divIdx = lines.findIndex((l) => /^─+$/.test(l.trim()));
+  const noTopGap = hasLog && divIdx >= 0 && (lines[divIdx + 1] || '').trim() !== '';
+  console.log(`picker rows=${rows} items=${nItems} logi=${nLogs} fill=${fillHeight}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} topGap=${!noTopGap} gap=${gap} dim=${dimmed}; dół=ekran:${bottomIsScreen}`);
   if (overflow && fillHeight) lines.forEach((l, i) => console.log(String(i).padStart(2) + '|' + l));
   if (!fillHeight) return true; // niskie okno = legacy, bez asercji
-  return !overflow && bottomIsScreen && hasLog && gap && dimmed;
+  return !overflow && bottomIsScreen && hasLog && gap && dimmed && noTopGap;
 }
 
 async function runPalette(rows, cols, nCmds, nLogs) {
