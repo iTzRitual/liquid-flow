@@ -34,6 +34,8 @@ function makeCtx(overrides = {}) {
     openConnect: vi.fn((payload) => { cap.connect = payload; }),
     logWrap: false,
     setLogWrap: vi.fn(),
+    headerPref: 'auto',
+    setHeaderPref: vi.fn(),
     exit: vi.fn(),
     safe: (fn) => fn(),
     skipToInput: vi.fn(),
@@ -81,20 +83,30 @@ describe('/templates', () => {
 });
 
 describe('/settings i język', () => {
-  it('otwiera menu z dwoma inline toggleami; toggle języka woła setLanguage bez podmenu', () => {
+  it('otwiera menu z inline toggleami; toggle języka woła setLanguage bez podmenu', () => {
     const { ctx, cap } = makeCtx({ state: { currentShop: { Name: 'x' }, currentTemplate: { Id: 5, Name: 'Topaz' }, language: 'pl' } });
     run(ctx, '/settings');
     expect(cap.pickers).toHaveLength(1);
     const menu = cap.pickers[0];
     const toggles = menu.items.filter((i) => i.kind === 'toggle');
-    expect(toggles).toHaveLength(2);
+    expect(toggles).toHaveLength(3);
 
-    const langToggle = menu.items.find((i) => i.options);
+    const langToggle = menu.items.find((i) => i.options?.some((o) => o.label === 'English'));
     expect(langToggle).toBeTruthy();
-    expect(langToggle.options.some((o) => o.label === 'English')).toBe(true);
     expect(langToggle.on).toBe('pl');
     langToggle.onToggle('en');
     expect(ctx.ctrl.setLanguage).toHaveBeenCalledWith('en');
+  });
+
+  it('toggle nagłówka przełącza preferencję na compact', () => {
+    const { ctx, cap } = makeCtx({ state: { currentShop: { Name: 'x' }, currentTemplate: null, language: 'pl' } });
+    run(ctx, '/settings');
+    const menu = cap.pickers[0];
+    const headerToggle = menu.items.find((i) => i.options?.some((o) => o.value === 'compact'));
+    expect(headerToggle).toBeTruthy();
+    expect(headerToggle.on).toBe('auto');
+    headerToggle.onToggle('compact');
+    expect(ctx.setHeaderPref).toHaveBeenCalledWith('compact');
   });
 });
 

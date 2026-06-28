@@ -29,6 +29,7 @@ export default function App() {
   const [termRows, setTermRows] = useState(stdout?.rows || 24);
   const [termCols, setTermCols] = useState(stdout?.columns || 80);
   const [logWrap, setLogWrap] = useState(false); // /wrap: zawijanie logów
+  const [headerPref, setHeaderPref] = useState('auto'); // nagłówek: 'auto' | 'compact'
   const [logScroll, setLogScroll] = useState(0); // ile wizualnych wierszy od dołu (0 = najnowsze)
   // Nawigacja „wstecz”: każda otwierana nakładka dostaje wskaźnik `parent` (ekran,
   // z którego przyszliśmy). Esc wraca do rodzica, a dopiero z ekranu najwyższego
@@ -71,6 +72,7 @@ export default function App() {
     return {
       ctrl, t, state, mismatches, git, shops, refreshShops, clearLog, exit, safe,
       logWrap, setLogWrap,
+      headerPref, setHeaderPref,
       // Wybór pozycji zamyka picker (back → input), a wskaźnik rodzica zapisujemy
       // tuż przed handlerem — jeśli ten otworzy kolejną nakładkę, dostanie ona ten
       // picker jako rodzica (Esc wróci tu, a nie do inputu).
@@ -128,7 +130,7 @@ export default function App() {
         });
       },
     };
-  }, [ctrl, t, state, mismatches, git, shops, refreshShops, clearLog, exit, logWrap]);
+  }, [ctrl, t, state, mismatches, git, shops, refreshShops, clearLog, exit, logWrap, headerPref]);
 
   const commands = useMemo(() => buildCommands(ctx), [ctx]);
 
@@ -160,7 +162,7 @@ export default function App() {
   // Nagłówek degraduje się z wysokością okna: pełny → compact (1 wiersz) →
   // ukryty (nakładka „nachodzi" na nagłówek), a gdy nawet bez nagłówka nie ma
   // miejsca na minimum trybu → guard (ekran „okno za małe"). Liczone w layout.js.
-  const hl = headerLayout({ termRows, termCols, mode });
+  const hl = headerLayout({ termRows, termCols, mode, pref: headerPref });
   const headerMode = hl.mode; // 'full' | 'compact' | 'none' | 'guard'
   const tooSmall = headerMode === 'guard';
   // Realna wysokość nagłówka (z górnym dividerem). 0 gdy ukryty/guard.

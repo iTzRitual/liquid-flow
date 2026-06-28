@@ -15,7 +15,7 @@ function fmtTs(ts) {
 }
 
 export function buildCommands(ctx) {
-  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, openConflicts, openConnect, logWrap, setLogWrap, exit, safe, skipToInput, backToInput, withLoading, dropParent } = ctx;
+  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, openConflicts, openConnect, logWrap, setLogWrap, headerPref, setHeaderPref, exit, safe, skipToInput, backToInput, withLoading, dropParent } = ctx;
   const hasShop = !!state?.currentShop;
   const hasTemplate = !!state?.currentTemplate;
 
@@ -127,10 +127,17 @@ export function buildCommands(ctx) {
     });
   };
 
-  // --- ustawienia (język + zawijanie logów) ---
-  // Menu ustawień: dwa inline toggle — zawijanie logów i język (←/→ bez podmenu).
+  // --- ustawienia (język + zawijanie logów + nagłówek) ---
+  // Menu ustawień: inline toggle — zawijanie logów, nagłówek (Auto/Zwinięty) i
+  // język (←/→ bez podmenu). Nagłówek: 'auto' = natywna degradacja (pełne logo gdy
+  // się mieści), 'compact' = zawsze 1 wiersz.
+  const headerModes = [
+    { label: t.HeaderModeAuto, value: 'auto' },
+    { label: t.HeaderModeCompact, value: 'compact' },
+  ];
   const settingsMenu = () => openPicker(t.Settings, [
     { kind: 'toggle', label: t.SettingsWrap, on: !!logWrap, onToggle: (v) => { setLogWrap(v); log.logInfo(log.tmsg(v ? 'LogWrapOn' : 'LogWrapOff')); } },
+    { kind: 'toggle', label: t.SettingsHeader, options: headerModes, on: headerPref || 'auto', onToggle: (v) => { setHeaderPref(v); log.logInfo(log.tmsg('HeaderModeSet', { name: headerModes.find((m) => m.value === v)?.label || v })); } },
     { kind: 'toggle', label: t.Language, options: LANGUAGES.map((l) => ({ label: l.Name, value: l.Id })), on: state?.language || 'pl', onToggle: (v) => { const lang = LANGUAGES.find((l) => l.Id === v); ctrl.setLanguage(v); log.logInfo(log.tmsg('LanguageSet', { name: lang?.Name || v })); } },
   ]);
 

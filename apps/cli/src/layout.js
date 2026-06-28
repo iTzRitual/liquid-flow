@@ -90,14 +90,18 @@ export function appMinRows() {
 // naturalnej wysokości — inaczej info o za małym oknie wyskakiwałoby przy każdej
 // dłuższej liście. Po przejściu podłogi `under(0) >= minBodyRows` zachodzi dla
 // każdego trybu, więc 'none' zawsze zmieści przynajmniej minimum bieżącego trybu.
-export function headerLayout({ termRows, termCols, mode }) {
+// `pref` — preferencja użytkownika z ustawień: 'auto' (domyślnie, degradacja jak
+// wyżej) albo 'compact' (nagłówek ZAWSZE zwinięty do 1 wiersza, gdy się mieści —
+// nigdy pełne logo). Niezależnie od `pref` schodzimy do 'none'/'guard', gdy okno
+// jest za niskie nawet na compact.
+export function headerLayout({ termRows, termCols, mode, pref = 'auto' }) {
   const minRows = appMinRows();
   if (termRows < minRows) return { mode: 'guard', height: 0, minRows };
 
   const want = naturalBodyRows(mode);
   const fullH = termCols < HEADER_STACK_COLS ? FULL_HEADER_STACKED_ROWS : FULL_HEADER_ROWS;
   const under = (h) => termRows - h; // root rośnie do pełnej wysokości (termRows)
-  if (termRows >= FULL_HEADER_MIN_TERM_ROWS && under(fullH) >= want)
+  if (pref !== 'compact' && termRows >= FULL_HEADER_MIN_TERM_ROWS && under(fullH) >= want)
     return { mode: 'full', height: fullH, minRows };
   if (under(COMPACT_HEADER_ROWS) >= want)
     return { mode: 'compact', height: COMPACT_HEADER_ROWS, minRows };

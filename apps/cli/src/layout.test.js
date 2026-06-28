@@ -24,6 +24,20 @@ describe('headerLayout — degradacja nagłówka z wysokością', () => {
     expect(hl.height).toBe(COMPACT_HEADER_ROWS);
   });
 
+  it('pref=compact wymusza zwinięty nagłówek nawet w wysokim oknie', () => {
+    const hl = headerLayout({ termRows: 30, termCols: COLS, mode: { type: 'input' }, pref: 'compact' });
+    expect(hl.mode).toBe('compact');
+    expect(hl.height).toBe(COMPACT_HEADER_ROWS);
+  });
+
+  it('pref=compact nadal degraduje do none/guard przy za niskim oknie', () => {
+    const mode = { type: 'conflicts', files: [1, 2], bulk: [1] }; // natural = 13
+    // compact (under(2)=12 < 13) nie mieści całej treści → ukryty
+    expect(headerLayout({ termRows: 14, termCols: COLS, mode, pref: 'compact' }).mode).toBe('none');
+    // poniżej globalnej podłogi → guard niezależnie od pref
+    expect(headerLayout({ termRows: 7, termCols: COLS, mode, pref: 'compact' }).mode).toBe('guard');
+  });
+
   it('conflicts: nagłówek degraduje, by zmieścić WSZYSTKIE karty (nie okienkować)', () => {
     const mode = { type: 'conflicts', files: [1, 2], bulk: [1] }; // natural = 2*4+1+4 = 13
     // root = termRows, więc under(h) = termRows − h. Pełny nagłówek (8) mieści całą

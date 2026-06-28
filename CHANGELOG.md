@@ -6,6 +6,16 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.97] — 2026-06-28
+
+### Added
+- New **Header** preference in `/settings` (Auto / Compact). `Auto` keeps the
+  existing adaptive behaviour (full logo when it fits, degrading down as the
+  window shrinks); `Compact` forces the one-line header at all times. Either way
+  the header still degrades to hidden/guard when the window is too short.
+
+---
+
 ## [0.9.96] — 2026-06-28
 
 ### Fixed
