@@ -11,8 +11,11 @@ export function lineDiff(aText, bText) {
   const bLen = (bText || '').length;
   if (aLen + bLen > MAX_DIFF_BYTES) return { tooLarge: true };
 
-  const a = (aText || '').split('\n');
-  const b = (bText || '').split('\n');
+  // Normalizujemy końce linii (CRLF/CR → LF). Pliki szablonów z Comarch często
+  // mają zakończenia Windows (\r\n); bez tego każda linia niosłaby końcowy \r,
+  // który w terminalu przesuwa kursor na początek wiersza i rozbija render.
+  const a = (aText || '').split(/\r\n|\r|\n/);
+  const b = (bText || '').split(/\r\n|\r|\n/);
   const m = a.length;
   const n = b.length;
 

@@ -117,4 +117,21 @@ describe('DiffView — nawigacja', () => {
     expect(f).toContain('- <div>old</div>');
     expect(f).toContain('+ <div>new</div>');
   });
+
+  it('usuwa znaki sterujące (CR z plików CRLF) — render się nie rozsypuje', () => {
+    // linie z końcowym \r — w terminalu \r przesuwa kursor na początek wiersza i
+    // rozbija kadr (był to główny bug). Sanityzacja musi je usunąć.
+    const diff = [
+      { type: 'del', line: 'stara\r' },
+      { type: 'add', line: 'nowa\r' },
+    ];
+    const raw = render(
+      <DiffView title="crlf.html" preview={textPreview(diff)} onCancel={vi.fn()} maxRows={8} t={t} />
+    ).lastFrame();
+    expect(raw).not.toContain('\r'); // żaden carriage return nie przeciekł do renderu
+    expect(raw).not.toContain('\x07'); // ani inny znak sterujący z treści
+    const f = frame({ lastFrame: () => raw });
+    expect(f).toContain('- stara');
+    expect(f).toContain('+ nowa');
+  });
 });

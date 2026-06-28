@@ -6,6 +6,17 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.101] — 2026-06-28
+
+### Fixed
+- **Conflict diff preview corrupted on Windows-line-ending (`\r\n`) templates.**
+  `lineDiff` split only on `\n`, so every line kept a trailing carriage return;
+  in the terminal `\r` jumps the cursor to column 0 and the next text overwrites,
+  producing a diagonal "staircase" of cut-off lines and stray border bars.
+  `lineDiff` now normalizes CRLF/CR → LF, and `DiffView` strips any remaining
+  control characters (defensive against `\r` and ANSI escape injection from file
+  content) before rendering.
+
 ## [0.9.100] — 2026-06-28
 
 ### Fixed

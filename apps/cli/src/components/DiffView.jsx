@@ -8,16 +8,23 @@ import { tfmt, buildDiffRows } from '@liquidflow/core';
 //
 // Trzy zabiegi czytelności (ważne — bez nich szablony z głębokim zagnieżdżeniem
 // rozpadają się na ekranie):
-//  1. **Ekspansja tabów** na 2 spacje. Ink mierzy `\t` jako 1 kolumnę, a terminal
-//     rysuje go jako skok do tab‑stopu (do 8 kolumn) — przez tę rozbieżność
-//     `truncate-end` nie tnie za długiej linii i kadr się „schodkuje"/zawija.
+//  1. **Sanityzacja** każdej linii (`sanitize`): taby → 2 spacje + usunięcie
+//     znaków sterujących (\r, ANSI itp. — patrz niżej).
 //  2. **Wspólne wcięcie (dedent)** — odcinamy minimalne wcięcie widocznych linii
 //     treści, więc głęboko zagnieżdżony kod przesuwa się do lewej i widać tag,
 //     a nie same spacje (z `truncate-end`, który zostawia LEWĄ stronę linii).
 //  3. **Zwijanie kontekstu** (`buildDiffRows`) — pokazujemy tylko ±N linii wokół
 //     zmian, resztę jako „N niezmienionych" — zmiany nie giną w morzu kontekstu.
 const TAB = '  '; // tab → 2 spacje (zwięźle przy głębokim zagnieżdżeniu)
-const expandTabs = (s) => (s || '').replace(/\t/g, TAB);
+// Sanityzacja wiersza do bezpiecznego renderu w terminalu:
+//  - taby → 2 spacje (Ink mierzy \t jako 1 kol., terminal rysuje do 8 → schodki),
+//  - znaki sterujące USUWAMY (po rozwinięciu tabów nie ma już 0x09): \r przesuwa
+//    kursor na początek wiersza i rozbija kadr (główny bug przy plikach CRLF),
+//    a sekwencje ANSI (0x1b) z treści mogłyby wstrzyknąć kolory/ruch kursora.
+//    Zostaje tylko tekst drukowalny.
+// eslint-disable-next-line no-control-regex
+const CONTROL = /[\x00-\x1f\x7f]/g;
+const sanitize = (s) => (s || '').replace(/\t/g, TAB).replace(CONTROL, '');
 const leadSpaces = (s) => { const m = /^ */.exec(s); return m ? m[0].length : 0; };
 
 export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
@@ -25,16 +32,16 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
 
   const isText = preview?.kind === 'text';
 
-  // Wiersze do renderu: numery linii + zwinięty kontekst, po ekspansji tabów i
+  // Wiersze do renderu: numery linii + zwinięty kontekst, po sanityzacji i
   // dedencie. Liczone raz na preview (memo) — stabilne przy przewijaniu.
   const { rows, gutterW } = useMemo(() => {
     if (!isText) return { rows: [], gutterW: 1 };
     const built = buildDiffRows(preview.diff, { context: 3 });
-    const expanded = built.map((r) => (r.type === 'fold' ? r : { ...r, text: expandTabs(r.line) }));
+    const clean = built.map((r) => (r.type === 'fold' ? r : { ...r, text: sanitize(r.line) }));
     // wspólne wcięcie liczone tylko z niepustych linii treści (puste/fold pomijamy)
-    const content = expanded.filter((r) => r.type !== 'fold' && r.text.trim().length > 0);
+    const content = clean.filter((r) => r.type !== 'fold' && r.text.trim().length > 0);
     const minIndent = content.length ? Math.min(...content.map((r) => leadSpaces(r.text))) : 0;
-    const dedented = expanded.map((r) => (r.type === 'fold' ? r : { ...r, text: r.text.slice(minIndent) }));
+    const dedented = clean.map((r) => (r.type === 'fold' ? r : { ...r, text: r.text.slice(minIndent) }));
     // szerokość rynny numerów = liczba cyfr największego numeru linii
     const totalA = preview.diff.filter((d) => d.type !== 'add').length; // lokalne (ctx+del)
     const totalB = preview.diff.filter((d) => d.type !== 'del').length; // zdalne (ctx+add)
@@ -92,7 +99,7 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
   const blankGutter = ' '.repeat(gutterW);
 
   // Renderuje jeden wiersz diff. Numer linii (rynna) wyszarzony; treść w kolorze
-  // typu. Cały <Text> ma `truncate-end` — po ekspansji tabów Ink mierzy szerokość
+  // typu. Cały <Text> ma `truncate-end` — po sanityzacji Ink mierzy szerokość
   // poprawnie, więc tnie dokładnie na granicy kadru (bez zawijania/schodków).
   const renderRow = (r, k) => {
     if (r.type === 'fold') {

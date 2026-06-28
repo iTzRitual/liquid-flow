@@ -48,6 +48,19 @@ describe('lineDiff', () => {
     expect(Array.isArray(r)).toBe(true);
     expect(r.every((l) => l.type === 'ctx')).toBe(true);
   });
+
+  it('normalizuje końce linii CRLF/CR (bez końcowego \\r w liniach)', () => {
+    // Pliki szablonów Comarch bywają z zakończeniami Windows (\r\n) — \r nie może
+    // przeciekać do treści linii (w terminalu przesuwa kursor i rozbija render).
+    const crlf = lineDiff('a\r\nb\r\nc', 'a\r\nB\r\nc');
+    expect(crlf.every((l) => !l.line.includes('\r'))).toBe(true);
+    expect(crlf.find((l) => l.type === 'del')?.line).toBe('b');
+    expect(crlf.find((l) => l.type === 'add')?.line).toBe('B');
+
+    // identyczna treść różniąca się TYLKO zakończeniami → brak zmian
+    const sameContent = lineDiff('x\r\ny\r\nz', 'x\ny\nz');
+    expect(sameContent.every((l) => l.type === 'ctx')).toBe(true);
+  });
 });
 
 describe('diffSummary', () => {
