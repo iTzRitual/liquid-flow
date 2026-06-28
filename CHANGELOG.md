@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.105] — 2026-06-29
+### Fixed
+- CLI bottom spacer now hides only when the window is too small to fit a full header (auto-layout), not when the user manually set header to compact in preferences.
+
 ## [0.9.104] — 2026-06-29
 ### Changed
 - CLI input mode: bottom spacer is now hidden when the header is in compact or none mode (small window), saving the row for content.

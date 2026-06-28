@@ -180,7 +180,7 @@ export default function App() {
   const HEADER = hl.height;
   // Log wypełnia dostępną wysokość. Pasek postępu, gdy widoczny, zajmuje 1 wiersz.
   const progressRows = progress ? 1 : 0;
-  const bottomSpacer = headerMode === 'full';
+  const bottomSpacer = headerLayout({ termRows, termCols, mode, pref: 'auto' }).mode === 'full';
   const logRows = Math.max(1, termRows - HEADER - progressRows - (bottomSpacer ? 3 : 2));
   // paleta (gdy log się nie mieści obok): pełna wysokość pod nagłówkiem
   const paletteMax = Math.max(3, termRows - HEADER - 1);
