@@ -53,3 +53,44 @@ export function diffSummary(aText, bText) {
   const removed = diff.filter((d) => d.type === 'del').length;
   return { added, removed, hunks: diff };
 }
+
+// Buduje wiersze do wyświetlenia z surowego line-diff: przypisuje numery linii
+// (lokalna `aLn` / zdalna `bLn`, 1-based) i ZWIJA długie ciągi niezmienionych
+// linii — pokazujemy tylko `context` wierszy wokół każdej zmiany, resztę jako
+// „fold" (jeden wiersz „N niezmienionych"). Dzięki temu w wielkim pliku z jedną
+// zmianą nie toniesz w setkach białych linii kontekstu. Zwraca tablicę:
+//   { type:'ctx'|'add'|'del', line, aLn, bLn }   (aLn lub bLn = null wg typu)
+//   { type:'fold', count }                        (N zwiniętych linii kontekstu)
+export function buildDiffRows(diff, { context = 3 } = {}) {
+  if (!Array.isArray(diff)) return [];
+  let a = 0;
+  let b = 0;
+  const items = diff.map((d) => {
+    if (d.type === 'add') { b += 1; return { type: 'add', line: d.line, aLn: null, bLn: b }; }
+    if (d.type === 'del') { a += 1; return { type: 'del', line: d.line, aLn: a, bLn: null }; }
+    a += 1; b += 1; return { type: 'ctx', line: d.line, aLn: a, bLn: b };
+  });
+
+  // zaznacz wiersze do pokazania: każda zmiana + `context` linii w obie strony
+  const keep = new Array(items.length).fill(false);
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type === 'ctx') continue;
+    const lo = Math.max(0, i - context);
+    const hi = Math.min(items.length - 1, i + context);
+    for (let j = lo; j <= hi; j++) keep[j] = true;
+  }
+
+  // złóż wiersze; ciągłe luki niezmienionych linii (≥2) → jeden fold
+  const rows = [];
+  let i = 0;
+  while (i < items.length) {
+    if (keep[i]) { rows.push(items[i]); i += 1; continue; }
+    let j = i;
+    while (j < items.length && !keep[j]) j += 1;
+    const count = j - i;
+    if (count >= 2) rows.push({ type: 'fold', count });
+    else rows.push(items[i]); // pojedyncza linia — taniej pokazać niż zwijać
+    i = j;
+  }
+  return rows;
+}

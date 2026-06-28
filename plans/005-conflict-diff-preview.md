@@ -359,10 +359,21 @@ STOP condition.
 - All three cases render a one-line dimColor fallback message in `DiffView`
   instead of crashing or showing garbage.
 
+**Readability follow-up (done after first ship, on user feedback):**
+- **Tab expansion** — leading tabs in nested templates made Ink mis-measure
+  widths (tab = 1 col to Ink, up to 8 in the terminal), so lines never truncated
+  and wrapped into a diagonal staircase. Tabs → 2 spaces fixes measurement.
+- **Dedent** — strip the common leading indentation of visible content so deeply
+  nested tags shift left and the actual tag shows (with `truncate-end`, which
+  keeps the left of a line, otherwise you'd see only whitespace).
+- **Line-number gutter** — dim, right-aligned (local # for `-`, remote # for `+`/ctx).
+- **Context folding** — `buildDiffRows(diff, { context: 3 })` keeps ±3 lines
+  around each change and collapses the rest into `⋯ N unchanged lines`, so the
+  change isn't lost in a sea of white context lines.
+
 **Deferred:**
 - Side-by-side / syntax-highlighted rendering.
 - Desktop (`apps/desktop`) parity — the `Controller.previewConflict` API is
   already wired; only the renderer UI is missing.
 - Diff for `removeLocal`/`removeRemote` choices (show one-sided content view).
-- Context-lines trimming (show only hunks ± N context lines for large identical
-  files with a small diff).
+- Horizontal scrolling for lines longer than the terminal (currently truncated).

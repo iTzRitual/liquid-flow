@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lineDiff, diffSummary } from './diff.js';
+import { lineDiff, diffSummary, buildDiffRows } from './diff.js';
 
 describe('lineDiff', () => {
   it('identyczne wejścia → same ctx', () => {
@@ -70,5 +70,70 @@ describe('diffSummary', () => {
     const r = diffSummary('line\nline2', 'line\nline2');
     expect(r.added).toBe(0);
     expect(r.removed).toBe(0);
+  });
+});
+
+describe('buildDiffRows', () => {
+  it('przypisuje numery linii lokalne/zdalne', () => {
+    const diff = [
+      { type: 'ctx', line: 'a' },
+      { type: 'del', line: 'b' },
+      { type: 'add', line: 'B' },
+      { type: 'ctx', line: 'c' },
+    ];
+    const rows = buildDiffRows(diff, { context: 3 });
+    expect(rows).toEqual([
+      { type: 'ctx', line: 'a', aLn: 1, bLn: 1 },
+      { type: 'del', line: 'b', aLn: 2, bLn: null },
+      { type: 'add', line: 'B', aLn: null, bLn: 2 },
+      { type: 'ctx', line: 'c', aLn: 3, bLn: 3 },
+    ]);
+  });
+
+  it('zwija długie ciągi niezmienionych linii poza kontekstem w fold', () => {
+    // 1 zmiana na początku, potem 10 linii kontekstu → ogon zwinięty
+    const diff = [{ type: 'add', line: 'new' }];
+    for (let i = 0; i < 10; i++) diff.push({ type: 'ctx', line: `c${i}` });
+    const rows = buildDiffRows(diff, { context: 3 });
+    // add + 3 linie kontekstu + 1 fold (pozostałe 7)
+    expect(rows.filter((r) => r.type === 'add')).toHaveLength(1);
+    expect(rows.filter((r) => r.type === 'ctx')).toHaveLength(3);
+    const fold = rows.find((r) => r.type === 'fold');
+    expect(fold).toBeTruthy();
+    expect(fold.count).toBe(7);
+  });
+
+  it('brak zmian → jeden fold z całą liczbą linii', () => {
+    const diff = Array.from({ length: 5 }, (_, i) => ({ type: 'ctx', line: `c${i}` }));
+    const rows = buildDiffRows(diff, { context: 3 });
+    expect(rows).toEqual([{ type: 'fold', count: 5 }]);
+  });
+
+  it('same zmiany → wszystkie wiersze zachowane (bez fold)', () => {
+    const diff = [
+      { type: 'del', line: 'x' },
+      { type: 'add', line: 'y' },
+    ];
+    const rows = buildDiffRows(diff, { context: 3 });
+    expect(rows.some((r) => r.type === 'fold')).toBe(false);
+    expect(rows).toHaveLength(2);
+  });
+
+  it('pojedyncza luka (1 linia) nie jest zwijana', () => {
+    // dwie zmiany odległe o dokładnie 1 linię kontekstu poza zasięgiem context=0
+    const diff = [
+      { type: 'add', line: 'a' },
+      { type: 'ctx', line: 'gap' },
+      { type: 'add', line: 'b' },
+    ];
+    const rows = buildDiffRows(diff, { context: 0 });
+    expect(rows.some((r) => r.type === 'fold')).toBe(false);
+    expect(rows.find((r) => r.type === 'ctx')?.line).toBe('gap');
+  });
+
+  it('puste/niepoprawne wejście → []', () => {
+    expect(buildDiffRows(null)).toEqual([]);
+    expect(buildDiffRows(undefined)).toEqual([]);
+    expect(buildDiffRows([])).toEqual([]);
   });
 });

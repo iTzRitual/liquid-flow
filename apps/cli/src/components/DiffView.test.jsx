@@ -78,8 +78,8 @@ describe('DiffView — nawigacja', () => {
   });
 
   it('↑/↓ przewija widoczne linie', async () => {
-    // 20 linii diff, maxRows=5 — powinny pojawić się wskaźniki po przewinięciu
-    const diff = Array.from({ length: 20 }, (_, i) => ({ type: 'ctx', line: `linia ${i + 1}` }));
+    // 20 ZMIENIONych linii (add) — wszystkie zachowane (bez zwijania), maxRows=5
+    const diff = Array.from({ length: 20 }, (_, i) => ({ type: 'add', line: `linia ${i + 1}` }));
     const api = render(
       <DiffView title="long.liquid" preview={textPreview(diff)} onCancel={vi.fn()} maxRows={5} t={t} />
     );
@@ -88,5 +88,33 @@ describe('DiffView — nawigacja', () => {
     // przewiń w dół — pojawią się kolejne linie
     await press(api.stdin, keys.down);
     expect(frame(api)).toContain('linia 2');
+  });
+
+  it('numer linii w rynnie + zwijanie długiego kontekstu', () => {
+    // 1 zmiana, potem dużo kontekstu → fold „N niezmienionych wierszy"
+    const diff = [{ type: 'add', line: 'zmieniona' }];
+    for (let i = 0; i < 10; i++) diff.push({ type: 'ctx', line: `ctx ${i}` });
+    const api = render(
+      <DiffView title="big.liquid" preview={textPreview(diff)} onCancel={vi.fn()} maxRows={12} t={t} />
+    );
+    const f = frame(api);
+    expect(f).toContain('+ zmieniona');
+    expect(f).toMatch(/1 \+ zmieniona/); // numer linii w rynnie
+    expect(f).toContain('niezmienionych wierszy'); // fold widoczny
+  });
+
+  it('głęboko zagnieżdżone (taby) → dedent i ekspansja, bez surowego \\t', () => {
+    const diff = [
+      { type: 'del', line: '\t\t\t<div>old</div>' },
+      { type: 'add', line: '\t\t\t<div>new</div>' },
+    ];
+    const api = render(
+      <DiffView title="nested.liquid" preview={textPreview(diff)} onCancel={vi.fn()} maxRows={8} t={t} />
+    );
+    const f = frame(api);
+    expect(f).not.toContain('\t'); // żadnych surowych tabów
+    // wspólne wcięcie odcięte → treść lgnie do prefixu (bez 6 spacji wiodących)
+    expect(f).toContain('- <div>old</div>');
+    expect(f).toContain('+ <div>new</div>');
   });
 });

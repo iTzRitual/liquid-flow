@@ -6,6 +6,21 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.100] — 2026-06-28
+
+### Fixed
+- **Conflict diff preview rendering** for deeply-nested templates. Leading tab
+  characters made Ink mis-measure line widths (tab counted as 1 column, rendered
+  as up to 8), so long lines never truncated and wrapped into a diagonal
+  "staircase". Tabs are now expanded to 2 spaces and lines truncate correctly.
+
+### Added
+- Diff preview now shows a **line-number gutter**, **dedents** common leading
+  indentation so nested tag content is visible (not just whitespace), and
+  **folds long runs of unchanged context** into a `⋯ N unchanged lines` marker
+  (new core helper `buildDiffRows` + `DiffFold` i18n key) so the actual change
+  stands out instead of drowning in white context lines.
+
 ## [0.9.99] — 2026-06-28
 
 ### Added

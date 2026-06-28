@@ -2,7 +2,7 @@
 // (@liquidflow/core Controller). buildCommands(ctx) zwraca świeżą listę przy
 // każdym renderze, dzięki czemu handlery widzą aktualny stan.
 
-import { LANGUAGES, MismatchType, log, tfmt } from '@liquidflow/core';
+import { LANGUAGES, MismatchType, log, tfmt, buildDiffRows } from '@liquidflow/core';
 import { openExternal } from './open.js';
 
 // Krótki znacznik czasu MM-DD HH:MM (lub '—' gdy brak).
@@ -190,7 +190,9 @@ export function buildCommands(ctx) {
     if (value === 'preview') {
       withLoading(t.PreviewLoading, async () => {
         const preview = await ctrl.previewConflict(m.File, m.Type);
-        const lines = preview?.kind === 'text' ? (preview.diff?.length || 0) : 0;
+        // wysokość nakładki liczymy z RZECZYWISTYCH wierszy (po zwinięciu kontekstu),
+        // nie z surowej długości diffu — duży plik z małą zmianą = kilka wierszy.
+        const lines = preview?.kind === 'text' ? buildDiffRows(preview.diff, { context: 3 }).length : 0;
         openDiff({ title: tfmt(t.DiffTitle, { name: m.File.Name }), preview, lines });
       });
       return;

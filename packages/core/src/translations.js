@@ -294,6 +294,7 @@ const pl = {
   DiffTooLarge: 'Plik za duży do podglądu',
   DiffSummary: '+{added} −{removed}',
   DiffNoChanges: 'Brak różnic',
+  DiffFold: '⋯ {count} niezmienionych wierszy',
 
   // --- tray (Electron) ---
   ShowWindow: 'Pokaż okno',
@@ -555,6 +556,7 @@ const en = {
   DiffTooLarge: 'File too large to preview',
   DiffSummary: '+{added} −{removed}',
   DiffNoChanges: 'No differences',
+  DiffFold: '⋯ {count} unchanged lines',
 
   // --- tray (Electron) ---
   ShowWindow: 'Show window',
