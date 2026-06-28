@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.107] — 2026-06-29
+### Fixed
+- Diff preview scroll: pressing down arrow now always reveals one new line from below. The previous implementation showed a `↑ N more` indicator that stole a content row from the budget, causing the first down-press to only display the indicator without moving the content window. Removed the above indicator entirely — the line-number gutter already tells the user where they are.
+
 ## [0.9.106] — 2026-06-29
 ### Fixed
 - Command palette / Picker / ConnectList: a "1 more" scroll indicator (`↑ 1 więcej` / `↓ 1 więcej`) now never appears — the hidden item is shown directly instead, since it fits in the same number of rows as the indicator it replaces. Pressing down no longer felt stuck when the last visible item had exactly one hidden neighbor.

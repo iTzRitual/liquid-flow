@@ -51,9 +51,10 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
   const added = isText ? preview.diff.filter((l) => l.type === 'add').length : 0;
   const removed = isText ? preview.diff.filter((l) => l.type === 'del').length : 0;
 
-  // +1, by przy scroll=maxScroll górny wskaźnik „↑" zmieścił się obok ostatnich
-  // wierszy (analogia do LogPane maxScroll = total - rows + 1).
-  const maxScroll = Math.max(0, rows.length - maxRows + 1);
+  // Nie używamy wskaźnika „↑ N więcej" — każde wciśnięcie dół odsłania dokładnie
+  // 1 nową linię. Wskaźnik nad treścią zabierał wiersz z budżetu i sprawiał, że
+  // pierwsze wciśnięcie dół jedynie pokazywało wskaźnik zamiast nowej linii.
+  const maxScroll = Math.max(0, rows.length - maxRows);
   const scrollClamped = Math.min(scroll, maxScroll);
 
   useInput((input, key) => {
@@ -86,13 +87,16 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
     );
   }
 
-  // Okno widocznych wierszy z symetrycznymi wskaźnikami ↑/↓ (zabierają wiersz).
-  const hasAbove = scrollClamped > 0;
-  const avail0 = maxRows - (hasAbove ? 1 : 0);
-  const hasBelow = scrollClamped + avail0 < rows.length;
-  const avail = hasBelow ? avail0 - 1 : avail0;
-  const visible = rows.slice(scrollClamped, scrollClamped + Math.max(0, avail));
-  const belowCount = rows.length - scrollClamped - Math.max(0, avail);
+  // Okno widocznych wierszy: tylko wskaźnik ↓ (dolny) zabiera 1 wiersz z budżetu.
+  // Brak górnego wskaźnika eliminuje „przyklejenie" — każde wciśnięcie dół
+  // odsłania dokładnie 1 nową linię (numery w rynnie mówią gdzie jesteś).
+  const hasBelow = scrollClamped + maxRows < rows.length;
+  const avail = maxRows - (hasBelow ? 1 : 0);
+  // Na końcu treści: wypełnij od dołu, żeby uniknąć pustych wierszy.
+  const start = Math.min(scrollClamped, Math.max(0, rows.length - avail));
+  const end = Math.min(rows.length, start + avail);
+  const visible = rows.slice(start, end);
+  const belowCount = rows.length - end;
 
   const colorFor = (type) => (type === 'add' ? 'green' : type === 'del' ? 'red' : undefined);
   const prefixFor = (type) => (type === 'add' ? '+' : type === 'del' ? '-' : ' ');
@@ -126,7 +130,6 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
       <Text color="cyan" bold wrap="truncate-end">{title}</Text>
-      {hasAbove && <Text dimColor>{tfmt(t.MoreAbove, { count: scrollClamped })}</Text>}
       {rows.length === 0
         ? <Text dimColor>{t.DiffNoChanges}</Text>
         : visible.map(renderRow)
