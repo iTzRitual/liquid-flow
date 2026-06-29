@@ -8,13 +8,16 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import ConfirmButton from './ConfirmButton.jsx';
 import { fmtDate } from '@/lib/utils';
-import { GitBranch, GitCommit, History, UploadCloud, RotateCcw, Power, Loader2, Cloud } from 'lucide-react';
+import { GitBranch, GitCommit, GitMerge, History, UploadCloud, RotateCcw, Power, Loader2, Cloud } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 export default function GitPanel() {
   const { t, api, call, git, setGit } = useApp();
   const [history, setHistory] = useState([]);
   const [remote, setRemote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [cpOpen, setCpOpen] = useState(false);
+  const [cpMsg, setCpMsg] = useState('');
 
   const reload = async () => {
     const st = await call(() => api.git.status(), { errorToast: false }).catch(() => null);
@@ -38,6 +41,16 @@ export default function GitPanel() {
   const saveRemote = async () => { const s = await call(() => api.git.setRemote(remote)); setGit(s); };
   const push = async () => { setBusy(true); try { await call(() => api.git.push()); await reload(); } finally { setBusy(false); } };
   const restore = async (hash) => { await call(() => api.git.restore(hash)); await reload(); };
+  const checkpoint = async () => {
+    setBusy(true);
+    try {
+      const s = await call(() => api.git.checkpoint({ message: cpMsg || 'Checkpoint' }));
+      setGit(s);
+      setCpOpen(false);
+      setCpMsg('');
+      await reload();
+    } finally { setBusy(false); }
+  };
 
   const active = git && git.isRepo;
 
@@ -57,6 +70,7 @@ export default function GitPanel() {
             <>
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <Badge variant="success" className="gap-1"><GitCommit className="h-3 w-3" /> {git.commitCount} {t.Versions}</Badge>
+                {git.ahead > 0 && <Badge variant="warning" className="gap-1">{git.branch} · +{git.ahead} {t.Versions}</Badge>}
                 {git.dirty && <Badge variant="warning">{t.UncommittedChanges}</Badge>}
                 {git.remote && <Badge variant="secondary" className="gap-1"><Cloud className="h-3 w-3" /> origin</Badge>}
                 {git.lastCommit && <span className="text-xs text-muted-foreground">{t.LastLabel}: {git.lastCommit.message} ({git.lastCommit.relative})</span>}
@@ -78,12 +92,31 @@ export default function GitPanel() {
                 <div className="flex gap-2">
                   <Input value={remote} onChange={(e) => setRemote(e.target.value)} placeholder={t.GitRemotePlaceholder} />
                   <Button variant="secondary" onClick={saveRemote}>{t.Save}</Button>
+                  <Button onClick={() => setCpOpen(true)} disabled={busy || (git.ahead === 0 && !git.dirty)}>
+                    <GitMerge className="h-4 w-4" /> {t.GitCheckpoint}
+                  </Button>
                   <Button variant="outline" onClick={push} disabled={busy || !git.remote}>
                     {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />} Push
                   </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">{t.AuthHint}</p>
               </div>
+
+              <Dialog open={cpOpen} onOpenChange={setCpOpen}>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>{t.GitCheckpointTitle}</DialogTitle></DialogHeader>
+                  <div className="space-y-1.5">
+                    <Label>{t.GitCheckpointMessageField}</Label>
+                    <Input value={cpMsg} onChange={(e) => setCpMsg(e.target.value)} autoFocus />
+                  </div>
+                  <DialogFooter>
+                    <Button variant="secondary" onClick={() => setCpOpen(false)}>{t.Cancel}</Button>
+                    <Button disabled={busy} onClick={checkpoint}>
+                      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <GitMerge className="h-4 w-4" />} {t.Save}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </>
           )}
         </CardContent>

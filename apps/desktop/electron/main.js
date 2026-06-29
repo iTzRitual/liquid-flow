@@ -116,6 +116,8 @@ function registerIpc(ctrl) {
     'git.restore': (hash) => ctrl.gitRestore(hash),
     'git.setRemote': (url) => ctrl.gitSetRemote(url),
     'git.push': () => ctrl.gitPush(),
+    'git.checkpoint': (data) => ctrl.gitCheckpoint(data && data.message, data && data.target),
+    'git.uncommittedCount': () => ctrl.gitUncommittedCount(),
 
     'sys.openFolder': () => { const d = ctrl.currentFolder(); if (d) shell.openPath(d); return d; },
     'sys.openShop': () => { const u = ctrl.currentShopUrl(); if (u) shell.openExternal(u); return u; },

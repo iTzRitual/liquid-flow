@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.122] — 2026-06-29
+### Added
+- Desktop: git "checkpoint" action to publish accumulated versions (wip → target branch), with a pending-versions indicator. Brings desktop git to parity with the CLI.
+
 ## [0.9.121] — 2026-06-29
 ### Added
 - Checkpoints can now target any branch, not just `main`. The `/git → checkpoint` flow opens a target-stream picker (existing branches + "New branch…") before asking for the message; the chosen branch becomes the new target stream and is persisted per template (`git.targetBranch` in config).

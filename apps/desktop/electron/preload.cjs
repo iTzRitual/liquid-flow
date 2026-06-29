@@ -37,6 +37,8 @@ contextBridge.exposeInMainWorld('api', {
     restore: (hash) => invoke('git.restore', hash),
     setRemote: (url) => invoke('git.setRemote', url),
     push: () => invoke('git.push'),
+    checkpoint: (data) => invoke('git.checkpoint', data),
+    uncommittedCount: () => invoke('git.uncommittedCount'),
   },
 
   // system
