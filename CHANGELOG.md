@@ -6,6 +6,12 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.112] — 2026-06-29
+### Fixed
+- `tsconfig.json`: configure `include`/`exclude` and `noEmit` to prevent TypeScript from trying to compile source files — resolves IDE errors about overwriting input files.
+
+---
+
 ## [0.9.111] — 2026-06-29
 ### Added
 - `previewConflict()` test coverage for Timestamp, LocalMissing, RemoteMissing conflicts and binary file detection.
