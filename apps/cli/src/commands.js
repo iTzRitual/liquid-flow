@@ -258,16 +258,36 @@ export function buildCommands(ctx) {
     const st = await ctrl.gitStatus();
     if (!st.available) { log.logErr(log.tmsg('GitNotInstalled')); return; }
 
-    // Brak repozytorium → jedyna opcja to inicjalizacja. Po niej wracamy do
-    // pełnego menu (a nie do ekranu głównego).
+    const confirmGit = (title, onYes) =>
+      openPicker(title, [
+        { label: t.ConfirmYes, value: true },
+        { label: t.ConfirmNo, value: false },
+      ], (it) => { if (it.value) onYes(); else gitMenu(); });
+
+    // Brak repozytorium → jedyna opcja to inicjalizacja lub sklonowanie.
     if (!st.isRepo) {
       openPicker(t.GitMenuNoRepo, [
         { label: t.GitInitRepo, value: 'init' },
-      ], () => withLoading(t.Loading, async () => {
-        await ctrl.gitEnable();
-        dropParent(); // ekran „brak repo” jest już nieaktualny → Esc z menu git wróci do inputu
-        gitMenu();
-      }, t.GitInitRepo));
+        { label: t.GitCloneRepo, value: 'clone' },
+      ], (it) => {
+        if (it.value === 'init') {
+          withLoading(t.Loading, async () => {
+            await ctrl.gitEnable();
+            dropParent(); // ekran „brak repo” jest już nieaktualny → Esc z menu git wróci do inputu
+            gitMenu();
+          }, t.GitInitRepo);
+        } else if (it.value === 'clone') {
+          openForm(t.GitCloneTitle, [{ name: 'url', label: t.GitRemoteUrlField }],
+            (v) => confirmGit(t.ConfirmClone, () => {
+              withLoading(t.GitCloning, async () => {
+                await ctrl.gitClone(v.url);
+                dropParent();
+                gitMenu();
+              });
+            })
+          );
+        }
+      });
       return;
     }
 
@@ -276,13 +296,66 @@ export function buildCommands(ctx) {
     const items = [
       { kind: 'toggle', label: t.AutoCommit, on: !!st.autoCommit, onToggle: (v) => safe(() => ctrl.gitSetSettings({ autoCommit: v })) },
       { kind: 'toggle', label: t.AutoPush, on: !!st.autoPush, onToggle: (v) => safe(() => ctrl.gitSetSettings({ autoPush: v })) },
+      { label: t.GitCheckpoint, value: 'checkpoint' },
+      { label: t.GitPull, value: 'pull' },
+      { label: t.GitBranches, value: 'branches' },
       { label: t.GitHistoryRestore, value: 'history' },
       { label: t.GitSetRemote, value: 'remote' },
       { label: t.GitPushToOrigin, value: 'push' },
     ];
     openPicker(title, items, (it) => safe(async () => {
       switch (it.value) {
-        case 'push': await ctrl.gitPush(); break;
+        case 'checkpoint':
+          openForm(t.GitCheckpointTitle, [{ name: 'message', label: t.GitCheckpointMessageField }],
+            (v) => confirmGit(t.ConfirmCheckpoint, () => {
+              withLoading(t.GitCheckpointing, async () => {
+                await ctrl.gitCheckpoint(v.message);
+                gitMenu();
+              });
+            })
+          );
+          break;
+        case 'pull':
+          confirmGit(t.ConfirmPull, () => {
+            withLoading(t.GitPulling, async () => {
+              await ctrl.gitPull();
+              gitMenu();
+            });
+          });
+          break;
+        case 'branches':
+          openPicker(t.GitBranchesTitle, [
+            { label: t.GitBranchCreate, value: 'create' },
+            { label: t.GitBranchSwitch, value: 'switch' },
+          ], (subIt) => safe(async () => {
+            if (subIt.value === 'create') {
+              openForm(t.GitBranchCreateTitle, [{ name: 'name', label: t.GitBranchNameField }],
+                (v) => safe(async () => {
+                  await ctrl.gitCreateBranch(v.name);
+                  gitMenu();
+                })
+              );
+            } else if (subIt.value === 'switch') {
+              const list = await ctrl.gitListBranches();
+              openPicker(t.GitBranchSwitchTitle, list.map(b => ({ label: b, value: b })),
+                (bIt) => confirmGit(tfmt(t.ConfirmSwitchBranch, { name: bIt.value }), () => {
+                  withLoading(t.GitSwitching, async () => {
+                    await ctrl.gitSwitchBranch(bIt.value);
+                    gitMenu();
+                  });
+                })
+              );
+            }
+          }));
+          break;
+        case 'push':
+          confirmGit(t.ConfirmPush, () => {
+            withLoading(t.Loading, async () => {
+              await ctrl.gitPush();
+              gitMenu();
+            });
+          });
+          break;
         case 'remote':
           openForm(t.GitRemoteTitle, [{ name: 'url', label: t.GitRemoteUrlField }],
             (v) => safe(() => ctrl.gitSetRemote(v.url)));
@@ -294,7 +367,12 @@ export function buildCommands(ctx) {
             label: `${h.hash} ${h.message || ''}`.trim(),
             hint: h.relative || '',
             value: h,
-          })), (h) => safe(() => ctrl.gitRestore(h.value.hash)));
+          })), (h) => confirmGit(tfmt(t.ConfirmGitRestore, { hash: h.value.hash }), () => {
+            withLoading(t.Loading, async () => {
+              await ctrl.gitRestore(h.value.hash);
+              gitMenu();
+            });
+          }));
           break;
         }
       }

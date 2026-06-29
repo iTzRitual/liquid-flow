@@ -108,12 +108,73 @@ export async function setRemote(dir, url) {
 
 // Wypchnij bieżącą gałąź do origin (zakłada skonfigurowane uwierzytelnianie:
 // klucz SSH lub helper poświadczeń / token w URL https).
-export async function push(dir) {
+export async function push(dir, branch) {
   if (!isRepo(dir)) throw new Error('No git repository');
-  const branch = (await run(dir, ['rev-parse', '--abbrev-ref', 'HEAD'])).stdout || 'main';
-  const r = await run(dir, ['push', '-u', 'origin', branch], { allowFail: true, timeout: GIT_PUSH_TIMEOUT_MS });
+  const b = branch || (await run(dir, ['rev-parse', '--abbrev-ref', 'HEAD'])).stdout || 'main';
+  const r = await run(dir, ['push', '-u', 'origin', b], { allowFail: true, timeout: GIT_PUSH_TIMEOUT_MS });
   if (r.failed) throw new Error(r.stderr || 'git push failed');
+  return { branch: b, output: r.stdout || r.stderr };
+}
+
+export async function currentBranch(dir) {
+  const r = await run(dir, ['symbolic-ref', '--quiet', '--short', 'HEAD'], { allowFail: true });
+  return r.stdout || null;
+}
+
+export async function listBranches(dir) {
+  const r = await run(dir, ['branch', '--format=%(refname:short)'], { allowFail: true });
+  return r.stdout ? r.stdout.split('\n').filter(Boolean) : [];
+}
+
+export async function createBranch(dir, name) {
+  await run(dir, ['branch', name]);
+}
+
+export async function switchBranch(dir, name) {
+  await run(dir, ['checkout', name]);
+}
+
+export async function forceBranch(dir, branch, target) {
+  await run(dir, ['branch', '-f', branch, target]);
+}
+
+export async function countCommits(dir, range) {
+  const r = await run(dir, ['rev-list', '--count', range], { allowFail: true });
+  return Number(r.stdout) || 0;
+}
+
+export async function pull(dir) {
+  const branch = (await currentBranch(dir)) || 'main';
+  const r = await run(dir, ['pull', '--ff-only', 'origin', branch],
+    { allowFail: true, timeout: GIT_PUSH_TIMEOUT_MS });
+  if (r.failed) throw new Error(r.stderr || 'git pull failed');
   return { branch, output: r.stdout || r.stderr };
+}
+
+export async function squashMergeInto(dir, fromBranch, intoBranch, message) {
+  await run(dir, ['checkout', intoBranch]);
+  await run(dir, ['merge', '--squash', fromBranch], { allowFail: true });
+  const st = await run(dir, ['status', '--porcelain']);
+  const committed = !!st.stdout;
+  if (committed) await run(dir, ['commit', '-m', message]);
+  return { committed };
+}
+
+export async function cloneInto(dir, url) {
+  if (fs.existsSync(dir)) {
+    const entries = fs.readdirSync(dir);
+    if (entries.length) throw new Error('Target directory is not empty');
+  } else {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const parent = path.dirname(dir);
+  if (!fs.existsSync(parent)) {
+    fs.mkdirSync(parent, { recursive: true });
+  }
+  const r = await run(parent, ['clone', url, path.basename(dir)],
+    { allowFail: true, timeout: GIT_PUSH_TIMEOUT_MS });
+  if (r.failed) throw new Error(r.stderr || 'git clone failed');
+  return status(dir);
 }
 
 export async function status(dir) {

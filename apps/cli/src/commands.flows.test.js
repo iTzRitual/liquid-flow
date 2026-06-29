@@ -9,6 +9,7 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 // conflicts) do tablic, a helpery wykonawcze (safe/withLoading) odpalają od razu.
 function makeCtx(overrides = {}) {
   const cap = { pickers: [], forms: [], connect: null, conflicts: null, diff: null };
+  const { ctrl: ctrlOverrides, ...otherOverrides } = overrides;
   const ctx = {
     ctrl: {
       getCurrentShop: () => ({ Name: 'x' }),
@@ -20,7 +21,7 @@ function makeCtx(overrides = {}) {
       logout: vi.fn(),
       removeShop: vi.fn(),
       currentFolder: () => null,
-      ...(overrides.ctrl || {}),
+      ...ctrlOverrides,
     },
     t,
     state: { currentShop: { Name: 'x' }, currentTemplate: { Id: 5, Name: 'Topaz' } },
@@ -43,7 +44,7 @@ function makeCtx(overrides = {}) {
     backToInput: vi.fn(),
     withLoading: (label, fn) => fn(),
     dropParent: vi.fn(),
-    ...overrides,
+    ...otherOverrides,
   };
   return { ctx, cap };
 }
@@ -136,21 +137,122 @@ describe('/connect — routing akcji stopki', () => {
 });
 
 describe('/git — menu repo vs brak repo', () => {
-  it('brak repo → picker z opcją inicjalizacji', async () => {
+  it('brak repo → picker z opcją inicjalizacji i klonowania', async () => {
     const { ctx, cap } = makeCtx({ ctrl: { gitStatus: vi.fn(async () => ({ available: true, isRepo: false })) } });
     run(ctx, '/git');
     await tick();
-    expect(cap.pickers[0].items.some((i) => i.value === 'init')).toBe(true);
+    const items = cap.pickers[0].items;
+    expect(items.some((i) => i.value === 'init')).toBe(true);
+    expect(items.some((i) => i.value === 'clone')).toBe(true);
   });
 
-  it('repo istnieje → toggle auto-commit/push + akcje historia/remote/push', async () => {
+  it('repo istnieje → toggle auto-commit/push + akcje checkpoint/pull/branches/historia/remote/push', async () => {
     const { ctx, cap } = makeCtx();
     run(ctx, '/git');
     await tick();
     const items = cap.pickers[0].items;
     expect(items.filter((i) => i.kind === 'toggle')).toHaveLength(2);
+    expect(items.some((i) => i.value === 'checkpoint')).toBe(true);
+    expect(items.some((i) => i.value === 'pull')).toBe(true);
+    expect(items.some((i) => i.value === 'branches')).toBe(true);
     expect(items.some((i) => i.value === 'history')).toBe(true);
     expect(items.some((i) => i.value === 'push')).toBe(true);
+  });
+
+  it('wybór clone (gdy brak repo) otwiera formularz, potem potwierdzenie, a potem woła gitClone', async () => {
+    const gitClone = vi.fn(async () => ({}));
+    const { ctx, cap } = makeCtx({
+      ctrl: {
+        gitStatus: vi.fn(async () => ({ available: true, isRepo: false })),
+        gitClone
+      }
+    });
+    run(ctx, '/git');
+    await tick();
+    
+    cap.pickers[0].onSelect({ value: 'clone' });
+    await tick();
+    
+    expect(cap.forms).toHaveLength(1);
+    expect(cap.forms[0].fields[0].name).toBe('url');
+    
+    cap.forms[0].onSubmit({ url: 'https://github.com/test/repo.git' });
+    await tick();
+    
+    const confirmPicker = cap.pickers[cap.pickers.length - 1];
+    expect(confirmPicker.items.some(i => i.value === true)).toBe(true);
+    
+    confirmPicker.onSelect({ value: true });
+    await tick();
+    
+    expect(gitClone).toHaveBeenCalledWith('https://github.com/test/repo.git');
+  });
+
+  it('wybór checkpoint otwiera form, potem potwierdzenie, potem woła gitCheckpoint', async () => {
+    const gitCheckpoint = vi.fn(async () => ({}));
+    const { ctx, cap } = makeCtx({ ctrl: { gitCheckpoint } });
+    run(ctx, '/git');
+    await tick();
+    
+    cap.pickers[0].onSelect({ value: 'checkpoint' });
+    await tick();
+    
+    expect(cap.forms).toHaveLength(1);
+    expect(cap.forms[0].fields[0].name).toBe('message');
+    
+    cap.forms[0].onSubmit({ message: 'Z1' });
+    await tick();
+    
+    const confirmPicker = cap.pickers[cap.pickers.length - 1];
+    confirmPicker.onSelect({ value: true });
+    await tick();
+    
+    expect(gitCheckpoint).toHaveBeenCalledWith('Z1');
+  });
+
+  it('wybór pull otwiera potwierdzenie, potem woła gitPull', async () => {
+    const gitPull = vi.fn(async () => ({}));
+    const { ctx, cap } = makeCtx({ ctrl: { gitPull } });
+    run(ctx, '/git');
+    await tick();
+    
+    cap.pickers[0].onSelect({ value: 'pull' });
+    await tick();
+    
+    const confirmPicker = cap.pickers[cap.pickers.length - 1];
+    confirmPicker.onSelect({ value: true });
+    await tick();
+    
+    expect(gitPull).toHaveBeenCalled();
+  });
+
+  it('wybór branches otwiera sub-picker, a switch branch otwiera listę gałęzi, potem potwierdzenie i woła gitSwitchBranch', async () => {
+    const gitListBranches = vi.fn(async () => ['main', 'liquidflow/wip']);
+    const gitSwitchBranch = vi.fn(async () => ({}));
+    const { ctx, cap } = makeCtx({ ctrl: { gitListBranches, gitSwitchBranch } });
+    run(ctx, '/git');
+    await tick();
+    
+    cap.pickers[0].onSelect({ value: 'branches' });
+    await tick();
+    
+    const branchesPicker = cap.pickers[cap.pickers.length - 1];
+    expect(branchesPicker.items.some(i => i.value === 'switch')).toBe(true);
+    
+    branchesPicker.onSelect({ value: 'switch' });
+    await tick();
+    
+    const switchPicker = cap.pickers[cap.pickers.length - 1];
+    expect(switchPicker.items.map(i => i.value)).toEqual(['main', 'liquidflow/wip']);
+    
+    switchPicker.onSelect({ value: 'main' });
+    await tick();
+    
+    const confirmPicker = cap.pickers[cap.pickers.length - 1];
+    confirmPicker.onSelect({ value: true });
+    await tick();
+    
+    expect(gitSwitchBranch).toHaveBeenCalledWith('main');
   });
 });
 

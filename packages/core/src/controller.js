@@ -315,6 +315,10 @@ export class Controller extends EventEmitter {
       autoPush: tCfg.git ? !!tCfg.git.autoPush : false,
     };
 
+    if (git.isRepo(this.activeGit.dir)) {
+      await this._ensureWipBranch();
+    }
+
     await session.start();
     this.emitState();
     this.emit('mismatches', session.mismatches);
@@ -363,6 +367,20 @@ export class Controller extends EventEmitter {
     this._commitTimer = setTimeout(() => this._doAutoCommit().catch(() => {}), COMMIT_DEBOUNCE_MS);
   }
 
+  async _ensureWipBranch() {
+    if (!this.activeGit || !git.isRepo(this.activeGit.dir)) return;
+    const dir = this.activeGit.dir;
+    const cur = await git.currentBranch(dir);
+    if (cur === 'liquidflow/wip') return;
+
+    const branches = await git.listBranches(dir);
+    if (!branches.includes('liquidflow/wip')) {
+      const base = branches.includes('main') ? 'main' : (cur || 'main');
+      await git.createBranch(dir, 'liquidflow/wip');
+    }
+    await git.switchBranch(dir, 'liquidflow/wip');
+  }
+
   async _doAutoCommit() {
     if (!this.activeGit) return;
     const files = [...this._pendingCommitFiles];
@@ -373,13 +391,10 @@ export class Controller extends EventEmitter {
       : tfmt(t.GitCommitSyncMany, { count: files.length, files: files.slice(0, 3).join(', ') + (files.length > 3 ? '…' : '') });
     try {
       if (!git.isRepo(this.activeGit.dir)) await git.init(this.activeGit.dir);
+      await this._ensureWipBranch();
       const r = await git.commitAll(this.activeGit.dir, msg);
       if (r.committed) {
         logbuf.logInfo(logbuf.tmsg('GitVersionSaved', { hash: r.hash }));
-        if (this.activeGit.autoPush) {
-          try { await git.push(this.activeGit.dir); logbuf.logOk(logbuf.tmsg('GitPushedOrigin')); }
-          catch (e) { logbuf.logErr(logbuf.tmsg('GitPushError', { msg: e.message })); }
-        }
         this.emitGit();
       }
     } catch (e) {
@@ -414,6 +429,7 @@ export class Controller extends EventEmitter {
     if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
     if (!(await git.isAvailable())) throw new Error(this.t.GitNotInstalled);
     await git.init(this.activeGit.dir);
+    await this._ensureWipBranch();
     this.activeGit.autoCommit = true;
     const tCfg = this._currentTemplateConfig();
     tCfg.git = { ...(tCfg.git || {}), autoCommit: true };
@@ -430,7 +446,10 @@ export class Controller extends EventEmitter {
     const tCfg = this._currentTemplateConfig();
     tCfg.git = { ...(tCfg.git || {}), autoCommit: this.activeGit.autoCommit, autoPush: this.activeGit.autoPush };
     store.saveConfig(this.config);
-    if (this.activeGit.autoCommit && !git.isRepo(this.activeGit.dir)) await git.init(this.activeGit.dir);
+    if (this.activeGit.autoCommit && !git.isRepo(this.activeGit.dir)) {
+      await git.init(this.activeGit.dir);
+      await this._ensureWipBranch();
+    }
     this.emitGit();
     return this.gitStatus();
   }
@@ -461,10 +480,172 @@ export class Controller extends EventEmitter {
 
   async gitPush() {
     if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
-    const r = await git.push(this.activeGit.dir);
-    logbuf.logOk(logbuf.tmsg('GitPushedOriginBranch', { branch: r.branch }));
+    const r = await git.push(this.activeGit.dir, 'main');
+    logbuf.logOk(logbuf.tmsg('GitPushedOrigin'));
     this.emitGit();
     return r;
+  }
+
+  async gitCheckpoint(message) {
+    if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
+    const dir = this.activeGit.dir;
+    if (!git.isRepo(dir)) throw new Error(this.t.NoGitRepository || 'No git repository');
+
+    if (this._commitTimer) {
+      clearTimeout(this._commitTimer);
+      this._commitTimer = null;
+    }
+    await this._doAutoCommit();
+
+    const ahead = await git.countCommits(dir, 'main..liquidflow/wip');
+    const st = await git.status(dir);
+    if (ahead === 0 && !st.dirty) {
+      logbuf.logInfo(logbuf.tmsg('GitNothingToCheckpoint'));
+      return this.gitStatus();
+    }
+
+    if (st.dirty) {
+      const r = await git.commitAll(dir, message || 'Checkpoint');
+      if (r.committed) {
+        logbuf.logInfo(logbuf.tmsg('GitVersionSaved', { hash: r.hash }));
+      }
+    }
+
+    const checkpointFn = async () => {
+      const res = await git.squashMergeInto(dir, 'liquidflow/wip', 'main', message || 'Checkpoint');
+      await git.forceBranch(dir, 'liquidflow/wip', 'main');
+      await git.switchBranch(dir, 'liquidflow/wip');
+      if (this.activeGit.autoPush) {
+        try {
+          await git.push(dir, 'main');
+          logbuf.logOk(logbuf.tmsg('GitPushedOrigin'));
+        } catch (e) {
+          logbuf.logErr(logbuf.tmsg('GitPushError', { msg: e.message }));
+        }
+      }
+      return res;
+    };
+
+    let res;
+    if (this.state.session) {
+      res = await this.state.session.withWatcherPaused(checkpointFn);
+    } else {
+      res = await checkpointFn();
+    }
+
+    logbuf.logOk(logbuf.tmsg('GitCheckpointDone', { msg: message || 'Checkpoint' }));
+    this.emitGit();
+    return this.gitStatus();
+  }
+
+  async gitPull() {
+    if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
+    const dir = this.activeGit.dir;
+    if (!git.isRepo(dir)) throw new Error(this.t.NoGitRepository || 'No git repository');
+
+    const ahead = await git.countCommits(dir, 'main..liquidflow/wip');
+    if (ahead > 0) {
+      throw new Error(this.t.GitPublishBeforePull);
+    }
+
+    const pullFn = async () => {
+      await git.switchBranch(dir, 'main');
+      try {
+        await git.pull(dir);
+        logbuf.logOk(logbuf.tmsg('GitPullSuccess'));
+      } finally {
+        await git.forceBranch(dir, 'liquidflow/wip', 'main');
+        await git.switchBranch(dir, 'liquidflow/wip');
+      }
+    };
+
+    if (this.state.session) {
+      await this.state.session.withWatcherPaused(pullFn);
+    } else {
+      await pullFn();
+    }
+
+    this.emitGit();
+    return this.gitStatus();
+  }
+
+  async gitCreateBranch(name) {
+    if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
+    const dir = this.activeGit.dir;
+    if (this.state.session) {
+      await this.state.session.withWatcherPaused(() => git.createBranch(dir, name));
+    } else {
+      await git.createBranch(dir, name);
+    }
+    this.emitGit();
+    return this.gitStatus();
+  }
+
+  async gitSwitchBranch(name) {
+    if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
+    const dir = this.activeGit.dir;
+    if (this.state.session) {
+      await this.state.session.withWatcherPaused(() => git.switchBranch(dir, name));
+    } else {
+      await git.switchBranch(dir, name);
+    }
+    this.emitGit();
+    return this.gitStatus();
+  }
+
+  async gitListBranches() {
+    if (!this.activeGit) return [];
+    return git.listBranches(this.activeGit.dir);
+  }
+
+  async gitClone(url) {
+    if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
+    if (!this.state.session) throw new Error(this.t.NoActiveSyncSession);
+    const shop = this.currentShop();
+    const tplId = this.state.session.templateId;
+    const dir = this.activeGit.dir; // mode-0 dir
+
+    const localFiles = store.listLocalFiles(shop.Name, tplId);
+    if (localFiles.some((f) => f.mode === 0)) {
+      throw new Error(this.t.GitCloneDirNotEmpty);
+    }
+
+    const cloneFn = async () => {
+      await git.cloneInto(dir, url);
+      await this._ensureWipBranch();
+
+      logbuf.logInfo(logbuf.tmsg('GitCloneDownloadingOtherModes'));
+      const allFiles = await this.state.session.client.liquidFilesGet({ TemplateId: tplId });
+      const nonZeroFiles = allFiles.filter((f) => f.Mode !== 0);
+
+      for (const f of nonZeroFiles) {
+        if (!store.isSafeRelName(f.Name)) {
+          logbuf.logErr(logbuf.tmsg('UnsafeRemotePath', { name: f.Name }));
+        } else {
+          const localts = store.writeLocalFile(shop.Name, tplId, f.Mode, f.Name, f.Template || Buffer.alloc(0));
+          store.setMetaEntry(shop.Name, tplId, f.Mode, f.Name, localts, f.Date);
+        }
+      }
+
+      logbuf.logInfo(logbuf.tmsg('GitCloneSeedingMeta'));
+      const remoteMeta = await this.state.session.client.liquidFilesMetaGet({ TemplateId: tplId });
+      const mode0Meta = remoteMeta.filter((m) => m.Mode === 0);
+      const clonedLocalFiles = store.listLocalFiles(shop.Name, tplId).filter((f) => f.mode === 0);
+
+      for (const f of clonedLocalFiles) {
+        const match = mode0Meta.find((m) => m.Name === f.name);
+        if (match) {
+          const localPath = store.localFilePath(shop.Name, tplId, 0, f.name);
+          const localts = store.mtimeUtc(localPath);
+          store.setMetaEntry(shop.Name, tplId, 0, f.name, localts, match.Date);
+        }
+      }
+    };
+
+    await this.state.session.withWatcherPaused(cloneFn);
+    logbuf.logOk(logbuf.tmsg('GitCloneSuccess', { url }));
+    this.emitGit();
+    return this.gitStatus();
   }
 
   // ---------- system ----------

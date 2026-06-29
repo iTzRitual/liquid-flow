@@ -6,6 +6,17 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.113] — 2026-06-29
+### Added
+- Git workflow redesign: implemented a two-tier branch model using the `liquidflow/wip` branch for hot-reload auto-commits, leaving `main` clean for checkpoints.
+- Added Git primitives: `currentBranch`, `listBranches`, `createBranch`, `switchBranch`, `forceBranch`, `countCommits`, `pull`, `squashMergeInto`, `cloneInto`.
+- Added `SyncSession.withWatcherPaused` seam to safely pause/resume the file watcher around branch checkout, pull, and merge operations.
+- Added `/git` commands in the TUI: Checkpoint, Pull, and Branch management (create/switch) with safety confirmation prompts.
+- Added remote bootstrap: `gitClone` controller flow that clones mode-`0` repository, downloads other modes via SOAP, and seeds sync metadata to prevent walls of false conflicts on startup.
+- Full Polish and English translations for all new Git operations.
+
+---
+
 ## [0.9.112] — 2026-06-29
 ### Fixed
 - `tsconfig.json`: configure `include`/`exclude` and `noEmit` to prevent TypeScript from trying to compile source files — resolves IDE errors about overwriting input files.

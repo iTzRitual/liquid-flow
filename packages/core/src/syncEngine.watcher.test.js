@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { SyncSession, MismatchType } from './syncEngine.js';
@@ -179,6 +179,34 @@ describe('cykl życia start()/dispose()', () => {
     session.dispose();
     expect(session.watcherActive).toBe(false);
     expect(session.watcher).toBeNull();
+  });
+
+  it('withWatcherPaused wstrzymuje watcher i wywołuje refreshMismatches', async () => {
+    await session.start();
+    expect(session.watcherActive).toBe(true);
+
+    const spy = vi.spyOn(session, 'refreshMismatches');
+
+    let insideFn = false;
+    await session.withWatcherPaused(async () => {
+      insideFn = true;
+      expect(session.watcherActive).toBe(false);
+    });
+
+    expect(insideFn).toBe(true);
+    expect(session.watcherActive).toBe(true);
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    // even on throw, watcher should restart
+    try {
+      await session.withWatcherPaused(async () => {
+        expect(session.watcherActive).toBe(false);
+        throw new Error('test-err');
+      });
+    } catch (e) {
+      expect(e.message).toBe('test-err');
+    }
+    expect(session.watcherActive).toBe(true);
   });
 });
 

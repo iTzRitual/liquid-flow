@@ -7,6 +7,12 @@ security / tech-debt. Plans 001–004 (all DONE).
 **Run 2** — generated 2026-06-28 (`next` / direction audit; same scope, desktop
 excluded). Planned against `06c297b`. Roadmap / feature direction. Plans 005–006.
 
+**Run 2b** — 2026-06-29 (`review-plan` of 006). Plan 006 was rebuilt against
+`e2e008a` (watcher-pause seam brought into scope, squash+`branch -f` instead of an
+impossible fast-forward, `autoPush` redefined, `restore` flagged as the deliberate
+watcher exception). `clone` was split out into the new plan **007** (it collides
+with the two-mode + external-meta layout and needs its own work).
+
 Each executor: read the plan fully before starting, honor its STOP conditions,
 and update your row when done.
 
@@ -25,18 +31,20 @@ commit (see CLAUDE.md).
 | 003  | Detach the Controller's global log listeners on dispose() | P2 | S | — | DONE |
 | 004  | Regression tests for fixed P1 bugs (git-push failure, interrupted download) | P3 | M | — | DONE |
 | 005  | Show a content diff before resolving a conflict (download vs upload) | P1 | M | — | DONE |
-| 006  | Git workflow redesign — WIP branch for hot-reload, checkpoint-merge, pull/clone | P1 | L | — | TODO |
+| 006  | Git workflow redesign — WIP branch for hot-reload, checkpoint-merge, pull | P1 | L | 005 (DONE) | DONE |
+| 007  | Bootstrap a template from a remote git repo (`clone`) | P2 | M | 006 | DONE |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
 **Run 1 (001–004)** — all DONE. Order was by leverage: 001 (security) → 002
 (near-free user win) → 003 (tech-debt) → 004 (locks in fixes).
 
-**Run 2 (005–006)** — direction spikes, chosen by the maintainer. Both are
+**Run 2 (005–007)** — direction spikes, chosen by the maintainer. All are
 design/spike plans: they ship a concrete core deliverable plus a recommended
-design, and STOP to confirm product decisions rather than guessing. Recommended
-order **005 before 006**: 005 is lower-risk and purely additive, and its diff
-view is what makes resolving 006's pulled-change conflicts safe.
+design, and STOP to confirm product decisions rather than guessing. Order:
+**005 (DONE) → 006 → 007**. 005's diff view (already merged) is what makes
+resolving 006's pulled-change conflicts safe; 007 (clone) reuses 006's branch
+model and `withWatcherPaused`, so it must land after 006.
 
 ## Dependency notes
 
@@ -47,9 +55,11 @@ view is what makes resolving 006's pulled-change conflicts safe.
   path-traversal rejection; 004: interrupted-download meta). If executed in the
   same batch, add the import once and keep both tests — no logic conflict.
 - **Synergy (005 → 006):** plan 006's `pull`/`checkpoint` surface pulled changes
-  as `Timestamp` conflicts; plan 005's diff view is what lets the user resolve
-  them without blind overwrites. Independent to build, but land 005 first for the
-  best result.
+  as `Timestamp` conflicts; plan 005's diff view (DONE) is what lets the user
+  resolve them without blind overwrites.
+- **Hard dependency (006 → 007):** plan 007 (`clone`) reuses 006's
+  `liquidflow/wip` branch model and `SyncSession.withWatcherPaused`. Do not start
+  007 until 006 is DONE.
 
 ## Direction findings considered, not (yet) planned
 

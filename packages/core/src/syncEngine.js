@@ -334,6 +334,26 @@ export class SyncSession {
     return result;
   }
 
+  // Uruchom `fn` z wyłączonym watcherem (operacje gita zapisujące working tree —
+  // pull/checkout/merge — nie mogą wyzwolić hot-reloadu). Serializowane przez tę
+  // samą kolejkę co command(), z gwarantowanym wznowieniem watchera i przeliczeniem
+  // konfliktów po zakończeniu.
+  async withWatcherPaused(fn) {
+    return this._enqueue(async () => {
+      this._stopWatcher();
+      try {
+        const r = await fn();
+        await this.refreshMismatches();
+        return r;
+      } catch (e) {
+        logErr(e.message);
+        throw e;
+      } finally {
+        this._startWatcher();
+      }
+    });
+  }
+
   // ---- komendy z UI ----
   async command(comm, fileArg, typeArg) {
     return this._enqueue(async () => {
