@@ -298,7 +298,7 @@ export default function App() {
       )}
 
       {mode.type === 'picker' && wrapAction(
-        <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => cancelTo(mode)} maxRows={ovMax} t={t} />
+        <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => cancelTo(mode)} maxRows={ovMax} initialIndex={mode.index || 0} onIndexChange={(i) => { mode.index = i; }} t={t} />
       )}
 
       {mode.type === 'form' && wrapAction(
@@ -306,11 +306,11 @@ export default function App() {
       )}
 
       {mode.type === 'conflicts' && wrapAction(
-        <ConflictList title={mode.title} files={mode.files} bulk={mode.bulk} onAction={mode.onAction} onBulk={mode.onBulk} onCancel={() => cancelTo(mode)} maxRows={ovMax} t={t} />
+        <ConflictList title={mode.title} files={mode.files} bulk={mode.bulk} onAction={mode.onAction} onBulk={mode.onBulk} onCancel={() => cancelTo(mode)} maxRows={ovMax} initialIndex={mode.index || 0} onIndexChange={(i) => { mode.index = i; }} t={t} />
       )}
 
       {mode.type === 'connect' && wrapAction(
-        <ConnectList title={mode.title} shops={mode.shops} actions={mode.actions} onShop={mode.onShop} onAction={mode.onAction} onSlash={mode.onSlash} onCancel={() => cancelTo(mode)} maxRows={ovMax} t={t} />
+        <ConnectList title={mode.title} shops={mode.shops} actions={mode.actions} onShop={mode.onShop} onAction={mode.onAction} onSlash={mode.onSlash} onCancel={() => cancelTo(mode)} maxRows={ovMax} initialIndex={mode.index || 0} onIndexChange={(i) => { mode.index = i; }} t={t} />
       )}
 
       {mode.type === 'diff' && wrapAction(

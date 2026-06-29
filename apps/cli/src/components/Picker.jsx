@@ -1,5 +1,5 @@
 import { Box, Text, useInput } from 'ink';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { tfmt } from '@liquidflow/core';
 import { windowList } from '../window.js';
 
@@ -9,9 +9,13 @@ import { windowList } from '../window.js';
 // ↑/↓ nawigacja, Enter wybór (akcja). Na przełączniku ←/→ (lub Enter) zmienia
 // Tak/Nie inline — bez wchodzenia w podmenu. Esc anuluje. `maxRows` ogranicza
 // wysokość (przewijanie za zaznaczeniem).
-export default function Picker({ title, items, onSelect, onCancel, onSlash, maxRows = 12, t }) {
-  const [i, setI] = useState(0);
+// `initialIndex`/`onIndexChange` pozwalają zapamiętać pozycję kursora między
+// wejściami: gdy z tej listy otwieramy kolejny ekran, a potem wracamy Esc, kursor
+// wraca na ten sam wiersz (App trzyma indeks na obiekcie trybu‑rodzica).
+export default function Picker({ title, items, onSelect, onCancel, onSlash, maxRows = 12, initialIndex = 0, onIndexChange, t }) {
+  const [i, setI] = useState(() => Math.min(Math.max(0, initialIndex), Math.max(0, items.length - 1)));
   const [toggles, setToggles] = useState({}); // lokalne (optymistyczne) wartości przełączników
+  useEffect(() => { onIndexChange?.(i); }, [i]); // raportuj pozycję rodzicowi (pamięć kursora)
 
   const toggleVal = (idx) => (idx in toggles ? toggles[idx] : items[idx].on);
   const hasToggle = items.some((it) => it && it.kind === 'toggle');

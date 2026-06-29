@@ -1,5 +1,5 @@
 import { Box, Text, useInput } from 'ink';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { tfmt } from '@liquidflow/core';
 
 // Ekran konfliktów. Każdy plik to KARTA o ADAPTACYJNEJ wysokości `cardH`:
@@ -34,15 +34,20 @@ import { tfmt } from '@liquidflow/core';
 // zapamiętywanie pozycji na innych kartach nic nie wnosi. Wszystkie przyciski są
 // pełnokontrastowe; podświetlenie (cyan tło) ma tylko kursor bieżącego wiersza.
 
-export default function ConflictList({ title, files, bulk, onAction, onBulk, onCancel, maxRows = 12, t }) {
+export default function ConflictList({ title, files, bulk, onAction, onBulk, onCancel, maxRows = 12, initialIndex = 0, onIndexChange, t }) {
   const hasBulk = Array.isArray(bulk) && bulk.length > 0;
   const rows = files.length + (hasBulk ? 1 : 0);
 
   const optsFor = (idx) => (idx < files.length ? files[idx].options : bulk) || [];
   const initFor = (idx) => (idx < files.length ? (files[idx].initial ?? 0) : 0);
 
-  const [i, setI] = useState(0);
-  const [cursor, setCursor] = useState(() => initFor(0)); // pozycja ←/→ tylko bieżącego wiersza
+  // `initialIndex` przywraca podświetloną kartę po powrocie Esc z podglądu/
+  // potwierdzenia otwartego z tej listy (App trzyma indeks na trybie‑rodzicu).
+  // Kursor ←/→ nadal NIE jest pamiętany — startuje od bezpiecznego `initFor`.
+  const startRow = Math.min(Math.max(0, initialIndex), Math.max(0, rows - 1));
+  const [i, setI] = useState(startRow);
+  const [cursor, setCursor] = useState(() => initFor(startRow)); // pozycja ←/→ tylko bieżącego wiersza
+  useEffect(() => { onIndexChange?.(i); }, [i]); // raportuj pozycję rodzicowi (pamięć karty)
 
   // kursor przycięty do liczby opcji bieżącego wiersza (np. po odświeżeniu listy)
   const curOpts = optsFor(i);

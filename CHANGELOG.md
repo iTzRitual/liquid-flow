@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.114] — 2026-06-29
+### Fixed
+- Esc back-navigation now restores the cursor position on list screens instead of jumping to the top. When you open a child screen (conflict preview, git submenu/form, confirmation) from `/conflicts`, `/connect`, `/git`, `/templates`, etc. and press Esc to return, the parent list re-highlights the row you came from. The selected position is persisted on the parent mode object via new `initialIndex`/`onIndexChange` props on `Picker`, `ConflictList`, and `ConnectList`.
+
 ## [0.9.113] — 2026-06-29
 ### Added
 - Git workflow redesign: implemented a two-tier branch model using the `liquidflow/wip` branch for hot-reload auto-commits, leaving `main` clean for checkpoints.

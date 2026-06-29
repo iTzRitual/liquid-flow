@@ -64,6 +64,25 @@ describe('Picker — nawigacja i wybór', () => {
   });
 });
 
+describe('Picker — pamięć pozycji kursora', () => {
+  it('initialIndex ustawia kursor na zadanej pozycji', () => {
+    const { api } = setup({ initialIndex: 2 });
+    expect(frame(api)).toMatch(/›\s*Trzecia/);
+  });
+
+  it('initialIndex jest przycięty do liczby pozycji', () => {
+    const { api } = setup({ initialIndex: 99 });
+    expect(frame(api)).toMatch(/›\s*Trzecia/); // ostatnia
+  });
+
+  it('onIndexChange raportuje pozycję przy nawigacji (pamięć dla rodzica)', async () => {
+    const onIndexChange = vi.fn();
+    const { api } = setup({ onIndexChange });
+    await press(api.stdin, keys.down, keys.down);
+    expect(onIndexChange).toHaveBeenLastCalledWith(2);
+  });
+});
+
 describe('Picker — przełączniki (toggle)', () => {
   it('←/→ przełącza wartość i woła onToggle, bez onSelect', async () => {
     const onToggle = vi.fn();

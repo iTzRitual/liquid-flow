@@ -74,3 +74,23 @@ describe('ConnectList — nawigacja', () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('ConnectList — pamięć pozycji kursora', () => {
+  it('initialIndex podświetla zadany sklep (powrót Esc z formularza/sub-pickera)', () => {
+    const { api } = setup({ initialIndex: 1 });
+    expect(frame(api)).toMatch(/›\s*demo/);
+  });
+
+  it('initialIndex może wskazywać przycisk stopki', async () => {
+    const { api, onAction } = setup({ initialIndex: 2 }); // 2 sklepy → pierwszy przycisk (logout)
+    await press(api.stdin, keys.enter);
+    expect(onAction).toHaveBeenCalledWith('logout');
+  });
+
+  it('onIndexChange raportuje pozycję przy nawigacji', async () => {
+    const onIndexChange = vi.fn();
+    const { api } = setup({ onIndexChange });
+    await press(api.stdin, keys.down);
+    expect(onIndexChange).toHaveBeenLastCalledWith(1);
+  });
+});

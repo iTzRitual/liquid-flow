@@ -1,5 +1,5 @@
 import { Box, Text, useInput } from 'ink';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { tfmt } from '@liquidflow/core';
 import { windowList } from '../window.js';
 
@@ -13,11 +13,14 @@ import { windowList } from '../window.js';
 //   actions: [{ key, label }]   (stopka; min. „dodaj")
 const FOOTER_LINES = 2; // pusta linia + wiersz przycisków
 
-export default function ConnectList({ title, shops, actions, onShop, onAction, onCancel, onSlash, maxRows = 12, t }) {
+export default function ConnectList({ title, shops, actions, onShop, onAction, onCancel, onSlash, maxRows = 12, initialIndex = 0, onIndexChange, t }) {
   const nShops = shops.length;
   const nAct = actions.length;
   const total = nShops + nAct;
-  const [i, setI] = useState(nShops ? 0 : 0); // 0..nShops-1 = sklepy, dalej = akcje
+  // 0..nShops-1 = sklepy, dalej = akcje. `initialIndex` przywraca pozycję po
+  // powrocie Esc z ekranu otwartego z tej listy (pamięć kursora w App).
+  const [i, setI] = useState(() => Math.min(Math.max(0, initialIndex), Math.max(0, total - 1)));
+  useEffect(() => { onIndexChange?.(i); }, [i]); // raportuj pozycję rodzicowi
 
   const inFooter = i >= nShops;
   const actIdx = i - nShops; // tylko gdy inFooter

@@ -145,3 +145,23 @@ describe('ConflictList — brak konfliktów', () => {
     expect(frame(api)).toContain(t.NoConflicts);
   });
 });
+
+describe('ConflictList — pamięć podświetlonej karty', () => {
+  it('initialIndex podświetla zadaną kartę (powrót Esc z podglądu)', () => {
+    const { api } = setup({ initialIndex: 1 });
+    expect(frame(api)).toMatch(/›\s*b\.liquid/);
+  });
+
+  it('onIndexChange raportuje pozycję karty przy nawigacji', async () => {
+    const onIndexChange = vi.fn();
+    const { api } = setup({ onIndexChange });
+    await press(api.stdin, keys.down);
+    expect(onIndexChange).toHaveBeenLastCalledWith(1);
+  });
+
+  it('kursor ←/→ startuje od bezpiecznego initial przywróconej karty (nie jest pamiętany)', async () => {
+    const { api, onAction } = setup({ initialIndex: 1 });
+    await press(api.stdin, keys.enter); // b.liquid ma initial=1 → „upload”
+    expect(onAction).toHaveBeenCalledWith('upload', expect.objectContaining({ name: 'b.liquid' }));
+  });
+});
