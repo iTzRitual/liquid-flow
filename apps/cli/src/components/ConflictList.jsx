@@ -171,7 +171,6 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
         )}
       {hasBulk && (
         <Box>
-          <Text color={bulkFocused ? 'cyan' : undefined}>{bulkFocused ? '› ' : '  '}</Text>
           {renderButtons(bulk, curCursor, bulkFocused)}
         </Box>
       )}

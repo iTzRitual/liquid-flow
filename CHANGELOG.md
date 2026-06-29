@@ -6,6 +6,12 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.109] — 2026-06-29
+### Changed
+- `/conflicts`: bulk action buttons (Download all / Upload all) no longer show the `›` row indicator — they now look like the footer buttons in the `/connect` screen.
+
+---
+
 ## [0.9.108] — 2026-06-29
 ### Changed
 - `/conflicts`: cursor now always starts on "Preview" instead of Download/Upload, so reviewing the diff is the default action before applying any change.
