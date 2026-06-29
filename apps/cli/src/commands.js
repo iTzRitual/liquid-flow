@@ -254,6 +254,12 @@ export function buildCommands(ctx) {
 
   // --- git ---
   const gitMenu = () => safe(async () => {
+    // `/git` to menu najwyższego poziomu (zawsze wchodzone z inputu). Re‑otwarcia
+    // po akcji (np. powrót z potwierdzenia przełączenia gałęzi) idą przez wrappery
+    // pickera, które ustawiają `pendingParentRef` na ekran‑źródło — bez tego Esc
+    // wracałby do nieaktualnego potwierdzenia zamiast do inputu. Czyścimy rodzica
+    // tu, więc odświeżone menu git zawsze cofa Esc do ekranu głównego.
+    dropParent();
     if (!hasTemplate) { log.logErr(log.tmsg('NoActiveTemplateHint')); return; }
     const st = await ctrl.gitStatus();
     if (!st.available) { log.logErr(log.tmsg('GitNotInstalled')); return; }
@@ -273,15 +279,13 @@ export function buildCommands(ctx) {
         if (it.value === 'init') {
           withLoading(t.Loading, async () => {
             await ctrl.gitEnable();
-            dropParent(); // ekran „brak repo” jest już nieaktualny → Esc z menu git wróci do inputu
-            gitMenu();
+            gitMenu(); // odświeżone menu git samo czyści rodzica (Esc → input)
           }, t.GitInitRepo);
         } else if (it.value === 'clone') {
           openForm(t.GitCloneTitle, [{ name: 'url', label: t.GitRemoteUrlField }],
             (v) => confirmGit(t.ConfirmClone, () => {
               withLoading(t.GitCloning, async () => {
                 await ctrl.gitClone(v.url);
-                dropParent();
                 gitMenu();
               });
             })

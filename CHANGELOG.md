@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.118] — 2026-06-29
+### Fixed
+- CLI `/git`: after completing an action that re-opens the git menu (e.g. switching a branch, checkpoint, pull, push, restore), pressing Esc now steps back to the main screen instead of returning to the stale confirmation prompt. `gitMenu()` now clears the pending parent on entry, so the refreshed top-level menu always backs out to the input.
+
 ## [0.9.117] — 2026-06-29
 ### Fixed
 - Log entries containing embedded newlines (e.g. raw git stderr with multi-line fatal messages) are now collapsed to a single visual line in `log.js` via a new `oneLine()` helper in `renderText`. Prevents `LogPane`'s row-budget overflow that caused Ink to duplicate/garble the TUI frame.
