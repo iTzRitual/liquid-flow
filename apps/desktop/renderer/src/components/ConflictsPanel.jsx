@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../App.jsx';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import ConfirmButton from './ConfirmButton.jsx';
-import { fmtDate } from '@/lib/utils';
-import { Download, Upload, Trash2, CheckCircle2, ArrowDownToLine, ArrowUpFromLine, FileWarning } from 'lucide-react';
+import DiffDialog from './DiffDialog.jsx';
+import { fmtDate, fmt } from '@/lib/utils';
+import { Download, Upload, Trash2, CheckCircle2, ArrowDownToLine, ArrowUpFromLine, FileWarning, Eye } from 'lucide-react';
 
 const TYPE_META = {
   Timestamp: { variant: 'warning', icon: FileWarning, key: 'FileMismatch' },
@@ -26,6 +28,16 @@ export default function ConflictsPanel() {
 
   const cmd = (data) => call(() => api.runCommand(data));
 
+  const [pv, setPv] = useState({ open: false, title: '', preview: null });
+  const [pvBusy, setPvBusy] = useState(false);
+  const preview = async (m) => {
+    setPvBusy(true);
+    try {
+      const p = await call(() => api.previewConflict({ file: m.File, type: m.Type }));
+      setPv({ open: true, title: fmt(t.DiffTitle, { name: m.File.Name }), preview: p });
+    } finally { setPvBusy(false); }
+  };
+
   return (
     <div className="space-y-2 py-2">
       {mismatches.map((m, i) => {
@@ -46,6 +58,9 @@ export default function ConflictsPanel() {
               </div>
             </div>
             <div className="flex shrink-0 gap-2">
+              <Button variant="ghost" size="sm" disabled={pvBusy} onClick={() => preview(m)}>
+                <Eye className="h-4 w-4" /> {t.ActionPreviewShort}
+              </Button>
               {(m.Type === 'Timestamp' || m.Type === 'LocalMissing') && (
                 <ConfirmButton variant="outline" onConfirm={() => cmd({ comm: 'download', file: m.File })} confirmLabel={t.Download}>
                   <Download className="h-4 w-4" /> {t.Download}
@@ -70,6 +85,7 @@ export default function ConflictsPanel() {
           </Card>
         );
       })}
+      <DiffDialog open={pv.open} onOpenChange={(o) => setPv((s) => ({ ...s, open: o }))} title={pv.title} preview={pv.preview} />
     </div>
   );
 }

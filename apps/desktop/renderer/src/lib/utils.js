@@ -5,6 +5,13 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
+// Interpolacja tokenów {key} w stringu tłumaczenia (odpowiednik tfmt z core, ale
+// w rendererze bez importu core).
+export function fmt(str, params) {
+  if (!str || !params) return str || '';
+  return str.replace(/\{(\w+)\}/g, (_, k) => (params[k] !== undefined ? params[k] : `{${k}}`));
+}
+
 export function fmtDate(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
