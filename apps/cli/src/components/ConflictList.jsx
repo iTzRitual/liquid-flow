@@ -44,16 +44,36 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
   const [i, setI] = useState(0);
   const [cursor, setCursor] = useState(() => initFor(0)); // pozycja ←/→ tylko bieżącego wiersza
 
-  // ↑/↓ — zmiana wiersza resetuje kursor do bezpiecznego domyślnego wyboru.
-  const moveRow = (delta) => {
-    const n = (i + delta + rows) % rows;
-    setI(n);
-    setCursor(initFor(n));
-  };
-
   // kursor przycięty do liczby opcji bieżącego wiersza (np. po odświeżeniu listy)
   const curOpts = optsFor(i);
   const curCursor = Math.max(0, Math.min(cursor, curOpts.length - 1));
+
+  const bulkFocused = hasBulk && i === files.length;
+
+  // ↑/↓ — w stopce przesuwa kursor między przyciskami (tak jak ←/→); na granicy
+  // listy plików ↔ stopka skok jak w ConnectList.
+  const moveRow = (delta) => {
+    if (bulkFocused) {
+      const next = curCursor + delta;
+      if (next < 0) {
+        if (files.length) { setI(files.length - 1); setCursor(initFor(files.length - 1)); }
+      } else if (next >= bulk.length) {
+        if (files.length) { setI(0); setCursor(initFor(0)); }
+      } else {
+        setCursor(next);
+      }
+      return;
+    }
+    const next = i + delta;
+    if (hasBulk && next >= files.length) {
+      setI(files.length); setCursor(0);
+    } else if (hasBulk && next < 0) {
+      setI(files.length); setCursor(bulk.length - 1);
+    } else {
+      const n = (next + files.length) % files.length;
+      setI(n); setCursor(initFor(n));
+    }
+  };
 
   useInput((input, key) => {
     if (key.escape) { onCancel?.(); return; }
@@ -144,7 +164,6 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
     padLines = Math.max(0, regionTarget - reserve - content);
   }
 
-  const bulkFocused = hasBulk && i === files.length;
   const help = [t.PickerNav, t.PickerChoose, t.PickerEnter, t.PickerEsc].filter(Boolean).join(' · ');
 
   return (

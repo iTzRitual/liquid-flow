@@ -6,6 +6,12 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.110] — 2026-06-29
+### Changed
+- `/conflicts`: ↑/↓ now navigates between bulk action buttons in the footer (matching ConnectList behavior) — pressing ↓ from the last file enters the footer on the first button, ↑/↓ moves between buttons, exiting the footer jumps back to the file list.
+
+---
+
 ## [0.9.109] — 2026-06-29
 ### Changed
 - `/conflicts`: bulk action buttons (Download all / Upload all) no longer show the `›` row indicator — they now look like the footer buttons in the `/connect` screen.
