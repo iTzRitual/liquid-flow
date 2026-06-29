@@ -309,16 +309,32 @@ export function buildCommands(ctx) {
     ];
     openPicker(title, items, (it) => safe(async () => {
       switch (it.value) {
-        case 'checkpoint':
-          openForm(t.GitCheckpointTitle, [{ name: 'message', label: t.GitCheckpointMessageField }],
-            (v) => confirmGit(t.ConfirmCheckpoint, () => {
+        case 'checkpoint': {
+          // wybór strumienia docelowego (gałąź), domyślnie bieżący; + nowa gałąź
+          const branches = await ctrl.gitListBranches();
+          const cur = st.branch;
+          const targetItems = [
+            ...branches.map((b) => ({ label: b === cur ? b + t.GitCurrentSuffix : b, value: b })),
+            { label: t.GitCheckpointNewBranch, value: '__new__' },
+          ];
+          const runCheckpoint = (target) => openForm(t.GitCheckpointTitle,
+            [{ name: 'message', label: t.GitCheckpointMessageField }],
+            (v) => confirmGit(tfmt(t.ConfirmCheckpoint, { branch: target }), () => {
               withLoading(t.GitCheckpointing, async () => {
-                await ctrl.gitCheckpoint(v.message);
+                await ctrl.gitCheckpoint(v.message, target);
                 gitMenu();
               });
-            })
-          );
+            }));
+          openPicker(t.GitCheckpointTargetTitle, targetItems, (tIt) => safe(async () => {
+            if (tIt.value === '__new__') {
+              openForm(t.GitBranchCreateTitle, [{ name: 'name', label: t.GitBranchNameField }],
+                (v) => runCheckpoint(v.name));
+            } else {
+              runCheckpoint(tIt.value);
+            }
+          }));
           break;
+        }
         case 'pull':
           confirmGit(t.ConfirmPull, () => {
             withLoading(t.GitPulling, async () => {
@@ -342,11 +358,18 @@ export function buildCommands(ctx) {
             } else if (subIt.value === 'switch') {
               const list = await ctrl.gitListBranches();
               openPicker(t.GitBranchSwitchTitle, list.map(b => ({ label: b, value: b })),
-                (bIt) => confirmGit(tfmt(t.ConfirmSwitchBranch, { name: bIt.value }), () => {
-                  withLoading(t.GitSwitching, async () => {
-                    await ctrl.gitSwitchBranch(bIt.value);
+                (bIt) => safe(async () => {
+                  const ahead = await ctrl.gitUncommittedCount();
+                  const doSwitch = (discard) => withLoading(t.GitSwitching, async () => {
+                    await ctrl.gitSwitchBranch(bIt.value, { discard });
                     gitMenu();
                   });
+                  // niezatwierdzone wersje na bieżącym strumieniu → potwierdź porzucenie
+                  if (ahead > 0) {
+                    confirmGit(tfmt(t.GitSwitchDiscardConfirm, { count: ahead, name: bIt.value }), () => doSwitch(true));
+                  } else {
+                    confirmGit(tfmt(t.ConfirmSwitchBranch, { name: bIt.value }), () => doSwitch(false));
+                  }
                 })
               );
             }
@@ -361,7 +384,7 @@ export function buildCommands(ctx) {
           });
           break;
         case 'remote':
-          openForm(t.GitRemoteTitle, [{ name: 'url', label: t.GitRemoteUrlField }],
+          openForm(t.GitRemoteTitle, [{ name: 'url', label: t.GitRemoteUrlField, initial: st.remote || '' }],
             (v) => safe(() => ctrl.gitSetRemote(v.url)));
           break;
         case 'history': {

@@ -6,7 +6,16 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
-## [0.9.120] — 2026-06-29
+## [0.9.121] — 2026-06-29
+### Added
+- Checkpoints can now target any branch, not just `main`. The `/git → checkpoint` flow opens a target-stream picker (existing branches + "New branch…") before asking for the message; the chosen branch becomes the new target stream and is persisted per template (`git.targetBranch` in config).
+- The status bar now shows an uncommitted-versions indicator (`+N` in orange next to the branch) — work sitting on the hidden working buffer that has not been checkpointed yet.
+### Changed
+- The internal `liquidflow/wip` working branch is now hidden from the UI: it no longer appears in the branch-switch list and the status/menu report the target stream instead of `liquidflow/wip`.
+- "Switch branch" became "Switch stream": it now actually changes where auto-commits and checkpoints land (sets `targetBranch` and repoints the working buffer), instead of being silently reverted by the next auto-commit. Switching with uncommitted versions on the current stream requires confirming a discard.
+- The remote-repository form is now pre-filled with the existing `origin` URL instead of opening empty.
+### Fixed
+- `gitSwitchBranch` no longer fails trying to force-update the currently checked-out working branch; it steps off the buffer first.
 ### Fixed
 - The header "Git" row now appears immediately on entering a template with an initialized repo, instead of staying hidden until the next `emitGit()` (e.g. toggling auto-push). `_startSession` now emits the git status right after starting the sync session.
 

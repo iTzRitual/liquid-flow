@@ -163,6 +163,58 @@ describe('Controller — git dla aktywnego szablonu', { timeout: 20000 }, () => 
     expect(mainHist.length).toBe(2);
   });
 
+  it('gitCheckpoint na nową gałąź tworzy ją, kieruje tam i ustawia jako strumień docelowy', async () => {
+    await connectAndSelect();
+    await ctrl.gitEnable();
+    const dir = ctrl.activeGit.dir;
+    ctrl.state.session._stopWatcher();
+
+    fs.writeFileSync(store.localFilePath(shopName, 5, 0, 'index.liquid'), 'Z1');
+    ctrl._pendingCommitFiles.add('index.liquid');
+    await ctrl._doAutoCommit();
+
+    await ctrl.gitCheckpoint('Feature start', 'feature-x');
+
+    // nowy strumień docelowy utrwalony
+    expect(ctrl.activeGit.targetBranch).toBe('feature-x');
+    // pracujemy dalej na ukrytym wip
+    expect(await git.currentBranch(dir)).toBe('liquidflow/wip');
+    // checkpoint trafił na feature-x
+    await git.switchBranch(dir, 'feature-x');
+    expect((await git.history(dir))[0].message).toBe('Feature start');
+    // wip jest ukryty w liście gałęzi
+    expect(await ctrl.gitListBranches()).not.toContain('liquidflow/wip');
+    // status raportuje strumień, nie wip
+    expect((await ctrl.gitStatus()).branch).toBe('feature-x');
+  });
+
+  it('gitSwitchBranch bez discard rzuca przy niezatwierdzonych wersjach, z discard porzuca i przełącza', async () => {
+    await connectAndSelect();
+    await ctrl.gitEnable();
+    const dir = ctrl.activeGit.dir;
+    ctrl.state.session._stopWatcher();
+
+    // utwórz drugi strumień (czysty checkpoint), wróć pracą do main
+    fs.writeFileSync(store.localFilePath(shopName, 5, 0, 'index.liquid'), 'A');
+    ctrl._pendingCommitFiles.add('index.liquid');
+    await ctrl._doAutoCommit();
+    await ctrl.gitCheckpoint('cp', 'release'); // target = release teraz
+    ctrl._persistTargetBranch('main');         // wróć strumieniem na main do testu
+
+    // nowa niezatwierdzona wersja na wip (względem main)
+    fs.writeFileSync(store.localFilePath(shopName, 5, 0, 'index.liquid'), 'B');
+    ctrl._pendingCommitFiles.add('index.liquid');
+    await ctrl._doAutoCommit();
+    expect(await ctrl.gitUncommittedCount()).toBeGreaterThan(0);
+
+    // bez discard → guard
+    await expect(ctrl.gitSwitchBranch('release')).rejects.toThrow();
+    // z discard → przełącza strumień i porzuca wip
+    await ctrl.gitSwitchBranch('release', { discard: true });
+    expect(ctrl.activeGit.targetBranch).toBe('release');
+    expect(await ctrl.gitUncommittedCount()).toBe(0);
+  });
+
   it('gitPull rzuca błąd, gdy wip jest przed main', async () => {
     await connectAndSelect();
     await ctrl.gitEnable();

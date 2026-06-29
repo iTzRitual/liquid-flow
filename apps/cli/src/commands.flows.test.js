@@ -16,7 +16,9 @@ function makeCtx(overrides = {}) {
       listTemplates: vi.fn(async () => [{ Id: 5, Name: 'Topaz', Locked: false }]),
       recheckMismatches: vi.fn(async () => []),
       runCommand: vi.fn(async () => []),
-      gitStatus: vi.fn(async () => ({ available: true, isRepo: true, commitCount: 2, autoCommit: false, autoPush: false, remote: null })),
+      gitStatus: vi.fn(async () => ({ available: true, isRepo: true, branch: 'main', ahead: 0, commitCount: 2, autoCommit: false, autoPush: false, remote: null })),
+      gitListBranches: vi.fn(async () => ['main']),
+      gitUncommittedCount: vi.fn(async () => 0),
       setLanguage: vi.fn(),
       logout: vi.fn(),
       removeShop: vi.fn(),
@@ -188,26 +190,57 @@ describe('/git — menu repo vs brak repo', () => {
     expect(gitClone).toHaveBeenCalledWith('https://github.com/test/repo.git');
   });
 
-  it('wybór checkpoint otwiera form, potem potwierdzenie, potem woła gitCheckpoint', async () => {
+  it('wybór checkpoint: picker strumienia → form → potwierdzenie → gitCheckpoint(msg, target)', async () => {
+    const gitCheckpoint = vi.fn(async () => ({}));
+    const { ctx, cap } = makeCtx({ ctrl: { gitCheckpoint, gitListBranches: vi.fn(async () => ['main', 'release']) } });
+    run(ctx, '/git');
+    await tick();
+
+    cap.pickers[0].onSelect({ value: 'checkpoint' });
+    await tick();
+
+    // najpierw wybór strumienia docelowego (gałęzie + nowa gałąź)
+    const targetPicker = cap.pickers[cap.pickers.length - 1];
+    expect(targetPicker.items.map(i => i.value)).toEqual(['main', 'release', '__new__']);
+
+    targetPicker.onSelect({ value: 'release' });
+    await tick();
+
+    expect(cap.forms[cap.forms.length - 1].fields[0].name).toBe('message');
+    cap.forms[cap.forms.length - 1].onSubmit({ message: 'Z1' });
+    await tick();
+
+    const confirmPicker = cap.pickers[cap.pickers.length - 1];
+    confirmPicker.onSelect({ value: true });
+    await tick();
+
+    expect(gitCheckpoint).toHaveBeenCalledWith('Z1', 'release');
+  });
+
+  it('checkpoint na nową gałąź: pyta o nazwę przed message i woła gitCheckpoint z nową nazwą', async () => {
     const gitCheckpoint = vi.fn(async () => ({}));
     const { ctx, cap } = makeCtx({ ctrl: { gitCheckpoint } });
     run(ctx, '/git');
     await tick();
-    
+
     cap.pickers[0].onSelect({ value: 'checkpoint' });
     await tick();
-    
-    expect(cap.forms).toHaveLength(1);
-    expect(cap.forms[0].fields[0].name).toBe('message');
-    
-    cap.forms[0].onSubmit({ message: 'Z1' });
+    cap.pickers[cap.pickers.length - 1].onSelect({ value: '__new__' });
     await tick();
-    
-    const confirmPicker = cap.pickers[cap.pickers.length - 1];
-    confirmPicker.onSelect({ value: true });
+
+    // form nazwy nowej gałęzi
+    expect(cap.forms[cap.forms.length - 1].fields[0].name).toBe('name');
+    cap.forms[cap.forms.length - 1].onSubmit({ name: 'feature-x' });
     await tick();
-    
-    expect(gitCheckpoint).toHaveBeenCalledWith('Z1');
+
+    // form message
+    cap.forms[cap.forms.length - 1].onSubmit({ message: 'Z2' });
+    await tick();
+
+    cap.pickers[cap.pickers.length - 1].onSelect({ value: true });
+    await tick();
+
+    expect(gitCheckpoint).toHaveBeenCalledWith('Z2', 'feature-x');
   });
 
   it('wybór pull otwiera potwierdzenie, potem woła gitPull', async () => {
@@ -226,33 +259,56 @@ describe('/git — menu repo vs brak repo', () => {
     expect(gitPull).toHaveBeenCalled();
   });
 
-  it('wybór branches otwiera sub-picker, a switch branch otwiera listę gałęzi, potem potwierdzenie i woła gitSwitchBranch', async () => {
-    const gitListBranches = vi.fn(async () => ['main', 'liquidflow/wip']);
+  it('switch branch (bez niezatwierdzonych) → potwierdzenie i gitSwitchBranch(name, {discard:false})', async () => {
+    const gitListBranches = vi.fn(async () => ['main', 'release']);
     const gitSwitchBranch = vi.fn(async () => ({}));
-    const { ctx, cap } = makeCtx({ ctrl: { gitListBranches, gitSwitchBranch } });
+    const gitUncommittedCount = vi.fn(async () => 0);
+    const { ctx, cap } = makeCtx({ ctrl: { gitListBranches, gitSwitchBranch, gitUncommittedCount } });
     run(ctx, '/git');
     await tick();
-    
+
     cap.pickers[0].onSelect({ value: 'branches' });
     await tick();
-    
+
     const branchesPicker = cap.pickers[cap.pickers.length - 1];
     expect(branchesPicker.items.some(i => i.value === 'switch')).toBe(true);
-    
+
     branchesPicker.onSelect({ value: 'switch' });
     await tick();
-    
+
     const switchPicker = cap.pickers[cap.pickers.length - 1];
-    expect(switchPicker.items.map(i => i.value)).toEqual(['main', 'liquidflow/wip']);
-    
-    switchPicker.onSelect({ value: 'main' });
+    expect(switchPicker.items.map(i => i.value)).toEqual(['main', 'release']);
+
+    switchPicker.onSelect({ value: 'release' });
     await tick();
-    
-    const confirmPicker = cap.pickers[cap.pickers.length - 1];
-    confirmPicker.onSelect({ value: true });
+
+    cap.pickers[cap.pickers.length - 1].onSelect({ value: true });
     await tick();
-    
-    expect(gitSwitchBranch).toHaveBeenCalledWith('main');
+
+    expect(gitSwitchBranch).toHaveBeenCalledWith('release', { discard: false });
+  });
+
+  it('switch branch z niezatwierdzonymi wersjami → confirm porzucenia i gitSwitchBranch z discard:true', async () => {
+    const gitSwitchBranch = vi.fn(async () => ({}));
+    const gitUncommittedCount = vi.fn(async () => 3);
+    const { ctx, cap } = makeCtx({ ctrl: {
+      gitListBranches: vi.fn(async () => ['main', 'release']),
+      gitSwitchBranch, gitUncommittedCount,
+    } });
+    run(ctx, '/git');
+    await tick();
+
+    cap.pickers[0].onSelect({ value: 'branches' });
+    await tick();
+    cap.pickers[cap.pickers.length - 1].onSelect({ value: 'switch' });
+    await tick();
+    cap.pickers[cap.pickers.length - 1].onSelect({ value: 'release' });
+    await tick();
+
+    cap.pickers[cap.pickers.length - 1].onSelect({ value: true });
+    await tick();
+
+    expect(gitSwitchBranch).toHaveBeenCalledWith('release', { discard: true });
   });
 });
 

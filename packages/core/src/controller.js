@@ -14,6 +14,13 @@ import { translationsFor, tfmt, LANGUAGES } from './translations.js';
 
 const COMMIT_DEBOUNCE_MS = 3000;
 
+// Ukryta gałąź robocza („bufor na żywo"): wszystkie auto-commity lądują tutaj.
+// Użytkownik jej nie widzi ani nie wybiera — jest implementacyjnym szczegółem
+// modelu „checkpoint". Strumień docelowy (gałąź, na którą zatwierdza się wersję)
+// trzymamy w activeGit.targetBranch (domyślnie poniżej).
+const WIP_BRANCH = 'liquidflow/wip';
+const DEFAULT_TARGET = 'main';
+
 // Wersja aplikacji — czytana z package.json rdzenia (jedyne źródło prawdy; trzy
 // package.json są zawsze zsynchronizowane), żeby nie dryfowała przy bumpie.
 const APP_VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
@@ -313,6 +320,8 @@ export class Controller extends EventEmitter {
       dir: store.templateModeDir(shop.Name, template.Id, 0),
       autoCommit: tCfg.git ? !!tCfg.git.autoCommit : false,
       autoPush: tCfg.git ? !!tCfg.git.autoPush : false,
+      // strumień docelowy checkpointów (gałąź widoczna dla użytkownika); wip jest ukryty
+      targetBranch: (tCfg.git && tCfg.git.targetBranch) || DEFAULT_TARGET,
     };
 
     if (git.isRepo(this.activeGit.dir)) {
@@ -372,14 +381,27 @@ export class Controller extends EventEmitter {
     if (!this.activeGit || !git.isRepo(this.activeGit.dir)) return;
     const dir = this.activeGit.dir;
     const cur = await git.currentBranch(dir);
-    if (cur === 'liquidflow/wip') return;
+    if (cur === WIP_BRANCH) return;
 
     const branches = await git.listBranches(dir);
-    if (!branches.includes('liquidflow/wip')) {
-      const base = branches.includes('main') ? 'main' : (cur || 'main');
-      await git.createBranch(dir, 'liquidflow/wip', base);
+    if (!branches.includes(WIP_BRANCH)) {
+      const target = this.activeGit.targetBranch;
+      const base = branches.includes(target) ? target : (cur || target);
+      await git.createBranch(dir, WIP_BRANCH, base);
     }
-    await git.switchBranch(dir, 'liquidflow/wip');
+    await git.switchBranch(dir, WIP_BRANCH);
+  }
+
+  // Ile niezatwierdzonych „wersji" wisi na wip względem strumienia docelowego
+  // (commity z wip, których nie ma na targetBranch). 0 = wszystko zacheckpointowane.
+  async _uncommittedCount() {
+    if (!this.activeGit || !git.isRepo(this.activeGit.dir)) return 0;
+    return git.countCommits(this.activeGit.dir, `${this.activeGit.targetBranch}..${WIP_BRANCH}`);
+  }
+
+  // Publiczne (CLI guard przed przełączeniem strumienia).
+  async gitUncommittedCount() {
+    return this._uncommittedCount();
   }
 
   async _doAutoCommit() {
@@ -411,6 +433,7 @@ export class Controller extends EventEmitter {
     if (!this.activeGit) return { available: await git.isAvailable(), active: false };
     const st = await git.status(this.activeGit.dir);
     const tCfg = this._currentTemplateConfig();
+    const ahead = await this._uncommittedCount();
     return {
       available: await git.isAvailable(),
       active: true,
@@ -418,6 +441,10 @@ export class Controller extends EventEmitter {
       autoCommit: this.activeGit.autoCommit,
       autoPush: this.activeGit.autoPush,
       ...st,
+      // wip jest ukryty — w UI pokazujemy strumień docelowy, nigdy liquidflow/wip.
+      branch: this.activeGit.targetBranch,
+      // liczba niezatwierdzonych wersji (commity na wip poza strumieniem)
+      ahead,
       _tcfg: tCfg ? !!tCfg.git : false,
     };
   }
@@ -497,13 +524,16 @@ export class Controller extends EventEmitter {
     if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
     const remote = await git.getRemote(this.activeGit.dir);
     if (!remote) { logbuf.logErr(logbuf.tmsg('GitNoRemoteConfigured')); return this.gitStatus(); }
-    const r = await git.push(this.activeGit.dir, 'main');
+    const r = await git.push(this.activeGit.dir, this.activeGit.targetBranch);
     logbuf.logOk(logbuf.tmsg('GitPushedOrigin'));
     this.emitGit();
     return r;
   }
 
-  async gitCheckpoint(message) {
+  // Zatwierdź wersję: zgnieć pracę z wip w jeden czysty commit na strumieniu
+  // docelowym. `target` (opcjonalny) pozwala skierować checkpoint na inną gałąź
+  // niż bieżąca — wtedy ta gałąź staje się nowym strumieniem (zapisywana w configu).
+  async gitCheckpoint(message, target) {
     if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
     const dir = this.activeGit.dir;
     if (!git.isRepo(dir)) throw new Error(this.t.NoGitRepository || 'No git repository');
@@ -515,8 +545,12 @@ export class Controller extends EventEmitter {
     // Flush pending auto-commit first (self-queues via runExclusive).
     await this._doAutoCommit();
 
+    const prevTarget = this.activeGit.targetBranch;       // strumień, na którym stoi wip
+    const into = target || prevTarget;                    // dokąd zatwierdzamy
+
     // countCommits jest read-only (git rev-list, nie blokuje indeksu) — bezpieczne poza kolejką.
-    const ahead = await git.countCommits(dir, 'main..liquidflow/wip');
+    // „ahead" liczymy względem bieżącego strumienia (tam zdywergował wip).
+    const ahead = await git.countCommits(dir, `${prevTarget}..${WIP_BRANCH}`);
 
     const checkpointFn = async () => {
       // git.status może odświeżyć indeks — uruchamiamy wewnątrz kolejki.
@@ -532,16 +566,24 @@ export class Controller extends EventEmitter {
         }
       }
 
-      const res = await git.squashMergeInto(dir, 'liquidflow/wip', 'main', message || 'Checkpoint');
-      await git.forceBranch(dir, 'liquidflow/wip', 'main');
-      await git.switchBranch(dir, 'liquidflow/wip');
+      // Checkpoint na nową gałąź: utwórz ją od bieżącego strumienia (albo wip,
+      // gdy strumień jeszcze nie istnieje — świeże repo), by squash dał czysty commit.
+      const branches = await git.listBranches(dir);
+      if (!branches.includes(into)) {
+        const base = branches.includes(prevTarget) ? prevTarget : WIP_BRANCH;
+        await git.createBranch(dir, into, base);
+      }
+
+      const res = await git.squashMergeInto(dir, WIP_BRANCH, into, message || 'Checkpoint');
+      await git.forceBranch(dir, WIP_BRANCH, into);
+      await git.switchBranch(dir, WIP_BRANCH);
       if (this.activeGit.autoPush) {
         const remote = await git.getRemote(dir);
         if (!remote) {
           logbuf.logErr(logbuf.tmsg('GitNoRemoteConfigured'));
         } else {
           try {
-            await git.push(dir, 'main');
+            await git.push(dir, into);
             logbuf.logOk(logbuf.tmsg('GitPushedOrigin'));
           } catch (e) {
             logbuf.logErr(logbuf.tmsg('GitPushError', { msg: e.message }));
@@ -563,9 +605,22 @@ export class Controller extends EventEmitter {
       return this.gitStatus();
     }
 
+    // Utrwal nowy strumień docelowy (gdy checkpoint poszedł na inną gałąź).
+    if (into !== prevTarget) this._persistTargetBranch(into);
+
     logbuf.logOk(logbuf.tmsg('GitCheckpointDone', { msg: message || 'Checkpoint' }));
     this.emitGit();
     return this.gitStatus();
+  }
+
+  // Zapisz wybrany strumień docelowy w stanie i configu szablonu.
+  _persistTargetBranch(branch) {
+    this.activeGit.targetBranch = branch;
+    const tCfg = this._currentTemplateConfig();
+    if (tCfg) {
+      tCfg.git = { ...(tCfg.git || {}), targetBranch: branch };
+      store.saveConfig(this.config);
+    }
   }
 
   async gitPull() {
@@ -573,7 +628,8 @@ export class Controller extends EventEmitter {
     const dir = this.activeGit.dir;
     if (!git.isRepo(dir)) throw new Error(this.t.NoGitRepository || 'No git repository');
 
-    const ahead = await git.countCommits(dir, 'main..liquidflow/wip');
+    const target = this.activeGit.targetBranch;
+    const ahead = await git.countCommits(dir, `${target}..${WIP_BRANCH}`);
     if (ahead > 0) {
       throw new Error(this.t.GitPublishBeforePull);
     }
@@ -582,13 +638,13 @@ export class Controller extends EventEmitter {
     if (!remote) { logbuf.logErr(logbuf.tmsg('GitNoRemoteConfigured')); return this.gitStatus(); }
 
     const pullFn = async () => {
-      await git.switchBranch(dir, 'main');
+      await git.switchBranch(dir, target);
       try {
         await git.pull(dir);
         logbuf.logOk(logbuf.tmsg('GitPullSuccess'));
       } finally {
-        await git.forceBranch(dir, 'liquidflow/wip', 'main');
-        await git.switchBranch(dir, 'liquidflow/wip');
+        await git.forceBranch(dir, WIP_BRANCH, target);
+        await git.switchBranch(dir, WIP_BRANCH);
       }
     };
 
@@ -614,21 +670,40 @@ export class Controller extends EventEmitter {
     return this.gitStatus();
   }
 
-  async gitSwitchBranch(name) {
+  // Przełącz STRUMIEŃ docelowy (nie surowy checkout). Ustawia targetBranch=name
+  // i przepina ukryty wip na tę gałąź, więc kolejne auto-commity i checkpointy
+  // budują na nowym strumieniu. Gdy na bieżącym strumieniu wiszą niezatwierdzone
+  // wersje (wip ahead), wymaga `discard` (inaczej rzuca) — by nie zgubić ich po cichu.
+  async gitSwitchBranch(name, { discard = false } = {}) {
     if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
     const dir = this.activeGit.dir;
-    if (this.state.session) {
-      await this.state.session.withWatcherPaused(() => git.switchBranch(dir, name));
-    } else {
-      await git.switchBranch(dir, name);
+
+    const ahead = await this._uncommittedCount();
+    if (ahead > 0 && !discard) {
+      throw new Error(tfmt(this.t.GitSwitchUncommitted, { count: ahead }));
     }
+
+    const switchFn = async () => {
+      // przepnij wip na nowy strumień (porzuca niezatwierdzone wersje, jeśli były).
+      // Najpierw zejdź z wip — gita nie da się force-update na aktualnie wybranej gałęzi.
+      await git.switchBranch(dir, name);
+      await git.forceBranch(dir, WIP_BRANCH, name);
+      await git.switchBranch(dir, WIP_BRANCH);
+    };
+    if (this.state.session) {
+      await this.state.session.withWatcherPaused(switchFn);
+    } else {
+      await switchFn();
+    }
+    this._persistTargetBranch(name);
     this.emitGit();
     return this.gitStatus();
   }
 
   async gitListBranches() {
     if (!this.activeGit) return [];
-    return git.listBranches(this.activeGit.dir);
+    // wip jest ukryty — nigdy nie pokazujemy go w wyborze gałęzi
+    return (await git.listBranches(this.activeGit.dir)).filter((b) => b !== WIP_BRANCH);
   }
 
   async gitClone(url) {
