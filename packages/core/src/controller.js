@@ -322,6 +322,7 @@ export class Controller extends EventEmitter {
     await session.start();
     this.emitState();
     this.emit('mismatches', session.mismatches);
+    this.emitGit(); // od razu po starcie sesji odśwież status gita w UI (wiersz „Git" w nagłówku) — inaczej pojawia się dopiero przy pierwszym późniejszym emitGit (toggle/commit)
     return session;
   }
 

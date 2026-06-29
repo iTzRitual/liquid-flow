@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.120] — 2026-06-29
+### Fixed
+- The header "Git" row now appears immediately on entering a template with an initialized repo, instead of staying hidden until the next `emitGit()` (e.g. toggling auto-push). `_startSession` now emits the git status right after starting the sync session.
+
 ## [0.9.119] — 2026-06-29
 ### Added
 - The current git branch is now visible in the CLI: `git.status()` returns a `branch` field, the header StatusBar "Git" row shows it (cyan, before the commit/push toggles), and the `/git` menu title now reads "branch <name> (<n> commits…)".
