@@ -156,7 +156,7 @@ export function buildCommands(ctx) {
         { label: t.ActionDownloadShort, value: 'download' },
         { label: t.ActionDeleteRemoteShort, value: 'removeRemote' },
         { label: t.ActionPreviewShort, value: 'preview' },
-      ], initial: 0 };
+      ], initial: 2 };
     }
     if (m.Type === MismatchType.RemoteMissing) {
       // tylko lokalnie → wyślij albo usuń lokalnie
@@ -164,17 +164,14 @@ export function buildCommands(ctx) {
         { label: t.ActionUploadShort, value: 'upload' },
         { label: t.ActionDeleteLocalShort, value: 'removeLocal' },
         { label: t.ActionPreviewShort, value: 'preview' },
-      ], initial: 0 };
+      ], initial: 2 };
     }
     // Timestamp: oba istnieją → pobierz z serwera albo wyślij z lokala
-    const f = new Date(m.FileTs).getTime();
-    const r = new Date(m.RemoteTs).getTime();
-    const localNewer = !Number.isNaN(f) && !Number.isNaN(r) && f > r;
     return { options: [
       { label: t.ActionDownloadShort, value: 'download' },
       { label: t.ActionUploadShort, value: 'upload' },
       { label: t.ActionPreviewShort, value: 'preview' },
-    ], initial: localNewer ? 1 : 0 };
+    ], initial: 2 };
   };
 
   // Potwierdzenie, które przy „Nie” wraca do listy konfliktów (zostajemy w flow).

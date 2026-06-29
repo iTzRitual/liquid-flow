@@ -77,16 +77,16 @@ describe('/conflicts — mapowanie typu konfliktu na akcje', () => {
     expect(destructive.has(f.options[f.initial].value)).toBe(false);
   });
 
-  it('Timestamp: lokalny nowszy → domyślnie Wyślij; zdalny nowszy → domyślnie Pobierz', async () => {
+  it('Timestamp: domyślnie Podgląd (niezależnie od tego która strona nowsza)', async () => {
     const localNewer = runConflicts([{ File: { Name: 'c', Mode: 0 }, Type: MismatchType.Timestamp, FileTs: '2026-06-01', LocalTs: '2026-01-01', RemoteTs: '2026-01-01' }]);
     await Promise.resolve();
     let f = localNewer.conflicts.files[0];
-    expect(f.options[f.initial].value).toBe('upload');
+    expect(f.options[f.initial].value).toBe('preview');
 
     const remoteNewer = runConflicts([{ File: { Name: 'c', Mode: 0 }, Type: MismatchType.Timestamp, FileTs: '2026-01-01', LocalTs: '2026-01-01', RemoteTs: '2026-06-01' }]);
     await Promise.resolve();
     f = remoteNewer.conflicts.files[0];
-    expect(f.options[f.initial].value).toBe('download');
+    expect(f.options[f.initial].value).toBe('preview');
   });
 
   it('operacje seryjne pojawiają się wg typów konfliktów', async () => {

@@ -6,6 +6,12 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.108] — 2026-06-29
+### Changed
+- `/conflicts`: cursor now always starts on "Preview" instead of Download/Upload, so reviewing the diff is the default action before applying any change.
+
+---
+
 ## [0.9.107] — 2026-06-29
 ### Fixed
 - Diff preview scroll: pressing down arrow now always reveals one new line from below. The previous implementation showed a `↑ N more` indicator that stole a content row from the budget, causing the first down-press to only display the indicator without moving the content window. Removed the above indicator entirely — the line-number gutter already tells the user where they are.
