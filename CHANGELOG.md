@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.115] — 2026-06-29
+### Fixed
+- Cursor-position memory now also works for `/git` (and any list → same-type list transition). When stepping between two `picker` screens — e.g. the git menu into a submenu, or `/connect` into the "remove shop" picker — React was reusing the same component instance, so the parent's internal cursor state survived and `initialIndex` (which only seeds initial state) was ignored. Each overlay mode now carries a unique `uid` used as the React `key`, forcing a remount on screen-identity change so Esc restores the remembered row. Position is preserved within a screen (no extra remounts on navigation/toggle).
+
 ## [0.9.114] — 2026-06-29
 ### Fixed
 - Esc back-navigation now restores the cursor position on list screens instead of jumping to the top. When you open a child screen (conflict preview, git submenu/form, confirmation) from `/conflicts`, `/connect`, `/git`, `/templates`, etc. and press Esc to return, the parent list re-highlights the row you came from. The selected position is persisted on the parent mode object via new `initialIndex`/`onIndexChange` props on `Picker`, `ConflictList`, and `ConnectList`.

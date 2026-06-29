@@ -12,6 +12,17 @@ import ProgressView from './components/ProgressView.jsx';
 import Spinner from './components/Spinner.jsx';
 import LogPane, { buildVlines } from './components/LogPane.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
+
+// Licznik unikalnych identyfikatorów nakładek. Każdy otwarty ekran (mode) dostaje
+// własny `uid`, używany jako React `key` renderowanego komponentu. Dzięki temu gdy
+// przechodzimy MIĘDZY dwoma ekranami tego SAMEGO typu (np. picker → picker w
+// podmenu /git, albo connect → picker „usuń sklep”), React REMONTUJE komponent
+// zamiast reużywać instancji — inaczej wewnętrzny `useState` kursora przeżywa
+// przejście i `initialIndex` (który zasiewa tylko stan początkowy) jest ignorowany,
+// więc powrót Esc do rodzica gubiłby pozycję. W obrębie jednego ekranu uid jest
+// stały (brak zbędnych remontów przy nawigacji/toggle/re-renderze App).
+let MODE_UID = 0;
+const nextUid = () => ++MODE_UID;
 import Picker from './components/Picker.jsx';
 import ConflictList from './components/ConflictList.jsx';
 import ConnectList from './components/ConnectList.jsx';
@@ -83,12 +94,12 @@ export default function App() {
       // tuż przed handlerem — jeśli ten otworzy kolejną nakładkę, dostanie ona ten
       // picker jako rodzica (Esc wróci tu, a nie do inputu).
       openPicker: (title, items, onSelect, opts = {}) => {
-        const self = { type: 'picker', title, items, onSlash: opts.onSlash, parent: takeParent() };
+        const self = { type: 'picker', uid: nextUid(), title, items, onSlash: opts.onSlash, parent: takeParent() };
         self.onSelect = (it, i) => { pendingParentRef.current = self; back(); onSelect?.(it, i); };
         setMode(self);
       },
       openForm: (title, fields, onSubmit) => {
-        const self = { type: 'form', title, fields, parent: takeParent() };
+        const self = { type: 'form', uid: nextUid(), title, fields, parent: takeParent() };
         self.onSubmit = (vals) => { pendingParentRef.current = self; back(); onSubmit?.(vals); };
         setMode(self);
       },
@@ -98,7 +109,7 @@ export default function App() {
       // rodzic = input; jego akcje (potwierdzenia) dostają ten ekran jako rodzica.
       openConflicts: (data) => {
         pendingParentRef.current = null;
-        const self = { type: 'conflicts', ...data, parent: null };
+        const self = { type: 'conflicts', uid: nextUid(), ...data, parent: null };
         self.onAction = (...a) => { pendingParentRef.current = self; data.onAction?.(...a); };
         self.onBulk = (...a) => { pendingParentRef.current = self; data.onBulk?.(...a); };
         setMode(self);
@@ -108,14 +119,14 @@ export default function App() {
       // Akcje (Dodaj/Usuń/wybór sklepu) zapisują ten ekran jako rodzica, by Esc
       // z formularza/sub-pickera wrócił do listy sklepów, a nie do inputu.
       openConnect: (data) => {
-        const self = { type: 'connect', ...data, parent: takeParent() };
+        const self = { type: 'connect', uid: nextUid(), ...data, parent: takeParent() };
         self.onShop = (...a) => { pendingParentRef.current = self; data.onShop?.(...a); };
         self.onAction = (...a) => { pendingParentRef.current = self; data.onAction?.(...a); };
         setMode(self);
       },
       // ekran podglądu diff (read-only). Esc wraca do rodzica (ekranu konfliktów).
       openDiff: (data) => {
-        const self = { type: 'diff', ...data, parent: takeParent() };
+        const self = { type: 'diff', uid: nextUid(), ...data, parent: takeParent() };
         setMode(self);
       },
       // porzuć zapamiętanego rodzica — gdy ekran, z którego przyszliśmy, przestaje
@@ -298,23 +309,23 @@ export default function App() {
       )}
 
       {mode.type === 'picker' && wrapAction(
-        <Picker title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => cancelTo(mode)} maxRows={ovMax} initialIndex={mode.index || 0} onIndexChange={(i) => { mode.index = i; }} t={t} />
+        <Picker key={mode.uid} title={mode.title} items={mode.items} onSelect={mode.onSelect} onSlash={mode.onSlash} onCancel={() => cancelTo(mode)} maxRows={ovMax} initialIndex={mode.index || 0} onIndexChange={(i) => { mode.index = i; }} t={t} />
       )}
 
       {mode.type === 'form' && wrapAction(
-        <Form title={mode.title} fields={mode.fields} onSubmit={mode.onSubmit} onCancel={() => cancelTo(mode)} t={t} />
+        <Form key={mode.uid} title={mode.title} fields={mode.fields} onSubmit={mode.onSubmit} onCancel={() => cancelTo(mode)} t={t} />
       )}
 
       {mode.type === 'conflicts' && wrapAction(
-        <ConflictList title={mode.title} files={mode.files} bulk={mode.bulk} onAction={mode.onAction} onBulk={mode.onBulk} onCancel={() => cancelTo(mode)} maxRows={ovMax} initialIndex={mode.index || 0} onIndexChange={(i) => { mode.index = i; }} t={t} />
+        <ConflictList key={mode.uid} title={mode.title} files={mode.files} bulk={mode.bulk} onAction={mode.onAction} onBulk={mode.onBulk} onCancel={() => cancelTo(mode)} maxRows={ovMax} initialIndex={mode.index || 0} onIndexChange={(i) => { mode.index = i; }} t={t} />
       )}
 
       {mode.type === 'connect' && wrapAction(
-        <ConnectList title={mode.title} shops={mode.shops} actions={mode.actions} onShop={mode.onShop} onAction={mode.onAction} onSlash={mode.onSlash} onCancel={() => cancelTo(mode)} maxRows={ovMax} initialIndex={mode.index || 0} onIndexChange={(i) => { mode.index = i; }} t={t} />
+        <ConnectList key={mode.uid} title={mode.title} shops={mode.shops} actions={mode.actions} onShop={mode.onShop} onAction={mode.onAction} onSlash={mode.onSlash} onCancel={() => cancelTo(mode)} maxRows={ovMax} initialIndex={mode.index || 0} onIndexChange={(i) => { mode.index = i; }} t={t} />
       )}
 
       {mode.type === 'diff' && wrapAction(
-        <DiffView title={mode.title} preview={mode.preview} onCancel={() => cancelTo(mode)} maxRows={ovMax} t={t} />
+        <DiffView key={mode.uid} title={mode.title} preview={mode.preview} onCancel={() => cancelTo(mode)} maxRows={ovMax} t={t} />
       )}
 
       {mode.type === 'input' && (
