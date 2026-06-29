@@ -6,6 +6,13 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.117] — 2026-06-29
+### Fixed
+- Log entries containing embedded newlines (e.g. raw git stderr with multi-line fatal messages) are now collapsed to a single visual line in `log.js` via a new `oneLine()` helper in `renderText`. Prevents `LogPane`'s row-budget overflow that caused Ink to duplicate/garble the TUI frame.
+### Changed
+- `gitPull` and `gitPush` now pre-check `git.getRemote()` before attempting any network operation; if no remote is configured they emit a translated `GitNoRemoteConfigured` message and return cleanly instead of hanging or producing a cryptic git error.
+- Auto-push in `gitCheckpoint` likewise skips the push and logs `GitNoRemoteConfigured` when no remote is set, so the checkpoint still succeeds locally.
+
 ## [0.9.116] — 2026-06-29
 ### Fixed
 - Serialized all git index-mutating operations (`_doAutoCommit`, `gitRestore`, `gitCheckpoint`, `gitEnable`) through the session's single `runExclusive` queue, eliminating the `.git/index.lock` race condition that caused fatal errors under concurrent auto-commit calls.

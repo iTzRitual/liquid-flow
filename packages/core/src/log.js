@@ -45,6 +45,12 @@ export function tmsg(key, params = {}) {
   return { msg: key, params };
 }
 
+// Spłaszcz tekst wpisu do JEDNEGO wiersza — surowy stderr gita bywa wielolinijkowy,
+// a LogPane liczy 1 wpis = 1 wiersz; osadzony \n rozsadza budżet (duplikacja kadru).
+function oneLine(s) {
+  return String(s).replace(/[\t\f\v]+/g, ' ').replace(/\s*[\r\n]+\s*/g, ' ⏎ ').trim();
+}
+
 // Wyrenderuj `Text` wpisu dla bieżącego języka.
 function renderText(e) {
   if (e.kind === 'separator') {
@@ -53,8 +59,8 @@ function renderText(e) {
     const when = e.sepTs ? ' • ' + new Date(e.sepTs).toLocaleString(localeFor(lang), { hour12: false }) : '';
     return label + when;
   }
-  if (e.msg) return tfmt(translationsFor(lang)[e.msg] || e.msg, e.params || {});
-  return e.Text;
+  if (e.msg) return oneLine(tfmt(translationsFor(lang)[e.msg] || e.msg, e.params || {}));
+  return oneLine(e.Text);
 }
 
 function newChannel(key, persist) {

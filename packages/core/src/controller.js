@@ -494,6 +494,8 @@ export class Controller extends EventEmitter {
 
   async gitPush() {
     if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
+    const remote = await git.getRemote(this.activeGit.dir);
+    if (!remote) { logbuf.logErr(logbuf.tmsg('GitNoRemoteConfigured')); return this.gitStatus(); }
     const r = await git.push(this.activeGit.dir, 'main');
     logbuf.logOk(logbuf.tmsg('GitPushedOrigin'));
     this.emitGit();
@@ -533,11 +535,16 @@ export class Controller extends EventEmitter {
       await git.forceBranch(dir, 'liquidflow/wip', 'main');
       await git.switchBranch(dir, 'liquidflow/wip');
       if (this.activeGit.autoPush) {
-        try {
-          await git.push(dir, 'main');
-          logbuf.logOk(logbuf.tmsg('GitPushedOrigin'));
-        } catch (e) {
-          logbuf.logErr(logbuf.tmsg('GitPushError', { msg: e.message }));
+        const remote = await git.getRemote(dir);
+        if (!remote) {
+          logbuf.logErr(logbuf.tmsg('GitNoRemoteConfigured'));
+        } else {
+          try {
+            await git.push(dir, 'main');
+            logbuf.logOk(logbuf.tmsg('GitPushedOrigin'));
+          } catch (e) {
+            logbuf.logErr(logbuf.tmsg('GitPushError', { msg: e.message }));
+          }
         }
       }
       return res;
@@ -569,6 +576,9 @@ export class Controller extends EventEmitter {
     if (ahead > 0) {
       throw new Error(this.t.GitPublishBeforePull);
     }
+
+    const remote = await git.getRemote(dir);
+    if (!remote) { logbuf.logErr(logbuf.tmsg('GitNoRemoteConfigured')); return this.gitStatus(); }
 
     const pullFn = async () => {
       await git.switchBranch(dir, 'main');

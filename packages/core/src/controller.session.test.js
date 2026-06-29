@@ -248,4 +248,47 @@ describe('Controller — git dla aktywnego szablonu', { timeout: 20000 }, () => 
     await Promise.all([ctrl._doAutoCommit(), ctrl._doAutoCommit()]);
     expect(await git.currentBranch(dir)).toBe('liquidflow/wip');
   });
+
+  it('gitPull bez skonfigurowanego remote loguje GitNoRemoteConfigured i nie rzuca błędu', async () => {
+    await connectAndSelect();
+    await ctrl.gitEnable(); // inicjalizuje repo BEZ remote
+    const dir = ctrl.activeGit.dir;
+
+    // Upewniamy się, że remote naprawdę nie jest ustawiony.
+    expect(await git.getRemote(dir)).toBeNull();
+
+    // Zatrzymaj watcher, by uniknąć race conditions.
+    ctrl.state.session._stopWatcher();
+
+    const loggedErrors = [];
+    logbuf.events.on('entry', (e) => { if (e.Color === logbuf.COLORS.red) loggedErrors.push(e); });
+
+    // gitPull nie powinien rzucać błędu — ma zalogować i zwrócić gitStatus.
+    let result;
+    await expect((async () => { result = await ctrl.gitPull(); })()).resolves.not.toThrow();
+
+    // Powinien zalogować komunikat o braku remote.
+    expect(loggedErrors.some((e) => e.msg === 'GitNoRemoteConfigured')).toBe(true);
+
+    // Wciąż na gałęzi wip (pull nie nastąpił).
+    expect(await git.currentBranch(dir)).toBe('liquidflow/wip');
+  });
+
+  it('gitPush bez skonfigurowanego remote loguje GitNoRemoteConfigured i nie rzuca błędu', async () => {
+    await connectAndSelect();
+    await ctrl.gitEnable();
+    const dir = ctrl.activeGit.dir;
+
+    expect(await git.getRemote(dir)).toBeNull();
+
+    const loggedErrors = [];
+    logbuf.events.on('entry', (e) => { if (e.Color === logbuf.COLORS.red) loggedErrors.push(e); });
+
+    let result;
+    await expect((async () => { result = await ctrl.gitPush(); })()).resolves.not.toThrow();
+
+    expect(loggedErrors.some((e) => e.msg === 'GitNoRemoteConfigured')).toBe(true);
+    // Gałąź wip niezmieniona.
+    expect(await git.currentBranch(dir)).toBe('liquidflow/wip');
+  });
 });

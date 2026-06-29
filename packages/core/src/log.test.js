@@ -75,6 +75,36 @@ describe('kanały (scope)', () => {
   });
 });
 
+describe('sanityzacja wieloliniowego tekstu (oneLine)', () => {
+  it('literał z osadzonym \\n jest spłaszczany do jednego wiersza', () => {
+    const raw = "fatal: 'origin' does not exist\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights.";
+    const e = log.logErr(raw);
+    expect(e.Text).not.toMatch(/[\r\n]/);
+    // tekst nie jest pusty i zawiera informacje z obu linii
+    expect(e.Text).toContain('fatal:');
+    expect(e.Text).toContain('⏎');
+  });
+
+  it('normalna wiadomość jednowierszowa nie jest modyfikowana (poza trim)', () => {
+    const e = log.logInfo('Synchronizacja zakończona');
+    expect(e.Text).toBe('Synchronizacja zakończona');
+  });
+
+  it('deskryptor i18n z \\n w parametrze jest spłaszczany', () => {
+    const e = log.logErr(log.tmsg('GitPushError', { msg: "line1\nline2" }));
+    expect(e.Text).not.toMatch(/[\r\n]/);
+  });
+
+  it('setLanguage nie przywraca \\n do przetłumaczonego wpisu', () => {
+    const raw = "err: a\nerr: b";
+    const e = log.logErr(raw);
+    expect(e.Text).not.toMatch(/[\r\n]/);
+    log.setLanguage('en');
+    // literał nie ma msg, więc Text nie jest przeliczany przez setLanguage
+    expect(e.Text).not.toMatch(/[\r\n]/);
+  });
+});
+
 describe('since / waitFor', () => {
   it('since zwraca tylko wpisy o Id > lastId', () => {
     log.logInfo('a');

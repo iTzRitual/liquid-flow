@@ -161,6 +161,7 @@ const pl = {
   ConfirmPush: 'Czy na pewno chcesz wypchnąć gałąź main do origin?',
   ConfirmGitRestore: 'Czy na pewno chcesz cofnąć pliki do commita {hash}?',
   GitPullError: 'Git pull: {msg}',
+  GitNoRemoteConfigured: 'Git: brak skonfigurowanego zdalnego repozytorium (ustaw przez /git → remote)',
 
   // --- silnik synchronizacji ---
   LocalFolderReady: 'Folder lokalny gotowy — pliki już pobrane',
@@ -457,6 +458,7 @@ const en = {
   ConfirmPush: 'Are you sure you want to push main to origin?',
   ConfirmGitRestore: 'Are you sure you want to restore files to commit {hash}?',
   GitPullError: 'Git pull: {msg}',
+  GitNoRemoteConfigured: 'Git: no remote configured (set one via /git → remote)',
 
   // --- silnik synchronizacji ---
   LocalFolderReady: 'Local folder ready — files already downloaded',
