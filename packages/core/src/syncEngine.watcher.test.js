@@ -210,6 +210,36 @@ describe('cykl życia start()/dispose()', () => {
   });
 });
 
+describe('runExclusive — serializacja na kolejce sesji', () => {
+  it('dwa równoległe runExclusive nie przeplatają się; watcher nie jest zatrzymywany', async () => {
+    // Uruchom sesję, żeby watcher był aktywny.
+    client.files = [{ Mode: 0, Name: 'a.liquid', Template: Buffer.from('x'), Date: '2026-01-01T00:00:00' }];
+    client.remoteMeta = [{ Mode: 0, Name: 'a.liquid', Date: '2026-01-01T00:00:00' }];
+    await session.start();
+    expect(session.watcherActive).toBe(true);
+
+    const order = [];
+    const fn1 = async () => {
+      order.push('s1');
+      await new Promise(r => setImmediate(r));
+      order.push('e1');
+    };
+    const fn2 = async () => {
+      order.push('s2');
+      await new Promise(r => setImmediate(r));
+      order.push('e2');
+    };
+
+    // Uruchom oba naraz — muszą być obsłużone sekwencyjnie (kolejka).
+    await Promise.all([session.runExclusive(fn1), session.runExclusive(fn2)]);
+
+    // Kolejność ściśle sekwencyjna: s1→e1→s2→e2 (nigdy s1→s2→e1→e2).
+    expect(order).toEqual(['s1', 'e1', 's2', 'e2']);
+    // runExclusive NIE zatrzymuje watchera — watcher ma działać dalej.
+    expect(session.watcherActive).toBe(true);
+  });
+});
+
 describe('_pollRefresh — wykrywanie zmian zdalnych', () => {
   it('przyrost konfliktów po stronie sklepu jest wychwytywany', async () => {
     // start bez konfliktów

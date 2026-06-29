@@ -16,7 +16,9 @@ afterEach(() => { try { fs.rmSync(dir, { recursive: true, force: true }); } catc
 
 const write = (name, content) => fs.writeFileSync(path.join(dir, name), content);
 
-describe.runIf(true)('git.js', () => {
+// Testy wywołują wiele podprocesów `git` — pod obciążeniem (pełna suita
+// w równoległych workerach) mogą przekroczyć domyślne 5 s. Timeout = 30 s.
+describe.runIf(true)('git.js', { timeout: 30000 }, () => {
   it('isAvailable wykrywa gita', async () => {
     expect(await git.isAvailable()).toBe(hasGit);
   });
@@ -136,6 +138,31 @@ describe.runIf(true)('git.js', () => {
     expect(await git.countCommits(dir, 'main..liquidflow/wip')).toBe(1);
   });
 
+  it('createBranch ze start-pointem tworzy gałąź od podanego punktu, nie od HEAD', async () => {
+    write('a.liquid', 'x');
+    await git.init(dir); // main — 1 commit (Initial snapshot)
+    const mainHash = (await git.history(dir, 1))[0].hash;
+
+    // Przełącz na wip i zrób dodatkowy commit — HEAD jest teraz przed main.
+    await git.createBranch(dir, 'liquidflow/wip');
+    await git.switchBranch(dir, 'liquidflow/wip');
+    write('b.liquid', 'y');
+    await git.commitAll(dir, 'commit na wip');
+
+    // Utwórz feature/x z gałęzi main — mimo że HEAD = wip.
+    await git.createBranch(dir, 'feature/x', 'main');
+
+    // Tip feature/x musi wskazywać na main (Initial snapshot), a nie na wip.
+    const branches = await git.listBranches(dir);
+    expect(branches).toContain('feature/x');
+
+    // Sprawdź, że feature/x ma tylko 1 commit (taki jak main, nie 2 jak wip).
+    await git.switchBranch(dir, 'feature/x');
+    const featureHist = await git.history(dir, 10);
+    expect(featureHist).toHaveLength(1);
+    expect(featureHist[0].hash).toBe(mainHash);
+  });
+
   it('squashMergeInto i forceBranch', async () => {
     write('a.liquid', 'x');
     await git.init(dir); // main has 1 commit
@@ -244,10 +271,12 @@ describe.runIf(true)('git.js', () => {
     // non-empty target refusal
     await expect(git.cloneInto(mode0Dir, bare)).rejects.toThrow('Target directory is not empty');
 
-    // bad remote
+    // bad remote — lokalny katalog niebędący repo git (bez DNS/sieci)
+    const badRemote = fs.mkdtempSync(path.join(os.tmpdir(), 'lf-noremote-'));
     const badTargetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lf-clone-bad-'));
     const badMode0Dir = path.join(badTargetDir, '0');
-    await expect(git.cloneInto(badMode0Dir, 'https://invalid-domain-nonexistent-12345.com/repo.git')).rejects.toThrow();
+    await expect(git.cloneInto(badMode0Dir, badRemote)).rejects.toThrow();
+    fs.rmSync(badRemote, { recursive: true, force: true });
 
     fs.rmSync(bare, { recursive: true, force: true });
     fs.rmSync(seedDir, { recursive: true, force: true });

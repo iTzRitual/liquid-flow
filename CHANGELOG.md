@@ -6,6 +6,17 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.116] — 2026-06-29
+### Fixed
+- Serialized all git index-mutating operations (`_doAutoCommit`, `gitRestore`, `gitCheckpoint`, `gitEnable`) through the session's single `runExclusive` queue, eliminating the `.git/index.lock` race condition that caused fatal errors under concurrent auto-commit calls.
+- `createBranch` now accepts an optional `startPoint` argument; `_ensureWipBranch` passes `base` so `liquidflow/wip` is always rooted at `main` rather than whatever HEAD happens to be.
+- Applied `--no-optional-locks` to `git status` reads in `commitAll`, `squashMergeInto`, and `status` to prevent lock-file contention from read-only status checks.
+- Made the `cloneInto` bad-remote test network-free (uses a local non-repo directory instead of a DNS name).
+### Added
+- `SyncSession.runExclusive(fn)` public method: serializes any fn on the session queue without stopping the watcher (for git ops that must not race but must keep propagating hot-reload changes).
+- Regression tests: `runExclusive` serialization order + watcher-active invariant; deterministic two-parallel-auto-commit test; `createBranch` start-point assertion.
+- Increased per-describe timeout for heavy git integration test suites (`controller.session.test.js`, `git.test.js`) to avoid spurious timeouts under full-suite parallel load.
+
 ## [0.9.115] — 2026-06-29
 ### Fixed
 - Cursor-position memory now also works for `/git` (and any list → same-type list transition). When stepping between two `picker` screens — e.g. the git menu into a submenu, or `/connect` into the "remove shop" picker — React was reusing the same component instance, so the parent's internal cursor state survived and `initialIndex` (which only seeds initial state) was ignored. Each overlay mode now carries a unique `uid` used as the React `key`, forcing a remount on screen-identity change so Esc restores the remembered row. Position is preserved within a screen (no extra remounts on navigation/toggle).

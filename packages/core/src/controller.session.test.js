@@ -68,7 +68,9 @@ describe('Controller — start sesji szablonu', () => {
   });
 });
 
-describe('Controller — git dla aktywnego szablonu', () => {
+// Testy git uruchamiają wiele podprocesów `git` — pod obciążeniem (pełna suita
+// w równoległych workerach) mogą przekroczyć domyślne 5 s. Timeout = 20 s.
+describe('Controller — git dla aktywnego szablonu', { timeout: 20000 }, () => {
   it('gitStatus przed włączeniem: aktywny, ale nie repo', async () => {
     await connectAndSelect();
     const st = await ctrl.gitStatus();
@@ -234,5 +236,16 @@ describe('Controller — git dla aktywnego szablonu', () => {
 
     fs.rmSync(bare, { recursive: true, force: true });
     fs.rmSync(seedDir, { recursive: true, force: true });
+  });
+
+  it('równoległe auto-commity nie kolidują na .git/index.lock', async () => {
+    await connectAndSelect();
+    await ctrl.gitEnable();
+    const dir = ctrl.activeGit.dir;
+    fs.writeFileSync(store.localFilePath(shopName, 5, 0, 'index.liquid'), 'A');
+    ctrl._pendingCommitFiles.add('index.liquid');
+    // Dwa równoległe wywołania — muszą zakończyć się bez błędu index.lock.
+    await Promise.all([ctrl._doAutoCommit(), ctrl._doAutoCommit()]);
+    expect(await git.currentBranch(dir)).toBe('liquidflow/wip');
   });
 });

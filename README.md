@@ -116,6 +116,42 @@ konfliktów, a (po włączeniu) `.git/` historię wersji.
 
 > Wersja desktopowa i CLI dzielą ten sam katalog danych i konfigurację.
 
+## Git — wersjonowanie szablonu (`/git`)
+
+Repo git żyje w folderze `files/<TemplateId>/0/`. Liquid Flow utrzymuje **model
+dwugałęziowy**:
+
+- `liquidflow/wip` — gałąź robocza. Każda zmiana pliku wykryta przez watcher
+  generuje automatyczny commit (auto-commit) na tej gałęzi; push **nie** jest
+  wykonywany automatycznie.
+- `main` — gałąź czysta. Zawiera wyłącznie commity z operacji `/git checkpoint`;
+  push idzie z tej gałęzi.
+
+### Typowy przepływ
+
+```
+/git → Włącz Git         # init repo + ustawia liquidflow/wip
+# edytujesz pliki → auto-commit na wip
+/git → Checkpoint        # squash wip→main, reset wip do main
+/git → Push              # git push origin main
+```
+
+### Pozostałe operacje `/git`
+
+| Operacja | Opis |
+|---|---|
+| **Historia / Przywróć** | wyświetla listę commitów z `main`; wybór przywraca pliki przez `git checkout` i commituje restore na `wip` |
+| **Ustaw remote** | zapisuje URL zdalnego repo do konfiguracji |
+| **Pull** | `git pull` z remote (dozwolony tylko gdy `wip` == `main`, tzn. brak niepchniętych commitów) |
+| **Clone** | klonuje zdalne repo do folderu `0/`; nasiewa meta dla trybu `0`, pobiera pliki trybu `2` ze sklepu |
+| **Auto-commit** | toggle — gdy wyłączony, watcher nie commituje (pliki nadal synchronizują się do sklepu) |
+| **Auto-push** | toggle — gdy włączony, po każdym checkpoint automatycznie wykonuje push |
+
+Gałąź `liquidflow/wip` jest zawsze tworzona z punktu startowego `main` (nie z
+bieżącego HEAD), co gwarantuje czystą bazę nawet gdy HEAD jest gdzie indziej.
+Wszystkie operacje git mutujące indeks (`.git/index`) są szeregowane na kolejce
+sesji, aby wyeliminować wyścig o `.git/index.lock`.
+
 ## Git / GitHub — uwierzytelnianie
 
 Push korzysta z systemowej konfiguracji Git: klucza SSH (`git@github.com:…`)

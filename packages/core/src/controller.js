@@ -376,7 +376,7 @@ export class Controller extends EventEmitter {
     const branches = await git.listBranches(dir);
     if (!branches.includes('liquidflow/wip')) {
       const base = branches.includes('main') ? 'main' : (cur || 'main');
-      await git.createBranch(dir, 'liquidflow/wip');
+      await git.createBranch(dir, 'liquidflow/wip', base);
     }
     await git.switchBranch(dir, 'liquidflow/wip');
   }
@@ -389,7 +389,7 @@ export class Controller extends EventEmitter {
     const msg = files.length === 1
       ? tfmt(t.GitCommitSyncOne, { file: files[0] })
       : tfmt(t.GitCommitSyncMany, { count: files.length, files: files.slice(0, 3).join(', ') + (files.length > 3 ? '…' : '') });
-    try {
+    const commitFn = async () => {
       if (!git.isRepo(this.activeGit.dir)) await git.init(this.activeGit.dir);
       await this._ensureWipBranch();
       const r = await git.commitAll(this.activeGit.dir, msg);
@@ -397,6 +397,10 @@ export class Controller extends EventEmitter {
         logbuf.logInfo(logbuf.tmsg('GitVersionSaved', { hash: r.hash }));
         this.emitGit();
       }
+    };
+    try {
+      if (this.state.session) await this.state.session.runExclusive(commitFn);
+      else await commitFn();
     } catch (e) {
       logbuf.logErr(logbuf.tmsg('GitCommitError', { msg: e.message }));
     }
@@ -428,8 +432,12 @@ export class Controller extends EventEmitter {
   async gitEnable() {
     if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
     if (!(await git.isAvailable())) throw new Error(this.t.GitNotInstalled);
-    await git.init(this.activeGit.dir);
-    await this._ensureWipBranch();
+    const initFn = async () => {
+      await git.init(this.activeGit.dir);
+      await this._ensureWipBranch();
+    };
+    if (this.state.session) await this.state.session.runExclusive(initFn);
+    else await initFn();
     this.activeGit.autoCommit = true;
     const tCfg = this._currentTemplateConfig();
     tCfg.git = { ...(tCfg.git || {}), autoCommit: true };
@@ -447,8 +455,12 @@ export class Controller extends EventEmitter {
     tCfg.git = { ...(tCfg.git || {}), autoCommit: this.activeGit.autoCommit, autoPush: this.activeGit.autoPush };
     store.saveConfig(this.config);
     if (this.activeGit.autoCommit && !git.isRepo(this.activeGit.dir)) {
-      await git.init(this.activeGit.dir);
-      await this._ensureWipBranch();
+      const initFn = async () => {
+        await git.init(this.activeGit.dir);
+        await this._ensureWipBranch();
+      };
+      if (this.state.session) await this.state.session.runExclusive(initFn);
+      else await initFn();
     }
     this.emitGit();
     return this.gitStatus();
@@ -461,7 +473,9 @@ export class Controller extends EventEmitter {
 
   async gitRestore(hash) {
     if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
-    const r = await git.restore(this.activeGit.dir, hash, tfmt(this.t.GitRestoreCommit, { hash }));
+    const dir = this.activeGit.dir;
+    const restoreFn = () => git.restore(dir, hash, tfmt(this.t.GitRestoreCommit, { hash }));
+    const r = this.state.session ? await this.state.session.runExclusive(restoreFn) : await restoreFn();
     logbuf.logOk(logbuf.tmsg('GitVersionRestored', { hash }));
     // odśwież konflikty po przywróceniu
     if (this.state.session) await this.state.session.refreshMismatches();
@@ -495,23 +509,26 @@ export class Controller extends EventEmitter {
       clearTimeout(this._commitTimer);
       this._commitTimer = null;
     }
+    // Flush pending auto-commit first (self-queues via runExclusive).
     await this._doAutoCommit();
 
+    // countCommits jest read-only (git rev-list, nie blokuje indeksu) — bezpieczne poza kolejką.
     const ahead = await git.countCommits(dir, 'main..liquidflow/wip');
-    const st = await git.status(dir);
-    if (ahead === 0 && !st.dirty) {
-      logbuf.logInfo(logbuf.tmsg('GitNothingToCheckpoint'));
-      return this.gitStatus();
-    }
-
-    if (st.dirty) {
-      const r = await git.commitAll(dir, message || 'Checkpoint');
-      if (r.committed) {
-        logbuf.logInfo(logbuf.tmsg('GitVersionSaved', { hash: r.hash }));
-      }
-    }
 
     const checkpointFn = async () => {
+      // git.status może odświeżyć indeks — uruchamiamy wewnątrz kolejki.
+      const st = await git.status(dir);
+      if (ahead === 0 && !st.dirty) {
+        return { nothing: true };
+      }
+
+      if (st.dirty) {
+        const r = await git.commitAll(dir, message || 'Checkpoint');
+        if (r.committed) {
+          logbuf.logInfo(logbuf.tmsg('GitVersionSaved', { hash: r.hash }));
+        }
+      }
+
       const res = await git.squashMergeInto(dir, 'liquidflow/wip', 'main', message || 'Checkpoint');
       await git.forceBranch(dir, 'liquidflow/wip', 'main');
       await git.switchBranch(dir, 'liquidflow/wip');
@@ -531,6 +548,11 @@ export class Controller extends EventEmitter {
       res = await this.state.session.withWatcherPaused(checkpointFn);
     } else {
       res = await checkpointFn();
+    }
+
+    if (res && res.nothing) {
+      logbuf.logInfo(logbuf.tmsg('GitNothingToCheckpoint'));
+      return this.gitStatus();
     }
 
     logbuf.logOk(logbuf.tmsg('GitCheckpointDone', { msg: message || 'Checkpoint' }));

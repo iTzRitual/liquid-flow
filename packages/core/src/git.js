@@ -64,7 +64,9 @@ export async function init(dir) {
 export async function commitAll(dir, message) {
   if (!isRepo(dir)) return { committed: false };
   await run(dir, ['add', '-A']);
-  const st = await run(dir, ['status', '--porcelain']);
+  // --no-optional-locks (flaga globalna gita): nie twórz index.lock przy odczycie
+  // stanu po add — zapobiega wyścigowi z emitGit() wywołującym status w tle
+  const st = await run(dir, ['--no-optional-locks', 'status', '--porcelain']);
   if (!st.stdout) return { committed: false };
   await run(dir, ['commit', '-m', message || 'Update']);
   const hash = await run(dir, ['rev-parse', '--short', 'HEAD']);
@@ -126,8 +128,8 @@ export async function listBranches(dir) {
   return r.stdout ? r.stdout.split('\n').filter(Boolean) : [];
 }
 
-export async function createBranch(dir, name) {
-  await run(dir, ['branch', name]);
+export async function createBranch(dir, name, startPoint) {
+  await run(dir, startPoint ? ['branch', name, startPoint] : ['branch', name]);
 }
 
 export async function switchBranch(dir, name) {
@@ -154,7 +156,8 @@ export async function pull(dir) {
 export async function squashMergeInto(dir, fromBranch, intoBranch, message) {
   await run(dir, ['checkout', intoBranch]);
   await run(dir, ['merge', '--squash', fromBranch], { allowFail: true });
-  const st = await run(dir, ['status', '--porcelain']);
+  // --no-optional-locks (flaga globalna gita): nie twórz index.lock przy odczycie stanu
+  const st = await run(dir, ['--no-optional-locks', 'status', '--porcelain']);
   const committed = !!st.stdout;
   if (committed) await run(dir, ['commit', '-m', message]);
   return { committed };
@@ -181,7 +184,10 @@ export async function status(dir) {
   const repo = isRepo(dir);
   if (!repo) return { isRepo: false, remote: null, lastCommit: null, dirty: false, commitCount: 0 };
   const remote = await getRemote(dir);
-  const st = await run(dir, ['status', '--porcelain'], { allowFail: true });
+  // --no-optional-locks (flaga globalna gita): git status jest operacją odczytu —
+  // nie twórz index.lock, by nie ścigać się z równoległymi operacjami zapisu
+  // (auto-commit, checkout itp.) wywołanymi przez emitGit() fire-and-forget
+  const st = await run(dir, ['--no-optional-locks', 'status', '--porcelain'], { allowFail: true });
   const hist = await history(dir, 1);
   const count = await run(dir, ['rev-list', '--count', 'HEAD'], { allowFail: true });
   return {

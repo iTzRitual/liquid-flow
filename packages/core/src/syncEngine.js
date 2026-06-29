@@ -334,12 +334,21 @@ export class SyncSession {
     return result;
   }
 
+  // Serializuj `fn` na tej samej kolejce co command()/_processChange — BEZ
+  // zatrzymywania watchera i BEZ refreshMismatches. Dla operacji gita, które mutują
+  // indeks repo (.git/index) ale NIE zapisują working tree (auto-commit, restore):
+  // muszą być wzajemnie wykluczone z innymi operacjami gita, a watcher ma działać
+  // dalej (restore liczy na hot-reload przywróconych plików do sklepu).
+  async runExclusive(fn) {
+    return this._enqueue(fn);
+  }
+
   // Uruchom `fn` z wyłączonym watcherem (operacje gita zapisujące working tree —
   // pull/checkout/merge — nie mogą wyzwolić hot-reloadu). Serializowane przez tę
   // samą kolejkę co command(), z gwarantowanym wznowieniem watchera i przeliczeniem
   // konfliktów po zakończeniu.
   async withWatcherPaused(fn) {
-    return this._enqueue(async () => {
+    return this.runExclusive(async () => {
       this._stopWatcher();
       try {
         const r = await fn();
