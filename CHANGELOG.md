@@ -6,6 +6,15 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.111] — 2026-06-29
+### Added
+- `previewConflict()` test coverage for Timestamp, LocalMissing, RemoteMissing conflicts and binary file detection.
+
+### Changed
+- `.gitignore`: ignore `plans/` directory for AI tooling artifacts.
+
+---
+
 ## [0.9.110] — 2026-06-29
 ### Changed
 - `/conflicts`: ↑/↓ now navigates between bulk action buttons in the footer (matching ConnectList behavior) — pressing ↓ from the last file enters the footer on the first button, ↑/↓ moves between buttons, exiting the footer jumps back to the file list.

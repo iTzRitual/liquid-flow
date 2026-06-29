@@ -101,3 +101,57 @@ describe('command() — refresh', () => {
     expect(has('add')).toBe(false);
   });
 });
+
+describe('previewConflict() — podgląd różnic', () => {
+  it('Timestamp: oba istnieją → kind:text z diff', async () => {
+    writeLocal(0, 'p.liquid', 'local content\nline2');
+    client.files['0/p.liquid'] = { Template: Buffer.from('remote content\nline2'), Date: '2026-01-01' };
+    const result = await session.previewConflict({ Mode: 0, Name: 'p.liquid' }, 'Timestamp');
+    expect(result.kind).toBe('text');
+    expect(result.local).toBe('local content\nline2');
+    expect(result.remote).toBe('remote content\nline2');
+    expect(Array.isArray(result.diff)).toBe(true);
+    expect(result.diff.some((d) => d.type === 'del')).toBe(true);
+    expect(result.diff.some((d) => d.type === 'add')).toBe(true);
+    // wyłącznie do odczytu — brak wywołań set/add/delete
+    expect(has('set')).toBe(false);
+    expect(has('add')).toBe(false);
+    expect(has('delete')).toBe(false);
+  });
+
+  it('LocalMissing: brak lokalnie → kind:text, local=null', async () => {
+    client.files['0/remote-only.liquid'] = { Template: Buffer.from('tylko zdalne'), Date: '2026-01-01' };
+    const result = await session.previewConflict({ Mode: 0, Name: 'remote-only.liquid' }, 'LocalMissing');
+    expect(result.kind).toBe('text');
+    expect(result.local).toBeNull();
+    expect(result.remote).toBe('tylko zdalne');
+    // nie powinien próbować czytać lokalnego pliku (nie istnieje)
+    const calls = client.calls.filter(([k]) => k === 'get');
+    expect(calls.length).toBe(1);
+  });
+
+  it('RemoteMissing: brak zdalnie → kind:text, remote=null (bez wywołania get)', async () => {
+    writeLocal(0, 'only-local.liquid', 'tylko lokalne');
+    const before = client.calls.length;
+    const result = await session.previewConflict({ Mode: 0, Name: 'only-local.liquid' }, 'RemoteMissing');
+    expect(result.kind).toBe('text');
+    expect(result.remote).toBeNull();
+    expect(result.local).toBe('tylko lokalne');
+    // nie może wołać liquidFilesGet (plik nie istnieje zdalnie)
+    const getCalls = client.calls.slice(before).filter(([k]) => k === 'get');
+    expect(getCalls.length).toBe(0);
+  });
+
+  it('plik obrazkowy → kind:binary', async () => {
+    const result = await session.previewConflict({ Mode: 0, Name: 'logo.png' }, 'Timestamp');
+    expect(result.kind).toBe('binary');
+  });
+
+  it('zawartość binarna (bajt NUL) → kind:binary', async () => {
+    const binaryBuf = Buffer.from([72, 101, 108, 0, 108, 111]); // 'Hel\0lo'
+    client.files['0/binary.liquid'] = { Template: binaryBuf, Date: '2026-01-01' };
+    writeLocal(0, 'binary.liquid', 'lokalna wersja');
+    const result = await session.previewConflict({ Mode: 0, Name: 'binary.liquid' }, 'Timestamp');
+    expect(result.kind).toBe('binary');
+  });
+});
