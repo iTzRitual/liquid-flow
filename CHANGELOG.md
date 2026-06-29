@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.119] — 2026-06-29
+### Added
+- The current git branch is now visible in the CLI: `git.status()` returns a `branch` field, the header StatusBar "Git" row shows it (cyan, before the commit/push toggles), and the `/git` menu title now reads "branch <name> (<n> commits…)".
+
 ## [0.9.118] — 2026-06-29
 ### Fixed
 - CLI `/git`: after completing an action that re-opens the git menu (e.g. switching a branch, checkpoint, pull, push, restore), pressing Esc now steps back to the main screen instead of returning to the stale confirmation prompt. `gitMenu()` now clears the pending parent on entry, so the refreshed top-level menu always backs out to the input.

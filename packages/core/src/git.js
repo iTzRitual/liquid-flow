@@ -182,7 +182,7 @@ export async function cloneInto(dir, url) {
 
 export async function status(dir) {
   const repo = isRepo(dir);
-  if (!repo) return { isRepo: false, remote: null, lastCommit: null, dirty: false, commitCount: 0 };
+  if (!repo) return { isRepo: false, remote: null, branch: null, lastCommit: null, dirty: false, commitCount: 0 };
   const remote = await getRemote(dir);
   // --no-optional-locks (flaga globalna gita): git status jest operacją odczytu —
   // nie twórz index.lock, by nie ścigać się z równoległymi operacjami zapisu
@@ -190,9 +190,11 @@ export async function status(dir) {
   const st = await run(dir, ['--no-optional-locks', 'status', '--porcelain'], { allowFail: true });
   const hist = await history(dir, 1);
   const count = await run(dir, ['rev-list', '--count', 'HEAD'], { allowFail: true });
+  const branch = await currentBranch(dir);
   return {
     isRepo: true,
     remote,
+    branch: branch || null,
     dirty: !!st.stdout,
     lastCommit: hist[0] || null,
     commitCount: Number(count.stdout) || 0,

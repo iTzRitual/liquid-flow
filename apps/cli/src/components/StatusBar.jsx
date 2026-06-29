@@ -40,6 +40,7 @@ export default function StatusBar({ state, git, t }) {
       {git?.active && (
         <Text wrap="truncate-end">
           <Text color="gray">{pad(t.GitLabel)}</Text>
+          {git.branch && <Text color="cyan">{git.branch}<Text color="gray"> · </Text></Text>}
           {git.autoCommit ? <Text color="green">commit ✓ </Text> : <Text color="gray">commit ✗ </Text>}
           {git.autoPush ? <Text color="green">push ✓</Text> : <Text color="gray">push ✗</Text>}
         </Text>
