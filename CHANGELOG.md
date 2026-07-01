@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.137] — 2026-07-02
+### Changed
+- Reverted the "no conflicts" info screen back to dismissing on any keypress (not Enter-only), with the hint text simplified to a plain "Zamknij dowolnym klawiszem" / "Close with any key" (no live countdown text).
+
 ## [0.9.136] — 2026-07-02
 ### Fixed
 - The "no conflicts" info screen now closes only on Enter (was: any key, which made it too easy to dismiss accidentally); hint text updated to say "Enter zamyka/closes" instead of "any key". Also fixed a height-accounting bug where the screen's natural height didn't include its title line, leaving a stray blank row at the bottom of the terminal.
