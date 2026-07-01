@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('api', {
   // synchronizacja
   getMismatches: () => invoke('sync.mismatches'),
   runCommand: (data) => invoke('sync.command', data),
+  previewConflict: (data) => invoke('sync.previewConflict', data),
   getLog: (sinceId) => invoke('log.history', sinceId),
 
   // git

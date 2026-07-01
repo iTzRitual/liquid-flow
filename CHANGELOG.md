@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.123] — 2026-06-29
+### Added
+- Desktop: read-only diff preview before resolving a conflict (download/upload), matching the CLI. Computed in the main process; binary/too-large variants handled.
+
 ## [0.9.122] — 2026-06-29
 ### Added
 - Desktop: git "checkpoint" action to publish accumulated versions (wip → target branch), with a pending-versions indicator. Brings desktop git to parity with the CLI.

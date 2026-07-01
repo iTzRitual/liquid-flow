@@ -107,6 +107,16 @@ function registerIpc(ctrl) {
 
     'sync.mismatches': () => ctrl.getMismatches(),
     'sync.command': (data) => ctrl.runCommand(data),
+    'sync.previewConflict': async (data) => {
+      const p = await ctrl.previewConflict(data && data.file, data && data.type);
+      if (p && p.kind === 'text') {
+        const { buildDiffRows } = await import('@liquidflow/core');
+        const added = p.diff.filter((d) => d.type === 'add').length;
+        const removed = p.diff.filter((d) => d.type === 'del').length;
+        return { kind: 'text', rows: buildDiffRows(p.diff, { context: 3 }), added, removed };
+      }
+      return p; // { kind:'binary', ... } | { kind:'tooLarge' } | null
+    },
     'log.history': (sinceId) => ctrl.getLog(sinceId),
 
     'git.status': () => ctrl.gitStatus(),
