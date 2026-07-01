@@ -8,7 +8,8 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import ConfirmButton from './ConfirmButton.jsx';
 import { fmtDate } from '@/lib/utils';
-import { GitBranch, GitCommit, GitMerge, History, UploadCloud, RotateCcw, Power, Loader2, Cloud } from 'lucide-react';
+import { GitBranch, GitCommit, GitMerge, History, UploadCloud, DownloadCloud, RotateCcw, Power, Loader2, Cloud } from 'lucide-react';
+import GitBranches from './GitBranches.jsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 export default function GitPanel() {
@@ -98,6 +99,11 @@ export default function GitPanel() {
                   <Button variant="outline" onClick={push} disabled={busy || !git.remote}>
                     {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />} Push
                   </Button>
+                  <ConfirmButton variant="outline"
+                    title={t.GitPull} message={t.ConfirmPull} confirmLabel={t.GitPull}
+                    onConfirm={async () => { await call(() => api.git.pull()); await reload(); }}>
+                    <DownloadCloud className="h-4 w-4" /> {t.GitPull}
+                  </ConfirmButton>
                 </div>
                 <p className="text-[11px] text-muted-foreground">{t.AuthHint}</p>
               </div>
@@ -143,6 +149,7 @@ export default function GitPanel() {
           </CardContent>
         </Card>
       )}
+      {active && <GitBranches />}
     </div>
   );
 }

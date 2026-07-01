@@ -128,6 +128,10 @@ function registerIpc(ctrl) {
     'git.push': () => ctrl.gitPush(),
     'git.checkpoint': (data) => ctrl.gitCheckpoint(data && data.message, data && data.target),
     'git.uncommittedCount': () => ctrl.gitUncommittedCount(),
+    'git.pull': () => ctrl.gitPull(),
+    'git.listBranches': () => ctrl.gitListBranches(),
+    'git.createBranch': (name) => ctrl.gitCreateBranch(name),
+    'git.switchBranch': (data) => ctrl.gitSwitchBranch(data && data.name, { discard: !!(data && data.discard) }),
 
     'sys.openFolder': () => { const d = ctrl.currentFolder(); if (d) shell.openPath(d); return d; },
     'sys.openShop': () => { const u = ctrl.currentShopUrl(); if (u) shell.openExternal(u); return u; },
