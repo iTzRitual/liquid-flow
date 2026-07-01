@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.125] — 2026-07-01
+### Added
+- Desktop: git pull (fast-forward target stream) and branch management — list/switch/create — matching the CLI /git menu. (Clone deferred to the plan 009 connect-time bootstrap.)
+
 ## [0.9.124] — 2026-07-01
 ### Fixed
 - Desktop: remove a duplicate `fmt` export in the renderer utils that broke `vite build` (introduced by merging the 011 and 012 desktop plans).

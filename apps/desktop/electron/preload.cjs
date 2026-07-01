@@ -40,6 +40,10 @@ contextBridge.exposeInMainWorld('api', {
     push: () => invoke('git.push'),
     checkpoint: (data) => invoke('git.checkpoint', data),
     uncommittedCount: () => invoke('git.uncommittedCount'),
+    pull: () => invoke('git.pull'),
+    listBranches: () => invoke('git.listBranches'),
+    createBranch: (name) => invoke('git.createBranch', name),
+    switchBranch: (name, opts) => invoke('git.switchBranch', { name, discard: !!(opts && opts.discard) }),
   },
 
   // system
