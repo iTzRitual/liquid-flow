@@ -210,6 +210,15 @@ export function setMetaEntry(shopName, templateId, mode, name, localts, remotets
   saveMeta(shopName, templateId, meta);
 }
 
+// Ustaw wpis w PRZEKAZANYM obiekcie meta (bez odczytu/zapisu dysku). Do
+// masowego pobierania: akumuluj w pamięci i flushuj przez saveMeta co paczkę,
+// zamiast read+write na każdy plik (O(n²) synchronicznych operacji I/O, które
+// blokują pętlę zdarzeń — zauważalne np. na Windows z aktywnym antywirusem).
+export function setMetaEntryOn(meta, mode, name, localts, remotets) {
+  meta[metaKey(mode, name)] = { localts, remotets };
+  return meta;
+}
+
 export function getMetaEntry(meta, mode, name) {
   return meta[metaKey(mode, name)] || null;
 }

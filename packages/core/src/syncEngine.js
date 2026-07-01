@@ -140,22 +140,34 @@ export class SyncSession {
     const files = await this.client.liquidFilesGet({ TemplateId: this.templateId });
     const total = files.length;
     let done = 0;
-    for (const f of files) {
-      done++;
-      if (!store.isSafeRelName(f.Name)) {
-        logErr(tmsg('UnsafeRemotePath', { name: f.Name }));
-      } else {
-        const localts = store.writeLocalFile(this.shopName, this.templateId, f.Mode, f.Name, f.Template || Buffer.alloc(0));
-        // Zapisuj meta po każdym pliku (przyrostowo), żeby przerwanie/awaria nie
-        // zostawiła katalogu z plikami ale bez metadanych — po restarcie byłyby
-        // pokazane jako konflikty zamiast zsynchronizowanych.
-        store.setMetaEntry(this.shopName, this.templateId, f.Mode, f.Name, localts, f.Date);
+    // Akumuluj metadane w pamięci i flushuj paczkami. `setMetaEntry` per plik
+    // czytał i przepisywał CAŁY plik meta za każdym razem (O(n²) synchronicznego
+    // I/O) — przy szablonie z setkami plików blokowało to pętlę zdarzeń i UI
+    // zamierało (szczególnie na Windows: synchroniczny zapis skanowany przez
+    // antywirus). Flush na tej samej cadencji co pasek postępu zachowuje
+    // przyrostowe bezpieczeństwo (przerwanie gubi najwyżej ostatnią paczkę,
+    // nie cały zestaw), a nie przepisuje pliku dla każdego pliku z osobna.
+    const meta = store.loadMeta(this.shopName, this.templateId);
+    try {
+      for (const f of files) {
+        done++;
+        if (!store.isSafeRelName(f.Name)) {
+          logErr(tmsg('UnsafeRemotePath', { name: f.Name }));
+        } else {
+          const localts = store.writeLocalFile(this.shopName, this.templateId, f.Mode, f.Name, f.Template || Buffer.alloc(0));
+          store.setMetaEntryOn(meta, f.Mode, f.Name, localts, f.Date);
+        }
+        if (done === total || done % 5 === 0) {
+          store.saveMeta(this.shopName, this.templateId, meta);
+          this._progress({ phase: 'download', state: 'progress', done, total });
+          // ustąp pętli, by UI zdążyło przerysować pasek postępu (inaczej skok 0→100%)
+          await new Promise((r) => setImmediate(r));
+        }
       }
-      if (done === total || done % 5 === 0) {
-        this._progress({ phase: 'download', state: 'progress', done, total });
-        // ustąp pętli, by UI zdążyło przerysować pasek postępu (inaczej skok 0→100%)
-        await new Promise((r) => setImmediate(r));
-      }
+    } finally {
+      // Flush także przy przerwaniu (np. writeLocalFile rzuci): już zapisane pliki
+      // zachowują metadane, więc po restarcie nie są pokazane jako konflikty.
+      store.saveMeta(this.shopName, this.templateId, meta);
     }
     this._progress({ phase: 'download', state: 'done', count: total });
     logOk(tmsg('FilesDownloaded', { count: total }));

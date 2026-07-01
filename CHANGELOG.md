@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.127] — 2026-07-01
+### Fixed
+- Initial template download no longer rewrites the whole meta file per file (O(n²) synchronous I/O). Metadata is now accumulated in memory and flushed in batches, fixing UI freezes on template selection for templates with many files (most visible on Windows). Crash-safety is preserved via a final flush on interruption.
+
 ## [0.9.126] — 2026-07-01
 ### Added
 - Desktop: sync-start progress loader (download/check) and visual styling for log session-separators and greyed historic entries, matching the CLI.
