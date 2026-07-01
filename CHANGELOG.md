@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.124] — 2026-07-01
+### Fixed
+- Desktop: remove a duplicate `fmt` export in the renderer utils that broke `vite build` (introduced by merging the 011 and 012 desktop plans).
+
 ## [0.9.123] — 2026-06-29
 ### Added
 - Desktop: read-only diff preview before resolving a conflict (download/upload), matching the CLI. Computed in the main process; binary/too-large variants handled.
