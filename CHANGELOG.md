@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.132] — 2026-07-02
+### Added
+- CLI conflict diff preview (`/conflicts` → Podgląd) now has an "open in IDE" action (`o` key): opens the local file against the remote version in a `code --diff` window (overridable via `LIQUIDFLOW_DIFF_CMD` for other VS Code-based editors), so you can resolve the conflict by editing the real local file and commit/push it through the normal git flow.
+
 ## [0.9.131] — 2026-07-01
 ### Changed
 - Byte-identical timestamp conflicts are now auto-resolved instead of shown. When a file is flagged as a `Timestamp` conflict (e.g. after syncing the same template from another machine) but its content is identical, the conflict is silently reconciled (the metadata baseline is re-stamped, no bytes transferred) and never appears in `/conflicts`. Only real content differences are surfaced. A per-file cache keyed on the timestamps prevents genuinely-different files from being re-fetched on every background poll.

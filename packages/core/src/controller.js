@@ -761,6 +761,12 @@ export class Controller extends EventEmitter {
     const s = this.state.session;
     return s ? store.templateDir(s.shopName, s.templateId) : null;
   }
+  // Ścieżka lokalna pliku (do otwarcia w edytorze/IDE) — plik może nie istnieć
+  // na dysku (np. konflikt LocalMissing), wtedy IDE otworzy ją jako nowy plik.
+  localFilePath(file) {
+    const s = this.state.session;
+    return s ? store.localFilePath(s.shopName, s.templateId, file.Mode, file.Name) : null;
+  }
   currentShopUrl() {
     const shop = this.currentShop();
     return shop ? shop.Url : null;

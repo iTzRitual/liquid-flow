@@ -31,7 +31,7 @@ const leadSpaces = (s) => { const m = /^ */.exec(s); return m ? m[0].length : 0;
 // `mode`), bo rozwinięcie MUSI powiększyć nakładkę (naturalBodyRows zależy od
 // `mode.expanded`). Gdyby stan siedział tu lokalnie, okno nie mogłoby urosnąć —
 // treść wciskałaby się w zwinięty budżet wierszy (1 wpis + „↓ więcej").
-export default function DiffView({ title, preview, onCancel, maxRows = 8, expanded = false, onToggleExpand, t }) {
+export default function DiffView({ title, preview, onCancel, maxRows = 8, expanded = false, onToggleExpand, onOpenIde, t }) {
   const [scroll, setScroll] = useState(0); // wiersze od góry (0 = początek)
   // po przełączeniu zwiń/rozwiń zestaw wierszy się zmienia — wróć na górę
   useEffect(() => { setScroll(0); }, [expanded]);
@@ -69,6 +69,7 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, expand
   useInput((input, key) => {
     if (key.escape) { onCancel?.(); return; }
     if (key.tab && collapsible) { onToggleExpand?.(); return; }
+    if (input === 'o' && onOpenIde) { onOpenIde(); return; }
     if (key.upArrow) { setScroll((s) => Math.max(0, s - 1)); return; }
     if (key.downArrow) { setScroll((s) => Math.min(maxScroll, s + 1)); return; }
     if (key.pageUp) { setScroll((s) => Math.max(0, s - Math.max(1, maxRows))); return; }
@@ -137,6 +138,7 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, expand
     ? t.DiffNoChanges
     : tfmt(t.DiffSummary, { added, removed });
   const toggleHint = collapsible ? `${expanded ? t.DiffHideContext : t.DiffShowContext} · ` : '';
+  const ideHint = onOpenIde ? `${t.DiffOpenIde} · ` : '';
 
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
@@ -146,7 +148,7 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, expand
         : visible.map(renderRow)
       }
       {hasBelow && <Text dimColor>{tfmt(t.MoreBelow, { count: belowCount })}</Text>}
-      <Text dimColor wrap="truncate-end">{summary} · {toggleHint}{navHint}</Text>
+      <Text dimColor wrap="truncate-end">{summary} · {toggleHint}{ideHint}{navHint}</Text>
     </Box>
   );
 }

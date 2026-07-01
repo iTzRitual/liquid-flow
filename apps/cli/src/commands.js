@@ -4,6 +4,7 @@
 
 import { LANGUAGES, MismatchType, log, tfmt, buildDiffRows } from '@liquidflow/core';
 import { openExternal } from './open.js';
+import { openIdeDiff, writeRemoteTemp } from './ideDiff.js';
 
 // Krótki znacznik czasu MM-DD HH:MM (lub '—' gdy brak).
 function fmtTs(ts) {
@@ -181,6 +182,20 @@ export function buildCommands(ctx) {
       { label: t.ConfirmNo, value: false },
     ], (it) => { if (it.value) onYes(); else renderConflicts(mm); });
 
+  // Otwiera podgląd konfliktu jako diff w zewnętrznym IDE (`code --diff`, lub
+  // inny edytor przez LIQUIDFLOW_DIFF_CMD): lewa strona to PRAWDZIWA ścieżka
+  // lokalna (edycja w IDE zapisuje się tam, więc watcher/git widzą zmianę),
+  // prawa to zdalna wersja zapisana do pliku tymczasowego (tylko do referencji).
+  const openInIde = (m, preview) => {
+    if (preview?.kind !== 'text') return;
+    const localPath = ctrl.localFilePath(m.File);
+    const remotePath = writeRemoteTemp(m.File.Name, preview.remote);
+    openIdeDiff(localPath, remotePath, (cmd, err) => {
+      log.logErr(log.tmsg('IdeDiffFailed', { cmd, error: err.message }));
+    });
+    log.logInfo(log.tmsg('OpeningIdeDiff', { name: m.File.Name }));
+  };
+
   // Wykonanie akcji na pliku: loader na czas SOAP, potem odśwież listę i zostaw
   // ją otwartą (kolejny konflikt rozwiązujesz bez ponownego /conflicts).
   const runFileAction = (m, value, mm) => {
@@ -195,7 +210,11 @@ export function buildCommands(ctx) {
         const isText = preview?.kind === 'text';
         const lines = isText ? buildDiffRows(preview.diff, { context: 3 }).length : 1;
         const fullLines = isText ? buildDiffRows(preview.diff, { context: 3, fold: false }).length : 1;
-        openDiff({ title: tfmt(t.DiffTitle, { name: m.File.Name }), preview, lines, fullLines, expanded: false });
+        openDiff({
+          title: tfmt(t.DiffTitle, { name: m.File.Name }),
+          preview, lines, fullLines, expanded: false,
+          onOpenIde: isText ? () => openInIde(m, preview) : undefined,
+        });
       });
       return;
     }

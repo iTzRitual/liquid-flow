@@ -335,6 +335,9 @@ const pl = {
   DiffFold: '⋯ {count} niezmienionych wierszy',
   DiffShowContext: 'Tab pełny kontekst',
   DiffHideContext: 'Tab zwiń kontekst',
+  DiffOpenIde: 'o otwórz w IDE (diff)',
+  OpeningIdeDiff: 'Otwieram diff w IDE: {name}',
+  IdeDiffFailed: 'Nie udało się otworzyć IDE ({cmd}): {error}. Ustaw zmienną LIQUIDFLOW_DIFF_CMD, jeśli używasz innego edytora.',
   LogAutoReconciled: 'Pominięto pozorne konflikty (identyczna zawartość): {count}',
 
   // --- tray (Electron) ---
@@ -638,6 +641,9 @@ const en = {
   DiffFold: '⋯ {count} unchanged lines',
   DiffShowContext: 'Tab full context',
   DiffHideContext: 'Tab collapse context',
+  DiffOpenIde: 'o open in IDE (diff)',
+  OpeningIdeDiff: 'Opening diff in IDE: {name}',
+  IdeDiffFailed: 'Failed to open IDE ({cmd}): {error}. Set LIQUIDFLOW_DIFF_CMD if you use a different editor.',
   LogAutoReconciled: 'Skipped spurious conflicts (identical content): {count}',
 
   // --- tray (Electron) ---
