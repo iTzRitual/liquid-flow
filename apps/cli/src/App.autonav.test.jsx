@@ -75,7 +75,7 @@ describe('App — auto-nawigacja po rozwiązaniu konfliktu w tle', () => {
     expect(f).not.toContain('a.liquid');
   });
 
-  it('gdy oglądany plik był ostatnim konfliktem — wraca na ekran główny', async () => {
+  it('gdy oglądany plik był ostatnim konfliktem — pokazuje ekran "brak konfliktów" (nie znika od razu)', async () => {
     hookValue.mismatches = [conflictA];
     const api = render(<App />);
     await flush();
@@ -87,7 +87,7 @@ describe('App — auto-nawigacja po rozwiązaniu konfliktu w tle', () => {
     await wait(60);
 
     const f = frame(api);
-    expect(f).not.toContain(t.FileConflicts);
     expect(f).not.toContain('a.liquid');
+    expect(f).toContain(t.NoConflicts);
   });
 });

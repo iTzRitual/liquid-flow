@@ -24,6 +24,7 @@ function makeCtx(overrides = {}) {
     openConflicts: vi.fn((payload) => { captured.conflicts = payload; }),
     openConnect: vi.fn(),
     openDiff: vi.fn((payload) => { captured.diff = payload; }),
+    openInfo: vi.fn((payload) => { captured.info = payload; }),
     logWrap: false,
     setLogWrap: vi.fn(),
     exit: vi.fn(),
@@ -127,7 +128,7 @@ describe('/conflicts — podgląd (preview) i auto-nawigacja po IDE', () => {
     expect(typeof captured.diff.onOpenIde).toBe('function');
   });
 
-  it('commands.renderConflicts jest wystawione: odświeża listę gdy zostały konflikty, wraca do inputu gdy pusta', () => {
+  it('commands.renderConflicts jest wystawione: odświeża listę gdy zostały konflikty, pokazuje info gdy pusta', () => {
     const { ctx, captured } = makeCtx();
     const cmds = buildCommands(ctx);
     expect(typeof cmds.renderConflicts).toBe('function');
@@ -136,6 +137,7 @@ describe('/conflicts — podgląd (preview) i auto-nawigacja po IDE', () => {
     expect(captured.conflicts.files).toHaveLength(1);
 
     cmds.renderConflicts([]);
-    expect(ctx.backToInput).toHaveBeenCalled();
+    expect(ctx.openInfo).toHaveBeenCalled();
+    expect(captured.info.message).toBe(t.NoConflicts);
   });
 });

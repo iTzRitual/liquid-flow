@@ -30,6 +30,7 @@ export function minBodyRows(mode) {
     case 'form':
     case 'diff': return 5; // chrome + 1 pozycja/linia
     case 'loading': return 4; // ramka + tytuł + spinner
+    case 'info': return 4; // ramka + tytuł + komunikat + odliczenie
     default: return 2; // input: minimalnie log/divider + pole
   }
 }

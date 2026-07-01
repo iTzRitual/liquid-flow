@@ -36,6 +36,7 @@ function makeCtx(overrides = {}) {
     openConflicts: vi.fn((payload) => { cap.conflicts = payload; }),
     openConnect: vi.fn((payload) => { cap.connect = payload; }),
     openDiff: vi.fn((payload) => { cap.diff = payload; }),
+    openInfo: vi.fn((payload) => { cap.info = payload; }),
     logWrap: false,
     setLogWrap: vi.fn(),
     headerPref: 'auto',

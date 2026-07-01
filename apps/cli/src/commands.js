@@ -16,7 +16,7 @@ function fmtTs(ts) {
 }
 
 export function buildCommands(ctx) {
-  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, openConflicts, openConnect, openDiff, logWrap, setLogWrap, headerPref, setHeaderPref, exit, safe, skipToInput, backToInput, withLoading, dropParent } = ctx;
+  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, openConflicts, openConnect, openDiff, openInfo, logWrap, setLogWrap, headerPref, setHeaderPref, exit, safe, skipToInput, backToInput, withLoading, dropParent } = ctx;
   const hasShop = !!state?.currentShop;
   const hasTemplate = !!state?.currentTemplate;
 
@@ -244,7 +244,14 @@ export function buildCommands(ctx) {
   // Każdy plik = karta (nazwa + przyciski / metadane / odstęp); na dole stopka
   // z operacjami seryjnymi.
   const renderConflicts = (mm) => {
-    if (!mm.length) { log.logOk(log.tmsg('NoConflicts')); backToInput(); return; }
+    // Zamiast migawki logu (widocznej ułamek sekundy — wygląda jak popup, który
+    // od razu znika), pokaż to na osobnym ekranie na kilka sekund, pomijalnym
+    // dowolnym klawiszem. Log dostaje też wpis (trwała historia).
+    if (!mm.length) {
+      log.logOk(log.tmsg('NoConflicts'));
+      openInfo({ title: t.FileConflicts, message: t.NoConflicts, duration: 4000 });
+      return;
+    }
 
     // ile plików obejmie każda operacja seryjna (te same filtry co w syncEngine)
     const nDownload = mm.filter((m) => m.Type === MismatchType.LocalMissing || m.Type === MismatchType.Timestamp).length;

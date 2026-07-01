@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.135] — 2026-07-02
+### Changed
+- `/conflicts` with nothing to resolve no longer just flashes a log line and instantly returns to input (looked like a popup that vanished before it could be read). It now shows a dedicated "no conflicts" screen for a few seconds, with a live countdown, dismissible instantly by any keypress.
+
 ## [0.9.134] — 2026-07-02
 ### Added
 - CLI conflict resolution now auto-navigates when a file is resolved in the background (e.g. after editing and saving in the IDE diff view opened via `o` — the watcher uploads the file and the next background poll drops it from `mismatches`): while viewing a conflict's diff, the app now detects that its file is no longer conflicted and automatically returns to the (refreshed) `/conflicts` list if others remain, or to the main screen if it was the last one — no need to manually back out and re-open `/conflicts`.

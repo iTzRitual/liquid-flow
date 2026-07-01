@@ -28,6 +28,7 @@ import ConflictList from './components/ConflictList.jsx';
 import ConnectList from './components/ConnectList.jsx';
 import Form from './components/Form.jsx';
 import DiffView from './components/DiffView.jsx';
+import InfoScreen from './components/InfoScreen.jsx';
 
 export default function App() {
   const { exit } = useApp();
@@ -127,6 +128,15 @@ export default function App() {
       // ekran podglądu diff (read-only). Esc wraca do rodzica (ekranu konfliktów).
       openDiff: (data) => {
         const self = { type: 'diff', uid: nextUid(), ...data, parent: takeParent() };
+        setMode(self);
+      },
+      // krótki, samoznikający komunikat (np. „brak konfliktów”) — zamiast migawki
+      // logu, zostaje na ekranie `duration` ms, z odliczeniem, i znika po DOWOLNYM
+      // klawiszu. Zawsze wraca do inputu (wchodzony tylko z poziomu inputu).
+      openInfo: (data) => {
+        pendingParentRef.current = null;
+        const self = { type: 'info', uid: nextUid(), ...data };
+        self.onDismiss = () => { back(); data.onDismiss?.(); };
         setMode(self);
       },
       // porzuć zapamiętanego rodzica — gdy ekran, z którego przyszliśmy, przestaje
@@ -343,6 +353,10 @@ export default function App() {
 
       {mode.type === 'diff' && wrapAction(
         <DiffView key={mode.uid} title={mode.title} preview={mode.preview} onCancel={() => cancelTo(mode)} maxRows={ovMax} expanded={!!mode.expanded} onToggleExpand={() => setMode((m) => ({ ...m, expanded: !m.expanded }))} onOpenIde={mode.onOpenIde} t={t} />
+      )}
+
+      {mode.type === 'info' && wrapAction(
+        <InfoScreen key={mode.uid} title={mode.title} message={mode.message} duration={mode.duration} color={mode.color} onDismiss={mode.onDismiss} t={t} />
       )}
 
       {mode.type === 'input' && (
