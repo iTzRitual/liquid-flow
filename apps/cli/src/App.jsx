@@ -325,7 +325,7 @@ export default function App() {
       )}
 
       {mode.type === 'diff' && wrapAction(
-        <DiffView key={mode.uid} title={mode.title} preview={mode.preview} onCancel={() => cancelTo(mode)} maxRows={ovMax} t={t} />
+        <DiffView key={mode.uid} title={mode.title} preview={mode.preview} onCancel={() => cancelTo(mode)} maxRows={ovMax} expanded={!!mode.expanded} onToggleExpand={() => setMode((m) => ({ ...m, expanded: !m.expanded }))} t={t} />
       )}
 
       {mode.type === 'input' && (

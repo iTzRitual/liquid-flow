@@ -60,6 +60,11 @@ export class SyncSession {
     this.watcherActive = false;
     this._pollTimer = null; // cykliczne przeliczanie konfliktów (zmiany zdalne)
     this._debounce = new Map(); // path -> timer
+    // cache „potwierdzone różne" dla auto-uzgadniania pozornych konfliktów Timestamp:
+    // klucz `mode/name` -> podpis `fileTs|remoteTs`. Gdy podpis się zgadza, wiemy że
+    // treść była już sprawdzona i FAKTYCZNIE się różni — nie pobieramy jej znów co
+    // POLL_MS. Zmiana znacznika (nowy podpis) wymusza ponowne sprawdzenie.
+    this._diffConfirmed = new Map();
     this._queue = Promise.resolve(); // serializacja operacji SOAP
     this.onSynced = opts.onSynced || null; // hook po każdej udanej operacji (np. git)
     this.onMismatchChange = opts.onMismatchChange || null; // hook po przeliczeniu konfliktów
@@ -340,10 +345,54 @@ export class SyncSession {
       }
     }
 
-    result.sort((a, b) => a.File.Name.localeCompare(b.File.Name));
-    this.mismatches = result;
-    if (this.onMismatchChange) { try { this.onMismatchChange(result); } catch {} }
-    return result;
+    // Auto-uzgodnienie pozornych konfliktów Timestamp: gdy znaczniki się rozjechały
+    // (np. po synchronizacji z innej maszyny — te same bajty wgrane ponownie), ale
+    // ZAWARTOŚĆ jest identyczna, to nie jest realny konflikt — nie pokazujemy go.
+    // Nadpisujemy meta bieżącymi znacznikami, żeby zniknął na stałe. Treść pobieramy
+    // tylko dla kandydatów Timestamp i tylko gdy podpis znaczników jest nowy (cache
+    // `_diffConfirmed` chroni przed pobieraniem realnych różnic w kółko co POLL_MS).
+    const kept = [];
+    let reconciled = 0;
+    for (const mm of result) {
+      if (mm.Type !== MismatchType.Timestamp) { kept.push(mm); continue; }
+      const key = `${mm.File.Mode}/${mm.File.Name}`;
+      const sig = `${mm.FileTs}|${mm.RemoteTs}`;
+      if (this._diffConfirmed.get(key) === sig) { kept.push(mm); continue; } // znane różne
+      let identical = false;
+      try { identical = await this._contentIdentical(mm.File); }
+      catch { identical = false; } // błąd sieci/odczytu → zostaw jako konflikt (bezpiecznie)
+      if (identical) {
+        store.setMetaEntry(this.shopName, this.templateId, mm.File.Mode, mm.File.Name, mm.FileTs, mm.RemoteTs);
+        this._diffConfirmed.delete(key);
+        reconciled += 1;
+      } else {
+        this._diffConfirmed.set(key, sig);
+        kept.push(mm);
+      }
+    }
+    if (reconciled > 0) logInfo(tmsg('LogAutoReconciled', { count: reconciled }));
+
+    kept.sort((a, b) => a.File.Name.localeCompare(b.File.Name));
+    this.mismatches = kept;
+    if (this.onMismatchChange) { try { this.onMismatchChange(kept); } catch {} }
+    return kept;
+  }
+
+  // Czy lokalny i zdalny plik mają IDENTYCZNĄ zawartość (do auto-uzgadniania).
+  // Pliki tekstowe: porównanie po normalizacji końców linii (ten sam model co diff
+  // — różnica tylko w CRLF/LF nie jest realnym konfliktem). Pliki binarne (obrazy):
+  // porównanie bajtowe. Brak pliku lokalnie / zdalnie → traktuj jako różne.
+  async _contentIdentical(file) {
+    const abs = store.localFilePath(this.shopName, this.templateId, file.Mode, file.Name);
+    if (!fs.existsSync(abs)) return false;
+    const list = await this.client.liquidFilesGet({ TemplateId: this.templateId, Mode: file.Mode, Name: file.Name });
+    const remote = list[0];
+    if (!remote || !(remote.Template instanceof Buffer)) return false;
+    const localBuf = fs.readFileSync(abs);
+    const remoteBuf = remote.Template;
+    if (isImage(file.Name)) return localBuf.equals(remoteBuf);
+    const diff = lineDiff(localBuf.toString('utf8'), remoteBuf.toString('utf8'));
+    return !diff.tooLarge && !diff.some((d) => d.type !== 'ctx');
   }
 
   // Serializuj `fn` na tej samej kolejce co command()/_processChange — BEZ
@@ -395,9 +444,6 @@ export class SyncSession {
             break;
           case 'removeRemote':
             await this._removeRemote(fileArg);
-            break;
-          case 'reconcile':
-            await this._reconcile(fileArg);
             break;
           case 'downloadAll':
             for (const m of this.mismatches.filter((z) => z.Type === MismatchType.LocalMissing || z.Type === MismatchType.Timestamp)) {
@@ -466,26 +512,6 @@ export class SyncSession {
     this._notify('removeRemote', file.Mode, file.Name);
   }
 
-  // Uzgodnij znacznik czasu bez transferu bajtów: gdy zawartość jest identyczna
-  // (konflikt wynika tylko z rozjechanych mtime/Date — np. sync z innej maszyny),
-  // nadpisujemy meta bieżącymi wartościami i konflikt znika. GUARD: jeśli treść
-  // się różni, RZUCAMY — nie chowamy realnej zmiany za re-stampem meta.
-  async _reconcile(file) {
-    const abs = store.localFilePath(this.shopName, this.templateId, file.Mode, file.Name);
-    if (!fs.existsSync(abs)) throw new Error(this.t.ReconcileNeedsBothSides);
-    const list = await this.client.liquidFilesGet({ TemplateId: this.templateId, Mode: file.Mode, Name: file.Name });
-    const remote = list[0];
-    if (!remote || !(remote.Template instanceof Buffer)) throw new Error(this.t.ReconcileNeedsBothSides);
-    const localText = fs.readFileSync(abs).toString('utf8');
-    const remoteText = remote.Template.toString('utf8');
-    const diff = lineDiff(localText, remoteText);
-    const identical = !diff.tooLarge && !diff.some((d) => d.type !== 'ctx');
-    if (!identical) throw new Error(this.t.ReconcileContentDiffers);
-    store.setMetaEntry(this.shopName, this.templateId, file.Mode, file.Name, store.mtimeUtc(abs), remote.Date);
-    logOk(tmsg('LogReconciled', { label: this._label(file.Mode, file.Name) }));
-    this._notify('reconcile', file.Mode, file.Name);
-  }
-
   // Podgląd różnic przed rozwiązaniem konfliktu — wyłącznie do odczytu.
   // file: { Mode, Name }, type: MismatchType (opcjonalny, pomija zbędne wywołania).
   // Zwraca jedno z:
@@ -519,8 +545,7 @@ export class SyncSession {
     const remote = remoteBuf ? remoteBuf.toString('utf8') : null;
     const diff = lineDiff(local ?? '', remote ?? '');
     if (diff.tooLarge) return { kind: 'tooLarge' };
-    const identical = local != null && remote != null && !diff.some((d) => d.type !== 'ctx');
 
-    return { kind: 'text', local, remote, diff, identical };
+    return { kind: 'text', local, remote, diff };
   }
 }

@@ -83,6 +83,15 @@ describe('headerLayout — degradacja nagłówka z wysokością', () => {
     expect(naturalBodyRows({ type: 'input' })).toBe(minBodyRows({ type: 'input' }));
   });
 
+  it('diff: rozwinięcie (Tab) rośnie z `lines` do `fullLines` (okno się powiększa)', () => {
+    const collapsed = { type: 'diff', lines: 1, fullLines: 163, expanded: false };
+    const expanded = { type: 'diff', lines: 1, fullLines: 163, expanded: true };
+    expect(naturalBodyRows(collapsed)).toBe(5);   // 1 + 4 (zwinięty: mały box)
+    expect(naturalBodyRows(expanded)).toBe(167);  // 163 + 4 (rozwinięty: pełna treść)
+    // fallback gdy brak fullLines → używa lines
+    expect(naturalBodyRows({ type: 'diff', lines: 6, expanded: true })).toBe(10);
+  });
+
   it('minBodyRows uwzględnia stopkę seryjną tylko gdy są operacje bulk', () => {
     expect(minBodyRows({ type: 'conflicts', files: [1], bulk: [] })).toBe(7);
     expect(minBodyRows({ type: 'conflicts', files: [1], bulk: [1] })).toBe(8);

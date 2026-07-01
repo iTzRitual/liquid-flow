@@ -102,64 +102,55 @@ describe('command() — refresh', () => {
   });
 });
 
-describe('previewConflict() — flaga identical', () => {
-  it('identyczna zawartość → identical:true', async () => {
-    writeLocal(0, 'same.liquid', 'line1\nline2');
-    client.files['0/same.liquid'] = { Template: Buffer.from('line1\nline2'), Date: '2026-01-01' };
-    const result = await session.previewConflict({ Mode: 0, Name: 'same.liquid' }, 'Timestamp');
-    expect(result.kind).toBe('text');
-    expect(result.identical).toBe(true);
-  });
+describe('refreshMismatches() — auto-uzgadnianie pozornych konfliktów Timestamp', () => {
+  const getCount = (name) => client.calls.filter(([k, n]) => k === 'get' && n === name).length;
 
-  it('różna zawartość → identical:false', async () => {
-    writeLocal(0, 'diff.liquid', 'local\nline2');
-    client.files['0/diff.liquid'] = { Template: Buffer.from('remote\nline2'), Date: '2026-01-01' };
-    const result = await session.previewConflict({ Mode: 0, Name: 'diff.liquid' }, 'Timestamp');
-    expect(result.kind).toBe('text');
-    expect(result.identical).toBe(false);
-  });
-});
+  it('identyczna zawartość: konflikt Timestamp NIE pojawia się, meta uzgodnione, bez transferu', async () => {
+    writeLocal(0, 'auto.liquid', 'body\ntail');
+    // meta z rozjechanym remotets → kandydat Timestamp; ale treść identyczna
+    store.setMetaEntry(shop.Name, template.Id, 0, 'auto.liquid', '2020-01-01T00:00:00', '2020-01-01T00:00:00');
+    client.remoteMeta = [{ Mode: 0, Name: 'auto.liquid', Date: '2026-05-05T00:00:00' }];
+    client.files['0/auto.liquid'] = { Template: Buffer.from('body\ntail'), Date: '2026-05-05T00:00:00' };
 
-describe('command() — reconcile (uzgodnienie znacznika)', () => {
-  it('identyczna zawartość: re-stamp meta czyści konflikt Timestamp', async () => {
-    const abs = store.localFilePath(shop.Name, template.Id, 0, 'rec.liquid');
-    const ts = writeLocal(0, 'rec.liquid', 'body\ntail');
-    // meta ma rozjechany remotets → konflikt Timestamp, ale zawartość identyczna
-    store.setMetaEntry(shop.Name, template.Id, 0, 'rec.liquid', ts, '2020-01-01T00:00:00');
-    client.remoteMeta = [{ Mode: 0, Name: 'rec.liquid', Date: '2026-05-05T00:00:00' }];
-    client.files['0/rec.liquid'] = { Template: Buffer.from('body\ntail'), Date: '2026-05-05T00:00:00' };
-
-    await session.refreshMismatches({ silent: true });
-    expect(session.mismatches.some((m) => m.File.Name === 'rec.liquid' && m.Type === MismatchType.Timestamp)).toBe(true);
-
-    await session.command('reconcile', { Mode: 0, Name: 'rec.liquid' });
-    // po uzgodnieniu i ponownym przeliczeniu — brak konfliktu dla tego pliku
-    expect(session.mismatches.some((m) => m.File.Name === 'rec.liquid')).toBe(false);
-    // brak transferu bajtów (set/add/delete)
+    const mm = await session.refreshMismatches({ silent: true });
+    // pozorny konflikt zniknął (auto-uzgodniony)
+    expect(mm.some((m) => m.File.Name === 'auto.liquid')).toBe(false);
+    // treść pobrana raz do porównania, ale żadnego transferu bajtów
+    expect(getCount('auto.liquid')).toBe(1);
     expect(has('set')).toBe(false);
     expect(has('add')).toBe(false);
     expect(has('delete')).toBe(false);
-    // meta zostało nadpisane aktualnymi wartościami
-    const m = store.getMetaEntry(store.loadMeta(shop.Name, template.Id), 0, 'rec.liquid');
-    expect(m.localts).toBe(store.mtimeUtc(abs));
-    expect(m.remotets).toBe('2026-05-05T00:00:00');
+    // meta nadpisane bieżącym remotets → kolejny refresh też nic nie zgłasza
+    expect(store.getMetaEntry(store.loadMeta(shop.Name, template.Id), 0, 'auto.liquid').remotets).toBe('2026-05-05T00:00:00');
+    const mm2 = await session.refreshMismatches({ silent: true });
+    expect(mm2.some((m) => m.File.Name === 'auto.liquid')).toBe(false);
+    expect(getCount('auto.liquid')).toBe(1); // brak nowego pobrania (nie jest już kandydatem)
   });
 
-  it('różna zawartość: reconcile odrzuca (guard) i nie rusza meta', async () => {
-    const ts = writeLocal(0, 'recdiff.liquid', 'local body');
-    store.setMetaEntry(shop.Name, template.Id, 0, 'recdiff.liquid', ts, '2020-01-01T00:00:00');
-    client.remoteMeta = [{ Mode: 0, Name: 'recdiff.liquid', Date: '2026-05-05T00:00:00' }];
-    client.files['0/recdiff.liquid'] = { Template: Buffer.from('remote body'), Date: '2026-05-05T00:00:00' };
+  it('różna zawartość: konflikt Timestamp POZOSTAJE, meta nietknięte', async () => {
+    writeLocal(0, 'real.liquid', 'local body');
+    store.setMetaEntry(shop.Name, template.Id, 0, 'real.liquid', '2020-01-01T00:00:00', '2020-01-01T00:00:00');
+    client.remoteMeta = [{ Mode: 0, Name: 'real.liquid', Date: '2026-05-05T00:00:00' }];
+    client.files['0/real.liquid'] = { Template: Buffer.from('remote body'), Date: '2026-05-05T00:00:00' };
+
+    const mm = await session.refreshMismatches({ silent: true });
+    expect(mm.some((m) => m.File.Name === 'real.liquid' && m.Type === MismatchType.Timestamp)).toBe(true);
+    // meta bez zmian (nie ukrywamy realnej różnicy)
+    expect(store.getMetaEntry(store.loadMeta(shop.Name, template.Id), 0, 'real.liquid').remotets).toBe('2020-01-01T00:00:00');
+  });
+
+  it('cache: realna różnica nie jest pobierana ponownie przy tych samych znacznikach', async () => {
+    writeLocal(0, 'cached.liquid', 'local');
+    store.setMetaEntry(shop.Name, template.Id, 0, 'cached.liquid', '2020-01-01T00:00:00', '2020-01-01T00:00:00');
+    client.remoteMeta = [{ Mode: 0, Name: 'cached.liquid', Date: '2026-05-05T00:00:00' }];
+    client.files['0/cached.liquid'] = { Template: Buffer.from('remote'), Date: '2026-05-05T00:00:00' };
 
     await session.refreshMismatches({ silent: true });
-    expect(session.mismatches.some((m) => m.File.Name === 'recdiff.liquid' && m.Type === MismatchType.Timestamp)).toBe(true);
-
-    await expect(session.command('reconcile', { Mode: 0, Name: 'recdiff.liquid' }))
-      .rejects.toThrow(session.t.ReconcileContentDiffers);
-    // konflikt nadal istnieje, meta bez zmian
-    expect(session.mismatches.some((m) => m.File.Name === 'recdiff.liquid' && m.Type === MismatchType.Timestamp)).toBe(true);
-    const m = store.getMetaEntry(store.loadMeta(shop.Name, template.Id), 0, 'recdiff.liquid');
-    expect(m.remotets).toBe('2020-01-01T00:00:00');
+    expect(getCount('cached.liquid')).toBe(1);
+    // drugi refresh z tymi samymi znacznikami → cache „potwierdzone różne", brak pobrania
+    await session.refreshMismatches({ silent: true });
+    expect(getCount('cached.liquid')).toBe(1);
+    expect(session.mismatches.some((m) => m.File.Name === 'cached.liquid')).toBe(true);
   });
 });
 

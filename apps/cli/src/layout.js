@@ -48,7 +48,9 @@ export function naturalBodyRows(mode) {
     case 'connect': return (mode.shops?.length || 0) + 6;
     case 'conflicts': return (mode.files?.length || 0) * 4 + (mode.bulk?.length ? 1 : 0) + 4;
     case 'form': return (mode.fields?.length || 0) + 4;
-    case 'diff': return (mode.lines || 0) + 4;
+    // podgląd diff: zwinięty → `lines`, rozwinięty (Tab) → `fullLines`. Nakładka
+    // rośnie po rozwinięciu, więc Tab powiększa okno (a nie wciska treść w 1 wiersz).
+    case 'diff': return (mode.expanded ? (mode.fullLines ?? mode.lines ?? 0) : (mode.lines || 0)) + 4;
     default: return minBodyRows(mode); // loading/input
   }
 }

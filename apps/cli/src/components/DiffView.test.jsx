@@ -72,15 +72,6 @@ describe('DiffView — warianty podglądu', () => {
     expect(frame(api)).toContain(t.DiffNoChanges);
   });
 
-  it('identical:true → summary DiffIdentical (nie DiffNoChanges)', () => {
-    const diff = [{ type: 'ctx', line: 'ta sama linia' }];
-    const api = render(
-      <DiffView title="same.liquid" preview={{ ...textPreview(diff), identical: true }} onCancel={vi.fn()} maxRows={8} t={t} />
-    );
-    const f = frame(api);
-    expect(f).toContain(t.DiffIdentical);
-  });
-
   it('summary z dodanymi i usuniętymi → DiffSummary (nie DiffNoChanges)', () => {
     const diff = [
       { type: 'del', line: 'x' },
@@ -133,12 +124,19 @@ describe('DiffView — nawigacja', () => {
   });
 
   it('Tab rozwija zwinięty kontekst i pokazuje ukryte linie', async () => {
-    // 1 zmiana, potem 10 linii kontekstu → domyślnie fold; Tab pokazuje wszystkie
+    // 1 zmiana, potem 10 linii kontekstu → domyślnie fold; Tab pokazuje wszystkie.
+    // `expanded` jest sterowane przez rodzica — harness odwzorowuje App.jsx (Tab
+    // przełącza stan i re-renderuje z nowym `expanded`).
     const diff = [{ type: 'add', line: 'zmieniona' }];
     for (let i = 0; i < 10; i++) diff.push({ type: 'ctx', line: `ctx ${i}` });
-    const api = render(
-      <DiffView title="big.liquid" preview={textPreview(diff)} onCancel={vi.fn()} maxRows={12} t={t} />
-    );
+    function Harness() {
+      const [expanded, setExpanded] = React.useState(false);
+      return (
+        <DiffView title="big.liquid" preview={textPreview(diff)} onCancel={vi.fn()} maxRows={12}
+          expanded={expanded} onToggleExpand={() => setExpanded((e) => !e)} t={t} />
+      );
+    }
+    const api = render(<Harness />);
     // domyślnie: podpowiedź Tab + fold widoczny, ukryte linie schowane
     let f = frame(api);
     expect(f).toContain(t.DiffShowContext);

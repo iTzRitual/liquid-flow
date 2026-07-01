@@ -6,6 +6,15 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.131] — 2026-07-01
+### Changed
+- Byte-identical timestamp conflicts are now auto-resolved instead of shown. When a file is flagged as a `Timestamp` conflict (e.g. after syncing the same template from another machine) but its content is identical, the conflict is silently reconciled (the metadata baseline is re-stamped, no bytes transferred) and never appears in `/conflicts`. Only real content differences are surfaced. A per-file cache keyed on the timestamps prevents genuinely-different files from being re-fetched on every background poll.
+- The conflict diff preview window now actually grows when you press Tab to expand context: the expand state drives the overlay height, so a large file with a small change (or an all-context file) opens compact and expands to a full-height, scrollable view — instead of cramming the expanded content into a one-row viewport.
+### Removed
+- The per-row "Reconcile" (Uzgodnij) action on timestamp conflicts. It is obsolete now that identical-content conflicts are auto-resolved and never reach the list.
+
+---
+
 ## [0.9.130] — 2026-07-01
 ### Added
 - Expand folded context in the conflict diff preview (CLI): the preview still collapses long runs of unchanged lines by default, but pressing Tab now reveals every hidden line with its line number (press again to collapse). The Tab hint only appears when there is something folded to show.

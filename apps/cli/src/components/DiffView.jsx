@@ -1,5 +1,5 @@
 import { Box, Text, useInput } from 'ink';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { tfmt, buildDiffRows } from '@liquidflow/core';
 
 // Przewijany podgląd różnic (line diff) przed rozwiązaniem konfliktu.
@@ -27,9 +27,14 @@ const CONTROL = /[\x00-\x1f\x7f]/g;
 const sanitize = (s) => (s || '').replace(/\t/g, TAB).replace(CONTROL, '');
 const leadSpaces = (s) => { const m = /^ */.exec(s); return m ? m[0].length : 0; };
 
-export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
+// `expanded`/`onToggleExpand` są sterowane przez rodzica (App.jsx trzyma je w
+// `mode`), bo rozwinięcie MUSI powiększyć nakładkę (naturalBodyRows zależy od
+// `mode.expanded`). Gdyby stan siedział tu lokalnie, okno nie mogłoby urosnąć —
+// treść wciskałaby się w zwinięty budżet wierszy (1 wpis + „↓ więcej").
+export default function DiffView({ title, preview, onCancel, maxRows = 8, expanded = false, onToggleExpand, t }) {
   const [scroll, setScroll] = useState(0); // wiersze od góry (0 = początek)
-  const [expanded, setExpanded] = useState(false); // Tab: pokaż cały kontekst (bez zwijania)
+  // po przełączeniu zwiń/rozwiń zestaw wierszy się zmienia — wróć na górę
+  useEffect(() => { setScroll(0); }, [expanded]);
 
   const isText = preview?.kind === 'text';
 
@@ -63,7 +68,7 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
 
   useInput((input, key) => {
     if (key.escape) { onCancel?.(); return; }
-    if (key.tab && collapsible) { setExpanded((e) => !e); setScroll(0); return; }
+    if (key.tab && collapsible) { onToggleExpand?.(); return; }
     if (key.upArrow) { setScroll((s) => Math.max(0, s - 1)); return; }
     if (key.downArrow) { setScroll((s) => Math.min(maxScroll, s + 1)); return; }
     if (key.pageUp) { setScroll((s) => Math.max(0, s - Math.max(1, maxRows))); return; }
@@ -128,11 +133,9 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
     );
   };
 
-  const summary = preview?.identical
-    ? t.DiffIdentical
-    : (added === 0 && removed === 0)
-      ? t.DiffNoChanges
-      : tfmt(t.DiffSummary, { added, removed });
+  const summary = (added === 0 && removed === 0)
+    ? t.DiffNoChanges
+    : tfmt(t.DiffSummary, { added, removed });
   const toggleHint = collapsible ? `${expanded ? t.DiffHideContext : t.DiffShowContext} · ` : '';
 
   return (

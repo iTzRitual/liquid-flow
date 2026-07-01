@@ -166,13 +166,12 @@ export function buildCommands(ctx) {
         { label: t.ActionPreviewShort, value: 'preview' },
       ], initial: 2 };
     }
-    // Timestamp: oba istnieją → pobierz / wyślij / uzgodnij (gdy tylko znacznik) / podgląd
+    // Timestamp: oba istnieją → pobierz z serwera albo wyślij z lokala
     return { options: [
       { label: t.ActionDownloadShort, value: 'download' },
       { label: t.ActionUploadShort, value: 'upload' },
-      { label: t.ActionReconcileShort, value: 'reconcile' },
       { label: t.ActionPreviewShort, value: 'preview' },
-    ], initial: 3 };
+    ], initial: 2 };
   };
 
   // Potwierdzenie, które przy „Nie” wraca do listy konfliktów (zostajemy w flow).
@@ -188,10 +187,15 @@ export function buildCommands(ctx) {
     if (value === 'preview') {
       withLoading(t.PreviewLoading, async () => {
         const preview = await ctrl.previewConflict(m.File, m.Type);
-        // wysokość nakładki liczymy z RZECZYWISTYCH wierszy (po zwinięciu kontekstu),
-        // nie z surowej długości diffu — duży plik z małą zmianą = kilka wierszy.
-        const lines = preview?.kind === 'text' ? buildDiffRows(preview.diff, { context: 3 }).length : 1;
-        openDiff({ title: tfmt(t.DiffTitle, { name: m.File.Name }), preview, lines });
+        // Dwie wysokości nakładki: `lines` = widok zwinięty (kontekst zwinięty, mały
+        // dla dużego pliku z małą zmianą) i `fullLines` = widok rozwinięty (wszystkie
+        // wiersze, po Tab). Nakładka rośnie do `fullLines` po rozwinięciu (patrz
+        // naturalBodyRows), więc Tab REALNIE powiększa okno zamiast wciskać treść w
+        // jeden wiersz. Dla binary/tooLarge obie = 1 (stały box).
+        const isText = preview?.kind === 'text';
+        const lines = isText ? buildDiffRows(preview.diff, { context: 3 }).length : 1;
+        const fullLines = isText ? buildDiffRows(preview.diff, { context: 3, fold: false }).length : 1;
+        openDiff({ title: tfmt(t.DiffTitle, { name: m.File.Name }), preview, lines, fullLines, expanded: false });
       });
       return;
     }

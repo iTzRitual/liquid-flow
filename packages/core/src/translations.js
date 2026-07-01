@@ -332,14 +332,10 @@ const pl = {
   DiffTooLarge: 'Plik za duży do podglądu',
   DiffSummary: '+{added} −{removed}',
   DiffNoChanges: 'Brak różnic',
-  DiffIdentical: 'Zawartość identyczna — różni się tylko znacznik czasu',
   DiffFold: '⋯ {count} niezmienionych wierszy',
   DiffShowContext: 'Tab pełny kontekst',
   DiffHideContext: 'Tab zwiń kontekst',
-  ActionReconcileShort: 'Uzgodnij',
-  LogReconciled: 'Uzgodniono znacznik: {label}',
-  ReconcileContentDiffers: 'Zawartość się różni — użyj Pobierz lub Wyślij',
-  ReconcileNeedsBothSides: 'Uzgadnianie wymaga pliku po obu stronach',
+  LogAutoReconciled: 'Pominięto pozorne konflikty (identyczna zawartość): {count}',
 
   // --- tray (Electron) ---
   ShowWindow: 'Pokaż okno',
@@ -639,14 +635,10 @@ const en = {
   DiffTooLarge: 'File too large to preview',
   DiffSummary: '+{added} −{removed}',
   DiffNoChanges: 'No differences',
-  DiffIdentical: 'Identical content — only the timestamp differs',
   DiffFold: '⋯ {count} unchanged lines',
   DiffShowContext: 'Tab full context',
   DiffHideContext: 'Tab collapse context',
-  ActionReconcileShort: 'Reconcile',
-  LogReconciled: 'Reconciled timestamp: {label}',
-  ReconcileContentDiffers: 'Content differs — use Download or Upload',
-  ReconcileNeedsBothSides: 'Reconcile requires the file on both sides',
+  LogAutoReconciled: 'Skipped spurious conflicts (identical content): {count}',
 
   // --- tray (Electron) ---
   ShowWindow: 'Show window',
