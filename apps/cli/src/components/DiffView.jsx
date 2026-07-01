@@ -29,14 +29,18 @@ const leadSpaces = (s) => { const m = /^ */.exec(s); return m ? m[0].length : 0;
 
 export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
   const [scroll, setScroll] = useState(0); // wiersze od góry (0 = początek)
+  const [expanded, setExpanded] = useState(false); // Tab: pokaż cały kontekst (bez zwijania)
 
   const isText = preview?.kind === 'text';
 
-  // Wiersze do renderu: numery linii + zwinięty kontekst, po sanityzacji i
-  // dedencie. Liczone raz na preview (memo) — stabilne przy przewijaniu.
-  const { rows, gutterW } = useMemo(() => {
-    if (!isText) return { rows: [], gutterW: 1 };
-    const built = buildDiffRows(preview.diff, { context: 3 });
+  // Wiersze do renderu: numery linii + (zwinięty | pełny) kontekst, po
+  // sanityzacji i dedencie. Liczone na preview + `expanded` (memo). `collapsible`
+  // liczone z wersji ZAWSZE zwiniętej, żeby podpowiedź Tab była stabilna przy
+  // przełączaniu (widoczna dokładnie gdy jest co rozwinąć).
+  const { rows, gutterW, collapsible } = useMemo(() => {
+    if (!isText) return { rows: [], gutterW: 1, collapsible: false };
+    const built = buildDiffRows(preview.diff, { context: 3, fold: !expanded });
+    const collapsible = buildDiffRows(preview.diff, { context: 3 }).some((r) => r.type === 'fold');
     const clean = built.map((r) => (r.type === 'fold' ? r : { ...r, text: sanitize(r.line) }));
     // wspólne wcięcie liczone tylko z niepustych linii treści (puste/fold pomijamy)
     const content = clean.filter((r) => r.type !== 'fold' && r.text.trim().length > 0);
@@ -45,8 +49,8 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
     // szerokość rynny numerów = liczba cyfr największego numeru linii
     const totalA = preview.diff.filter((d) => d.type !== 'add').length; // lokalne (ctx+del)
     const totalB = preview.diff.filter((d) => d.type !== 'del').length; // zdalne (ctx+add)
-    return { rows: dedented, gutterW: String(Math.max(1, totalA, totalB)).length };
-  }, [isText, preview]);
+    return { rows: dedented, gutterW: String(Math.max(1, totalA, totalB)).length, collapsible };
+  }, [isText, preview, expanded]);
 
   const added = isText ? preview.diff.filter((l) => l.type === 'add').length : 0;
   const removed = isText ? preview.diff.filter((l) => l.type === 'del').length : 0;
@@ -59,6 +63,7 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
 
   useInput((input, key) => {
     if (key.escape) { onCancel?.(); return; }
+    if (key.tab && collapsible) { setExpanded((e) => !e); setScroll(0); return; }
     if (key.upArrow) { setScroll((s) => Math.max(0, s - 1)); return; }
     if (key.downArrow) { setScroll((s) => Math.min(maxScroll, s + 1)); return; }
     if (key.pageUp) { setScroll((s) => Math.max(0, s - Math.max(1, maxRows))); return; }
@@ -128,6 +133,7 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
     : (added === 0 && removed === 0)
       ? t.DiffNoChanges
       : tfmt(t.DiffSummary, { added, removed });
+  const toggleHint = collapsible ? `${expanded ? t.DiffHideContext : t.DiffShowContext} · ` : '';
 
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
@@ -137,7 +143,7 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
         : visible.map(renderRow)
       }
       {hasBelow && <Text dimColor>{tfmt(t.MoreBelow, { count: belowCount })}</Text>}
-      <Text dimColor wrap="truncate-end">{summary} · {navHint}</Text>
+      <Text dimColor wrap="truncate-end">{summary} · {toggleHint}{navHint}</Text>
     </Box>
   );
 }

@@ -149,4 +149,16 @@ describe('buildDiffRows', () => {
     expect(buildDiffRows(undefined)).toEqual([]);
     expect(buildDiffRows([])).toEqual([]);
   });
+
+  it('fold:false → wszystkie wiersze z numerami, bez zwijania', () => {
+    // zmiana + długi ogon kontekstu, który przy domyślnym fold zwinąłby się
+    const diff = [{ type: 'add', line: 'new' }];
+    for (let i = 0; i < 5; i++) diff.push({ type: 'ctx', line: `c${i}` });
+    const rows = buildDiffRows(diff, { fold: false });
+    expect(rows.filter((r) => r.type === 'fold')).toHaveLength(0);
+    expect(rows).toHaveLength(diff.length); // jeden wiersz na linię wejścia
+    // numery linii nadal przypisane
+    expect(rows[0]).toEqual({ type: 'add', line: 'new', aLn: null, bLn: 1 });
+    expect(rows.at(-1)).toEqual({ type: 'ctx', line: 'c4', aLn: 5, bLn: 6 });
+  });
 });

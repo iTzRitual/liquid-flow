@@ -64,7 +64,9 @@ export function diffSummary(aText, bText) {
 // zmianą nie toniesz w setkach białych linii kontekstu. Zwraca tablicę:
 //   { type:'ctx'|'add'|'del', line, aLn, bLn }   (aLn lub bLn = null wg typu)
 //   { type:'fold', count }                        (N zwiniętych linii kontekstu)
-export function buildDiffRows(diff, { context = 3 } = {}) {
+// Opcja `fold` (domyślnie `true`): gdy `false`, zwraca KAŻDY wiersz z numerem
+// linii i BEZ zwijania (tryb rozwinięty — użytkownik chce pełny kontekst).
+export function buildDiffRows(diff, { context = 3, fold = true } = {}) {
   if (!Array.isArray(diff)) return [];
   let a = 0;
   let b = 0;
@@ -73,6 +75,7 @@ export function buildDiffRows(diff, { context = 3 } = {}) {
     if (d.type === 'del') { a += 1; return { type: 'del', line: d.line, aLn: a, bLn: null }; }
     a += 1; b += 1; return { type: 'ctx', line: d.line, aLn: a, bLn: b };
   });
+  if (!fold) return items; // tryb rozwinięty: wszystkie wiersze, bez zwijania kontekstu
 
   // zaznacz wiersze do pokazania: każda zmiana + `context` linii w obie strony
   const keep = new Array(items.length).fill(false);

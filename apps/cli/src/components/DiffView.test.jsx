@@ -132,6 +132,26 @@ describe('DiffView — nawigacja', () => {
     expect(f).toContain('niezmienionych wierszy'); // fold widoczny
   });
 
+  it('Tab rozwija zwinięty kontekst i pokazuje ukryte linie', async () => {
+    // 1 zmiana, potem 10 linii kontekstu → domyślnie fold; Tab pokazuje wszystkie
+    const diff = [{ type: 'add', line: 'zmieniona' }];
+    for (let i = 0; i < 10; i++) diff.push({ type: 'ctx', line: `ctx ${i}` });
+    const api = render(
+      <DiffView title="big.liquid" preview={textPreview(diff)} onCancel={vi.fn()} maxRows={12} t={t} />
+    );
+    // domyślnie: podpowiedź Tab + fold widoczny, ukryte linie schowane
+    let f = frame(api);
+    expect(f).toContain(t.DiffShowContext);
+    expect(f).toContain('niezmienionych wierszy');
+    expect(f).not.toContain('ctx 5');
+    // Tab → pełny kontekst: ukryta linia odsłonięta, brak fold, podpowiedź zwinięcia
+    await press(api.stdin, keys.tab);
+    f = frame(api);
+    expect(f).toContain('ctx 5');
+    expect(f).not.toContain('niezmienionych wierszy');
+    expect(f).toContain(t.DiffHideContext);
+  });
+
   it('głęboko zagnieżdżone (taby) → dedent i ekspansja, bez surowego \\t', () => {
     const diff = [
       { type: 'del', line: '\t\t\t<div>old</div>' },

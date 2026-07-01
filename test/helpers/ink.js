@@ -14,6 +14,7 @@ export const keys = {
   enter: '\r',
   escape: '\x1b',
   slash: '/',
+  tab: '\t',
 };
 
 export function strip(s) {

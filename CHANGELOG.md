@@ -6,6 +6,12 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.130] — 2026-07-01
+### Added
+- Expand folded context in the conflict diff preview (CLI): the preview still collapses long runs of unchanged lines by default, but pressing Tab now reveals every hidden line with its line number (press again to collapse). The Tab hint only appears when there is something folded to show.
+
+---
+
 ## [0.9.129] — 2026-07-01
 ### Added
 - Byte-free "Reconcile" action for Timestamp conflicts (CLI): when a conflict is only a timestamp drift (e.g. after syncing the same template from another machine) and the content is byte-identical, Reconcile re-stamps the metadata baseline to clear the conflict without re-uploading or downloading. It is guarded — if the content actually differs, it refuses with a clear message ("Content differs — use Download or Upload") so it can never hide a real change.
