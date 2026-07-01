@@ -89,11 +89,12 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, expand
   }
 
   if (preview?.kind === 'tooLarge') {
+    const ideHint = onOpenIde ? `${t.DiffOpenIde} · ` : '';
     return (
       <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
         <Text color="cyan" bold wrap="truncate-end">{title}</Text>
         <Text dimColor>{t.DiffTooLarge}</Text>
-        <Text dimColor>{navHint}</Text>
+        <Text dimColor>{ideHint}{navHint}</Text>
       </Box>
     );
   }

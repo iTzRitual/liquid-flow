@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.133] — 2026-07-02
+### Changed
+- The "too large" conflict preview no longer dead-ends: the terminal line-by-line diff still bails out above the size threshold (rendering a huge diff in-terminal is impractical), but `previewConflict` now keeps the raw local/remote content in that case, so the "open in IDE" action (`o`) is available there too — the IDE computes its own diff, unaffected by our terminal-rendering limit.
+
 ## [0.9.132] — 2026-07-02
 ### Added
 - CLI conflict diff preview (`/conflicts` → Podgląd) now has an "open in IDE" action (`o` key): opens the local file against the remote version in a `code --diff` window (overridable via `LIQUIDFLOW_DIFF_CMD` for other VS Code-based editors), so you can resolve the conflict by editing the real local file and commit/push it through the normal git flow.

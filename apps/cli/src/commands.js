@@ -187,7 +187,7 @@ export function buildCommands(ctx) {
   // lokalna (edycja w IDE zapisuje się tam, więc watcher/git widzą zmianę),
   // prawa to zdalna wersja zapisana do pliku tymczasowego (tylko do referencji).
   const openInIde = (m, preview) => {
-    if (preview?.kind !== 'text') return;
+    if (preview?.kind !== 'text' && preview?.kind !== 'tooLarge') return;
     const localPath = ctrl.localFilePath(m.File);
     const remotePath = writeRemoteTemp(m.File.Name, preview.remote);
     openIdeDiff(localPath, remotePath, (cmd, err) => {
@@ -210,10 +210,11 @@ export function buildCommands(ctx) {
         const isText = preview?.kind === 'text';
         const lines = isText ? buildDiffRows(preview.diff, { context: 3 }).length : 1;
         const fullLines = isText ? buildDiffRows(preview.diff, { context: 3, fold: false }).length : 1;
+        const canOpenIde = isText || preview?.kind === 'tooLarge';
         openDiff({
           title: tfmt(t.DiffTitle, { name: m.File.Name }),
           preview, lines, fullLines, expanded: false,
-          onOpenIde: isText ? () => openInIde(m, preview) : undefined,
+          onOpenIde: canOpenIde ? () => openInIde(m, preview) : undefined,
         });
       });
       return;

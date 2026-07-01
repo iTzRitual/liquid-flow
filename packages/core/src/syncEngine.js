@@ -544,7 +544,10 @@ export class SyncSession {
     const local = localBuf ? localBuf.toString('utf8') : null;
     const remote = remoteBuf ? remoteBuf.toString('utf8') : null;
     const diff = lineDiff(local ?? '', remote ?? '');
-    if (diff.tooLarge) return { kind: 'tooLarge' };
+    // Za duży do rysowania w terminalu (koszt LCS rośnie kwadratowo z liczbą
+    // linii) — ale `local`/`remote` i tak trzymamy, żeby dało się otworzyć
+    // diff w zewnętrznym IDE (tam liczy go edytor, nie nasz proces).
+    if (diff.tooLarge) return { kind: 'tooLarge', local, remote };
 
     return { kind: 'text', local, remote, diff };
   }
