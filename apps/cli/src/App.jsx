@@ -156,6 +156,23 @@ export default function App() {
 
   const commands = useMemo(() => buildCommands(ctx), [ctx]);
 
+  // Auto-nawigacja po rozwiązaniu konfliktu w tle: `/conflicts` → Podgląd
+  // (`mode.type === 'diff'`) zapamiętuje OGLĄDANY plik (`watchMismatch`).
+  // Cykliczny poll konfliktów (`mismatches`, patrz useController) leci nadal,
+  // nawet gdy patrzysz na diff/edytujesz w IDE — jeśli zapis w IDE spowodował,
+  // że watcher wysłał plik (lub go pobrał) i dany plik zniknął z `mismatches`,
+  // wracamy sami: do odświeżonej listy konfliktów (jeśli coś zostało) albo na
+  // ekran główny (jeśli to był ostatni — `renderConflicts([])` woła
+  // `backToInput()` z komunikatem „brak konfliktów”). Po nawigacji `mode.type`
+  // przestaje być `'diff'`, więc efekt się nie powtarza dla tego samego pliku.
+  useEffect(() => {
+    if (mode.type !== 'diff' || !mode.watchMismatch) return;
+    const { fileMode, name } = mode.watchMismatch;
+    const stillConflicting = mismatches.some((m) => m.File.Mode === fileMode && m.File.Name === name);
+    if (stillConflicting) return;
+    commands.renderConflicts?.(mismatches);
+  }, [mismatches, mode, commands]);
+
   // Na starcie (gdy niepołączony) od razu otwórz listę sklepów do połączenia.
   const booted = useRef(false);
   useEffect(() => {

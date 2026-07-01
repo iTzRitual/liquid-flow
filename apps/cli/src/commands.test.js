@@ -23,7 +23,7 @@ function makeCtx(overrides = {}) {
     openForm: vi.fn(),
     openConflicts: vi.fn((payload) => { captured.conflicts = payload; }),
     openConnect: vi.fn(),
-    openDiff: vi.fn(),
+    openDiff: vi.fn((payload) => { captured.diff = payload; }),
     logWrap: false,
     setLogWrap: vi.fn(),
     exit: vi.fn(),
@@ -98,5 +98,44 @@ describe('/conflicts — mapowanie typu konfliktu na akcje', () => {
     const values = cap.conflicts.bulk.map((b) => b.value);
     expect(values).toContain('downloadAll'); // LocalMissing → pobierz wszystkie
     expect(values).toContain('uploadAll');   // RemoteMissing → wyślij wszystkie
+  });
+});
+
+// Auto-nawigacja w App.jsx po zapisie w IDE (patrz komentarz przy efekcie w
+// App.jsx) opiera się na dwóch rzeczach z tego modułu: `watchMismatch`
+// dołączonym do payloadu `openDiff` (żeby wiedzieć, KTÓRY plik obserwować w
+// tle) i `commands.renderConflicts` doczepionym do zwróconej tablicy (żeby
+// App.jsx mogło odświeżyć/zamknąć ekran z zewnątrz, gdy plik zniknie z
+// `mismatches`).
+describe('/conflicts — podgląd (preview) i auto-nawigacja po IDE', () => {
+  it('akcja "preview" przekazuje watchMismatch (Mode+Name) do openDiff', async () => {
+    const mismatches = [{ File: { Name: 'a', Mode: 0 }, Type: MismatchType.Timestamp, FileTs: '2026-06-01', LocalTs: '2026-01-01', RemoteTs: '2026-01-01' }];
+    const { ctx, captured } = makeCtx({
+      ctrl: {
+        recheckMismatches: vi.fn(async () => mismatches),
+        runCommand: vi.fn(async () => []),
+        previewConflict: vi.fn(async () => ({ kind: 'text', local: 'a', remote: 'b', diff: [] })),
+      },
+    });
+    const cmds = buildCommands(ctx);
+    cmds.find((c) => c.name === '/conflicts').run();
+    await Promise.resolve();
+    const file = captured.conflicts.files[0];
+    captured.conflicts.onAction('preview', file);
+    await Promise.resolve();
+    expect(captured.diff.watchMismatch).toEqual({ fileMode: 0, name: 'a' });
+    expect(typeof captured.diff.onOpenIde).toBe('function');
+  });
+
+  it('commands.renderConflicts jest wystawione: odświeża listę gdy zostały konflikty, wraca do inputu gdy pusta', () => {
+    const { ctx, captured } = makeCtx();
+    const cmds = buildCommands(ctx);
+    expect(typeof cmds.renderConflicts).toBe('function');
+
+    cmds.renderConflicts([{ File: { Name: 'z', Mode: 0 }, Type: MismatchType.Timestamp, FileTs: '2026-01-01', LocalTs: '2026-01-01', RemoteTs: '2026-01-01' }]);
+    expect(captured.conflicts.files).toHaveLength(1);
+
+    cmds.renderConflicts([]);
+    expect(ctx.backToInput).toHaveBeenCalled();
   });
 });

@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.134] — 2026-07-02
+### Added
+- CLI conflict resolution now auto-navigates when a file is resolved in the background (e.g. after editing and saving in the IDE diff view opened via `o` — the watcher uploads the file and the next background poll drops it from `mismatches`): while viewing a conflict's diff, the app now detects that its file is no longer conflicted and automatically returns to the (refreshed) `/conflicts` list if others remain, or to the main screen if it was the last one — no need to manually back out and re-open `/conflicts`.
+
 ## [0.9.133] — 2026-07-02
 ### Changed
 - The "too large" conflict preview no longer dead-ends: the terminal line-by-line diff still bails out above the size threshold (rendering a huge diff in-terminal is impractical), but `previewConflict` now keeps the raw local/remote content in that case, so the "open in IDE" action (`o`) is available there too — the IDE computes its own diff, unaffected by our terminal-rendering limit.

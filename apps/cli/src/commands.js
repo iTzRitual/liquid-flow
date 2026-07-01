@@ -215,6 +215,11 @@ export function buildCommands(ctx) {
           title: tfmt(t.DiffTitle, { name: m.File.Name }),
           preview, lines, fullLines, expanded: false,
           onOpenIde: canOpenIde ? () => openInIde(m, preview) : undefined,
+          // Pozwala App.jsx wykryć w tle (przez cykliczny poll konfliktów),
+          // że OGLĄDANY plik przestał być konfliktem (np. watcher wysłał go
+          // po zapisie w IDE) — wtedy sam wraca do listy konfliktów albo,
+          // jeśli to był ostatni, na ekran główny (patrz App.jsx).
+          watchMismatch: { fileMode: m.File.Mode, name: m.File.Name },
         });
       });
       return;
@@ -443,5 +448,9 @@ export function buildCommands(ctx) {
     { name: '/exit(quit)', desc: t.CmdExit, run: () => exit() },
   ];
 
+  // Doczepione do tablicy (nie zmienia kształtu zwracanej wartości — testy i
+  // App.jsx nadal traktują `commands` jak listę), żeby App.jsx mógł odświeżyć
+  // ekran /conflicts z zewnątrz (patrz efekt auto-nawigacji po zapisie w IDE).
+  commands.renderConflicts = renderConflicts;
   return commands;
 }
