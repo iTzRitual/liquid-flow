@@ -6,11 +6,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import ConfirmButton from './ConfirmButton.jsx';
 import ConflictsPanel from './ConflictsPanel.jsx';
 import LogPanel from './LogPanel.jsx';
+import ProgressBar from './ProgressBar.jsx';
 import GitPanel from './GitPanel.jsx';
 import { FolderOpen, Globe, RefreshCw, AlertTriangle, ScrollText, GitBranch, Download, Upload, CircleDot } from 'lucide-react';
 
 export default function SyncView() {
-  const { t, api, call, currentShop, currentTemplate, mismatches, setMismatches, setLog, setGit } = useApp();
+  const { t, api, call, currentShop, currentTemplate, mismatches, setMismatches, setLog, setGit, progress } = useApp();
   const [tab, setTab] = useState('conflicts');
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export default function SyncView() {
         <Button variant="outline" size="sm" onClick={() => api.openShop()}><Globe className="h-4 w-4" /> {t.OpenShop}</Button>
         <Button variant="ghost" size="sm" onClick={refresh}><RefreshCw className="h-4 w-4" /> {t.Refresh}</Button>
       </div>
+      <ProgressBar progress={progress} />
 
       <Tabs value={tab} onValueChange={setTab} className="flex flex-1 flex-col overflow-hidden">
         <div className="flex items-center gap-2 px-6 pt-3">

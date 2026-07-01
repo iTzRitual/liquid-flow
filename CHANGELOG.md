@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.126] — 2026-07-01
+### Added
+- Desktop: sync-start progress loader (download/check) and visual styling for log session-separators and greyed historic entries, matching the CLI.
+
 ## [0.9.125] — 2026-07-01
 ### Added
 - Desktop: git pull (fast-forward target stream) and branch management — list/switch/create — matching the CLI /git menu. (Clone deferred to the plan 009 connect-time bootstrap.)

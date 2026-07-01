@@ -70,7 +70,7 @@ export default function App() {
       else if (type === 'log:reset') setLog((payload || []).slice().reverse().slice(0, 500));
       else if (type === 'mismatches') setMismatches(payload || []);
       else if (type === 'git') setGit(payload);
-      else if (type === 'progress') setProgress(payload);
+      else if (type === 'progress') setProgress(payload && payload.phase !== 'ready' && payload.state !== 'done' ? payload : null);
       else if (type === 'state') {
         setCurrentShop(payload.currentShop);
         setCurrentTemplate(payload.currentTemplate);
