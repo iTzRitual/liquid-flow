@@ -189,7 +189,7 @@ export function buildCommands(ctx) {
         const preview = await ctrl.previewConflict(m.File, m.Type);
         // wysokość nakładki liczymy z RZECZYWISTYCH wierszy (po zwinięciu kontekstu),
         // nie z surowej długości diffu — duży plik z małą zmianą = kilka wierszy.
-        const lines = preview?.kind === 'text' ? buildDiffRows(preview.diff, { context: 3 }).length : 0;
+        const lines = preview?.kind === 'text' ? buildDiffRows(preview.diff, { context: 3 }).length : 1;
         openDiff({ title: tfmt(t.DiffTitle, { name: m.File.Name }), preview, lines });
       });
       return;

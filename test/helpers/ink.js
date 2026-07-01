@@ -53,7 +53,15 @@ export async function renderFrame(element, cols = 80, rows = 30) {
     write(s) { last = s; return true; },
     on() {}, off() {}, removeListener() {},
   };
-  const app = render(element, { stdout, patchConsole: false });
+  // Atrapa stdin z obsługą raw-mode — komponenty używające `useInput` (np.
+  // DiffView) rzucają „Raw mode is not supported" bez tego. Dla komponentów bez
+  // wejścia (Header) jest po prostu ignorowana.
+  const stdin = {
+    isTTY: true, setRawMode() {}, setEncoding() {}, resume() {}, pause() {},
+    ref() {}, unref() {}, read() { return null; },
+    on() {}, off() {}, removeListener() {}, addListener() {},
+  };
+  const app = render(element, { stdout, stdin, patchConsole: false });
   await new Promise((r) => setImmediate(r));
   app.unmount();
   return strip(last).replace(/\n+$/g, '').split('\n');

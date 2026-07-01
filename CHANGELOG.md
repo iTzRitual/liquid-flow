@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.128] — 2026-07-01
+### Fixed
+- The conflict preview for too-large and binary files no longer renders a corrupted/duplicated frame. The title in the `tooLarge`/`binary` branches is now truncated (`wrap="truncate-end"`) so a long file path can't wrap, and the overlay height budget for non-text previews now accounts for the actual 5-row box, preventing Ink inline-overflow.
+
 ## [0.9.127] — 2026-07-01
 ### Fixed
 - Initial template download no longer rewrites the whole meta file per file (O(n²) synchronous I/O). Metadata is now accumulated in memory and flushed in batches, fixing UI freezes on template selection for templates with many files (most visible on Windows). Crash-safety is preserved via a final flush on interruption.

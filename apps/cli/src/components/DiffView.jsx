@@ -70,7 +70,7 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
   if (preview?.kind === 'binary') {
     return (
       <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
-        <Text color="cyan" bold>{title}</Text>
+        <Text color="cyan" bold wrap="truncate-end">{title}</Text>
         <Text dimColor>{t.DiffBinary}</Text>
         <Text dimColor>{navHint}</Text>
       </Box>
@@ -80,7 +80,7 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
   if (preview?.kind === 'tooLarge') {
     return (
       <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
-        <Text color="cyan" bold>{title}</Text>
+        <Text color="cyan" bold wrap="truncate-end">{title}</Text>
         <Text dimColor>{t.DiffTooLarge}</Text>
         <Text dimColor>{navHint}</Text>
       </Box>

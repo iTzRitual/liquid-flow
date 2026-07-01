@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render } from 'ink-testing-library';
 import { translationsFor } from '@liquidflow/core';
 import DiffView from './DiffView.jsx';
-import { keys, press, frame } from '../../../../test/helpers/ink.js';
+import { keys, press, frame, renderFrame } from '../../../../test/helpers/ink.js';
 
 const t = translationsFor('pl');
 
@@ -27,6 +27,26 @@ describe('DiffView — warianty podglądu', () => {
       <DiffView title="huge.liquid" preview={{ kind: 'tooLarge' }} onCancel={vi.fn()} maxRows={8} t={t} />
     );
     expect(frame(api)).toContain(t.DiffTooLarge);
+  });
+
+  it('tooLarge z długim tytułem w wąskim oknie — tytuł nie zawija, render mieści się w budżecie', async () => {
+    const longTitle = 'Podgląd: order/delivery-partials/very/deep/path/desktop1.min.css';
+    const lines = await renderFrame(
+      <DiffView title={longTitle} preview={{ kind: 'tooLarge' }} onCancel={vi.fn()} maxRows={8} t={t} />, 40
+    );
+    expect(lines.length).toBeLessThanOrEqual(5);
+    expect(lines.join('\n')).toContain(t.DiffTooLarge);
+    expect(Math.max(...lines.map((l) => l.length))).toBeLessThanOrEqual(40);
+  });
+
+  it('binary z długim tytułem w wąskim oknie — tytuł nie zawija, render mieści się w budżecie', async () => {
+    const longTitle = 'Podgląd: order/delivery-partials/very/deep/path/desktop1.min.css';
+    const lines = await renderFrame(
+      <DiffView title={longTitle} preview={{ kind: 'binary', side: 'both' }} onCancel={vi.fn()} maxRows={8} t={t} />, 40
+    );
+    expect(lines.length).toBeLessThanOrEqual(5);
+    expect(lines.join('\n')).toContain(t.DiffBinary);
+    expect(Math.max(...lines.map((l) => l.length))).toBeLessThanOrEqual(40);
   });
 
   it('diff tekstowy — linie del/add/ctx renderowane z prefixami', () => {
