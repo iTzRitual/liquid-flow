@@ -6,6 +6,12 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.129] — 2026-07-01
+### Added
+- Byte-free "Reconcile" action for Timestamp conflicts (CLI): when a conflict is only a timestamp drift (e.g. after syncing the same template from another machine) and the content is byte-identical, Reconcile re-stamps the metadata baseline to clear the conflict without re-uploading or downloading. It is guarded — if the content actually differs, it refuses with a clear message ("Content differs — use Download or Upload") so it can never hide a real change.
+### Changed
+- The conflict diff preview now shows "Identical content — only the timestamp differs" instead of the ambiguous "No differences" when local and remote bytes match (line-ending differences count as identical).
+
 ## [0.9.128] — 2026-07-01
 ### Fixed
 - The conflict preview for too-large and binary files no longer renders a corrupted/duplicated frame. The title in the `tooLarge`/`binary` branches is now truncated (`wrap="truncate-end"`) so a long file path can't wrap, and the overlay height budget for non-text previews now accounts for the actual 5-row box, preventing Ink inline-overflow.

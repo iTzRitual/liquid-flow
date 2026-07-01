@@ -102,6 +102,67 @@ describe('command() — refresh', () => {
   });
 });
 
+describe('previewConflict() — flaga identical', () => {
+  it('identyczna zawartość → identical:true', async () => {
+    writeLocal(0, 'same.liquid', 'line1\nline2');
+    client.files['0/same.liquid'] = { Template: Buffer.from('line1\nline2'), Date: '2026-01-01' };
+    const result = await session.previewConflict({ Mode: 0, Name: 'same.liquid' }, 'Timestamp');
+    expect(result.kind).toBe('text');
+    expect(result.identical).toBe(true);
+  });
+
+  it('różna zawartość → identical:false', async () => {
+    writeLocal(0, 'diff.liquid', 'local\nline2');
+    client.files['0/diff.liquid'] = { Template: Buffer.from('remote\nline2'), Date: '2026-01-01' };
+    const result = await session.previewConflict({ Mode: 0, Name: 'diff.liquid' }, 'Timestamp');
+    expect(result.kind).toBe('text');
+    expect(result.identical).toBe(false);
+  });
+});
+
+describe('command() — reconcile (uzgodnienie znacznika)', () => {
+  it('identyczna zawartość: re-stamp meta czyści konflikt Timestamp', async () => {
+    const abs = store.localFilePath(shop.Name, template.Id, 0, 'rec.liquid');
+    const ts = writeLocal(0, 'rec.liquid', 'body\ntail');
+    // meta ma rozjechany remotets → konflikt Timestamp, ale zawartość identyczna
+    store.setMetaEntry(shop.Name, template.Id, 0, 'rec.liquid', ts, '2020-01-01T00:00:00');
+    client.remoteMeta = [{ Mode: 0, Name: 'rec.liquid', Date: '2026-05-05T00:00:00' }];
+    client.files['0/rec.liquid'] = { Template: Buffer.from('body\ntail'), Date: '2026-05-05T00:00:00' };
+
+    await session.refreshMismatches({ silent: true });
+    expect(session.mismatches.some((m) => m.File.Name === 'rec.liquid' && m.Type === MismatchType.Timestamp)).toBe(true);
+
+    await session.command('reconcile', { Mode: 0, Name: 'rec.liquid' });
+    // po uzgodnieniu i ponownym przeliczeniu — brak konfliktu dla tego pliku
+    expect(session.mismatches.some((m) => m.File.Name === 'rec.liquid')).toBe(false);
+    // brak transferu bajtów (set/add/delete)
+    expect(has('set')).toBe(false);
+    expect(has('add')).toBe(false);
+    expect(has('delete')).toBe(false);
+    // meta zostało nadpisane aktualnymi wartościami
+    const m = store.getMetaEntry(store.loadMeta(shop.Name, template.Id), 0, 'rec.liquid');
+    expect(m.localts).toBe(store.mtimeUtc(abs));
+    expect(m.remotets).toBe('2026-05-05T00:00:00');
+  });
+
+  it('różna zawartość: reconcile odrzuca (guard) i nie rusza meta', async () => {
+    const ts = writeLocal(0, 'recdiff.liquid', 'local body');
+    store.setMetaEntry(shop.Name, template.Id, 0, 'recdiff.liquid', ts, '2020-01-01T00:00:00');
+    client.remoteMeta = [{ Mode: 0, Name: 'recdiff.liquid', Date: '2026-05-05T00:00:00' }];
+    client.files['0/recdiff.liquid'] = { Template: Buffer.from('remote body'), Date: '2026-05-05T00:00:00' };
+
+    await session.refreshMismatches({ silent: true });
+    expect(session.mismatches.some((m) => m.File.Name === 'recdiff.liquid' && m.Type === MismatchType.Timestamp)).toBe(true);
+
+    await expect(session.command('reconcile', { Mode: 0, Name: 'recdiff.liquid' }))
+      .rejects.toThrow(session.t.ReconcileContentDiffers);
+    // konflikt nadal istnieje, meta bez zmian
+    expect(session.mismatches.some((m) => m.File.Name === 'recdiff.liquid' && m.Type === MismatchType.Timestamp)).toBe(true);
+    const m = store.getMetaEntry(store.loadMeta(shop.Name, template.Id), 0, 'recdiff.liquid');
+    expect(m.remotets).toBe('2020-01-01T00:00:00');
+  });
+});
+
 describe('previewConflict() — podgląd różnic', () => {
   it('Timestamp: oba istnieją → kind:text z diff', async () => {
     writeLocal(0, 'p.liquid', 'local content\nline2');

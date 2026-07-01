@@ -166,12 +166,13 @@ export function buildCommands(ctx) {
         { label: t.ActionPreviewShort, value: 'preview' },
       ], initial: 2 };
     }
-    // Timestamp: oba istnieją → pobierz z serwera albo wyślij z lokala
+    // Timestamp: oba istnieją → pobierz / wyślij / uzgodnij (gdy tylko znacznik) / podgląd
     return { options: [
       { label: t.ActionDownloadShort, value: 'download' },
       { label: t.ActionUploadShort, value: 'upload' },
+      { label: t.ActionReconcileShort, value: 'reconcile' },
       { label: t.ActionPreviewShort, value: 'preview' },
-    ], initial: 2 };
+    ], initial: 3 };
   };
 
   // Potwierdzenie, które przy „Nie” wraca do listy konfliktów (zostajemy w flow).

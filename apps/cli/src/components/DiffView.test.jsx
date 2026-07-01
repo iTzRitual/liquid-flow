@@ -72,6 +72,15 @@ describe('DiffView — warianty podglądu', () => {
     expect(frame(api)).toContain(t.DiffNoChanges);
   });
 
+  it('identical:true → summary DiffIdentical (nie DiffNoChanges)', () => {
+    const diff = [{ type: 'ctx', line: 'ta sama linia' }];
+    const api = render(
+      <DiffView title="same.liquid" preview={{ ...textPreview(diff), identical: true }} onCancel={vi.fn()} maxRows={8} t={t} />
+    );
+    const f = frame(api);
+    expect(f).toContain(t.DiffIdentical);
+  });
+
   it('summary z dodanymi i usuniętymi → DiffSummary (nie DiffNoChanges)', () => {
     const diff = [
       { type: 'del', line: 'x' },

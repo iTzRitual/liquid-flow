@@ -123,9 +123,11 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, t }) {
     );
   };
 
-  const summary = (added === 0 && removed === 0)
-    ? t.DiffNoChanges
-    : tfmt(t.DiffSummary, { added, removed });
+  const summary = preview?.identical
+    ? t.DiffIdentical
+    : (added === 0 && removed === 0)
+      ? t.DiffNoChanges
+      : tfmt(t.DiffSummary, { added, removed });
 
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>

@@ -396,6 +396,9 @@ export class SyncSession {
           case 'removeRemote':
             await this._removeRemote(fileArg);
             break;
+          case 'reconcile':
+            await this._reconcile(fileArg);
+            break;
           case 'downloadAll':
             for (const m of this.mismatches.filter((z) => z.Type === MismatchType.LocalMissing || z.Type === MismatchType.Timestamp)) {
               await this._download(m.File);
@@ -463,6 +466,26 @@ export class SyncSession {
     this._notify('removeRemote', file.Mode, file.Name);
   }
 
+  // Uzgodnij znacznik czasu bez transferu bajtów: gdy zawartość jest identyczna
+  // (konflikt wynika tylko z rozjechanych mtime/Date — np. sync z innej maszyny),
+  // nadpisujemy meta bieżącymi wartościami i konflikt znika. GUARD: jeśli treść
+  // się różni, RZUCAMY — nie chowamy realnej zmiany za re-stampem meta.
+  async _reconcile(file) {
+    const abs = store.localFilePath(this.shopName, this.templateId, file.Mode, file.Name);
+    if (!fs.existsSync(abs)) throw new Error(this.t.ReconcileNeedsBothSides);
+    const list = await this.client.liquidFilesGet({ TemplateId: this.templateId, Mode: file.Mode, Name: file.Name });
+    const remote = list[0];
+    if (!remote || !(remote.Template instanceof Buffer)) throw new Error(this.t.ReconcileNeedsBothSides);
+    const localText = fs.readFileSync(abs).toString('utf8');
+    const remoteText = remote.Template.toString('utf8');
+    const diff = lineDiff(localText, remoteText);
+    const identical = !diff.tooLarge && !diff.some((d) => d.type !== 'ctx');
+    if (!identical) throw new Error(this.t.ReconcileContentDiffers);
+    store.setMetaEntry(this.shopName, this.templateId, file.Mode, file.Name, store.mtimeUtc(abs), remote.Date);
+    logOk(tmsg('LogReconciled', { label: this._label(file.Mode, file.Name) }));
+    this._notify('reconcile', file.Mode, file.Name);
+  }
+
   // Podgląd różnic przed rozwiązaniem konfliktu — wyłącznie do odczytu.
   // file: { Mode, Name }, type: MismatchType (opcjonalny, pomija zbędne wywołania).
   // Zwraca jedno z:
@@ -496,7 +519,8 @@ export class SyncSession {
     const remote = remoteBuf ? remoteBuf.toString('utf8') : null;
     const diff = lineDiff(local ?? '', remote ?? '');
     if (diff.tooLarge) return { kind: 'tooLarge' };
+    const identical = local != null && remote != null && !diff.some((d) => d.type !== 'ctx');
 
-    return { kind: 'text', local, remote, diff };
+    return { kind: 'text', local, remote, diff, identical };
   }
 }
