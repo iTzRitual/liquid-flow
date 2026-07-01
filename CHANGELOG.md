@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.136] — 2026-07-02
+### Fixed
+- The "no conflicts" info screen now closes only on Enter (was: any key, which made it too easy to dismiss accidentally); hint text updated to say "Enter zamyka/closes" instead of "any key". Also fixed a height-accounting bug where the screen's natural height didn't include its title line, leaving a stray blank row at the bottom of the terminal.
+
 ## [0.9.135] — 2026-07-02
 ### Changed
 - `/conflicts` with nothing to resolve no longer just flashes a log line and instantly returns to input (looked like a popup that vanished before it could be read). It now shows a dedicated "no conflicts" screen for a few seconds, with a live countdown, dismissible instantly by any keypress.

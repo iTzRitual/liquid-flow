@@ -52,6 +52,8 @@ export function naturalBodyRows(mode) {
     // podgląd diff: zwinięty → `lines`, rozwinięty (Tab) → `fullLines`. Nakładka
     // rośnie po rozwinięciu, więc Tab powiększa okno (a nie wciska treść w 1 wiersz).
     case 'diff': return (mode.expanded ? (mode.fullLines ?? mode.lines ?? 0) : (mode.lines || 0)) + 4;
+    // ramka (2) + tytuł opcjonalny (1) + komunikat (1) + odliczenie (1)
+    case 'info': return 2 + (mode.title ? 1 : 0) + 2;
     default: return minBodyRows(mode); // loading/input
   }
 }
