@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.126] — 2026-07-01
+### Added
+- Desktop: sync-start progress loader (download/check) and visual styling for log session-separators and greyed historic entries, matching the CLI.
+
 ## [0.9.124] — 2026-07-01
 ### Fixed
 - Desktop: remove a duplicate `fmt` export in the renderer utils that broke `vite build` (introduced by merging the 011 and 012 desktop plans).
