@@ -6,6 +6,12 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.144] — 2026-07-02
+
+### Changed
+
+- Desktop app attaches to the shared daemon; logs/state/shops are shared live with the CLI and MCP.
+
 ## [0.9.143] — 2026-07-02
 
 ### Changed

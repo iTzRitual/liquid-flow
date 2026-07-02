@@ -20,8 +20,8 @@ let tray = null;
 
 async function getController() {
   if (!controller) {
-    const { Controller } = await import('@liquidflow/core');
-    controller = new Controller({ insecureTLS: process.env.LIQUID_FLOW_INSECURE === '1' });
+    const { connectController } = await import('@liquidflow/core');
+    controller = await connectController({ insecureTLS: process.env.LIQUID_FLOW_INSECURE === '1' });
     // przekaż zdarzenia kontrolera do renderera
     for (const type of ['log', 'log:reset', 'mismatches', 'state', 'git', 'progress']) {
       controller.on(type, (payload) => {
@@ -133,8 +133,8 @@ function registerIpc(ctrl) {
     'git.createBranch': (name) => ctrl.gitCreateBranch(name),
     'git.switchBranch': (data) => ctrl.gitSwitchBranch(data && data.name, { discard: !!(data && data.discard) }),
 
-    'sys.openFolder': () => { const d = ctrl.currentFolder(); if (d) shell.openPath(d); return d; },
-    'sys.openShop': () => { const u = ctrl.currentShopUrl(); if (u) shell.openExternal(u); return u; },
+    'sys.openFolder': async () => { const d = await ctrl.currentFolder(); if (d) shell.openPath(d); return d; },
+    'sys.openShop':   async () => { const u = await ctrl.currentShopUrl(); if (u) shell.openExternal(u); return u; },
     'sys.openExternal': (url) => { if (url && /^https?:\/\//.test(url)) shell.openExternal(url); },
   };
 
