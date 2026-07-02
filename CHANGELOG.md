@@ -6,6 +6,20 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.145] — 2026-07-02
+
+### Changed
+
+- Recorded the CLI's shared-daemon migration in the changelog — the CLI now
+  attaches to the daemon via `connectController()` like the MCP and desktop
+  apps (plan 023); the entry was omitted when the parallel migration worktrees
+  were merged.
+
+### Fixed
+
+- Added a parallel-executor-worktree hygiene note to `CLAUDE.md` and verified
+  `package-lock.json` matches a clean install after the daemon migrations.
+
 ## [0.9.144] — 2026-07-02
 
 ### Changed

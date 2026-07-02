@@ -452,6 +452,7 @@ narzędzi serwera MCP (`apps/mcp`) również są w języku angielskim jako kontr
   (są zawsze zsynchronizowane). Przykład: `0.9.91` → `0.9.92`. Minor (`0.X.0`)
   zwiększamy tylko przy dużych kamieniach milowych (nowa funkcja o istotnym
   zakresie). **Nigdy nie commituj bez zbumpowania wersji.**
+- **Higiena pracy na równoległych worktree (OBOWIĄZKOWE przy wielu wykonawcach)**: gdy kilka planów/wykonawców pracuje jednocześnie w osobnych **git worktree** (np. równoległe migracje 023/024/025), przed scaleniem należy **zrobić rebase lub squash każdej gałęzi na aktualny `main`** i scalać je **pojedynczo**, wykonując bump wersji w momencie scalania. Naiwne scalanie równoległych worktree tworzy zduplikowane commity i powoduje tysiące linii zbędnych zmian w `package-lock.json` (jak przy migracjach daemona wokół commita `e79d473`). Dopuszczalny jest jeden czysty commit na plan; przed pushem należy sprawdzić w `git log --oneline`, czy nie ma zduplikowanych wiadomości.
 - **Changelog (`CHANGELOG.md`, OBOWIĄZKOWE przy każdym commicie)**: po zbumpowaniu
   wersji dopisz nową sekcję na górze pliku (pod nagłówkiem `# Changelog`) w formacie:
   ```
