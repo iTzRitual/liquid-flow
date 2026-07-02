@@ -6,6 +6,12 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.147] — 2026-07-03
+
+### Fixed
+
+- Daemon now shuts down cleanly once the last client disconnects (after a short grace) instead of running forever whenever a sync session was active — no more orphaned `liquidflow-daemon` processes. Tests/e2e reap spawned daemons; the Electron-hosted daemon now runs headless as node (`ELECTRON_RUN_AS_NODE=1`); a `daemon.pid` file is written next to the socket.
+
 ## [0.9.146] — 2026-07-02
 
 ### Fixed

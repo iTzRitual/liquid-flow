@@ -35,7 +35,7 @@ describe('Daemon — integration', () => {
 
   it('Snapshot on connect: sets state, log, mismatches', async () => {
     ctrl = new Controller();
-    server = serve(ctrl, { socketPath });
+    server = serve(ctrl, { socketPath, exit: () => {}, idleMs: 50 });
 
     const client = await DaemonClient.connect(socketPath);
     clients.push(client);
@@ -48,7 +48,7 @@ describe('Daemon — integration', () => {
 
   it('Two clients, cross-client state broadcast', async () => {
     ctrl = new Controller();
-    server = serve(ctrl, { socketPath });
+    server = serve(ctrl, { socketPath, exit: () => {}, idleMs: 50 });
 
     const clientA = await DaemonClient.connect(socketPath);
     const clientB = await DaemonClient.connect(socketPath);
@@ -67,7 +67,7 @@ describe('Daemon — integration', () => {
 
   it('Log broadcast: log event updates mirror log across clients', async () => {
     ctrl = new Controller();
-    server = serve(ctrl, { socketPath });
+    server = serve(ctrl, { socketPath, exit: () => {}, idleMs: 50 });
 
     const clientA = await DaemonClient.connect(socketPath);
     const clientB = await DaemonClient.connect(socketPath);
@@ -94,7 +94,7 @@ describe('Daemon — integration', () => {
 
   it('RPC error propagation: rejects with error message', async () => {
     ctrl = new Controller();
-    server = serve(ctrl, { socketPath });
+    server = serve(ctrl, { socketPath, exit: () => {}, idleMs: 50 });
 
     const client = await DaemonClient.connect(socketPath);
     clients.push(client);
@@ -104,7 +104,7 @@ describe('Daemon — integration', () => {
 
   it('Unknown method: rejects with Unknown method error', async () => {
     ctrl = new Controller();
-    server = serve(ctrl, { socketPath });
+    server = serve(ctrl, { socketPath, exit: () => {}, idleMs: 50 });
 
     const client = await DaemonClient.connect(socketPath);
     clients.push(client);
@@ -114,7 +114,7 @@ describe('Daemon — integration', () => {
 
   it('dispose() only disconnects client, server remains running for others', async () => {
     ctrl = new Controller();
-    server = serve(ctrl, { socketPath });
+    server = serve(ctrl, { socketPath, exit: () => {}, idleMs: 50 });
 
     const clientA = await DaemonClient.connect(socketPath);
     const clientB = await DaemonClient.connect(socketPath);
@@ -130,5 +130,26 @@ describe('Daemon — integration', () => {
     expect(clientBStateReceived).toBeTruthy();
     expect(clientBStateReceived.language).toBe('pl');
     expect(clientB.getState().language).toBe('pl');
+  });
+  it('shuts down (calls exit) after the last client disconnects', async () => {
+    ctrl = new Controller();
+    let exited = 0;
+    server = serve(ctrl, { socketPath, idleMs: 30, exit: () => { exited++; } });
+    const client = await DaemonClient.connect(socketPath);
+    client.dispose();
+    await new Promise((r) => setTimeout(r, 120));
+    expect(exited).toBe(1);
+  });
+
+  it('stays up (does not exit) while a client is connected — even with a session', async () => {
+    ctrl = new Controller();
+    let exited = 0;
+    ctrl.state = { ...(ctrl.state || {}), session: {} };
+    server = serve(ctrl, { socketPath, idleMs: 30, exit: () => { exited++; } });
+    const client = await DaemonClient.connect(socketPath);
+    clients.push(client);
+    await new Promise((r) => setTimeout(r, 120));
+    expect(exited).toBe(0);
+    client.dispose();
   });
 });

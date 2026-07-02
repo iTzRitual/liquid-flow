@@ -195,7 +195,7 @@ export class DaemonClient extends EventEmitter {
 
 export async function spawnDaemon(opts = {}) {
   const daemonBinPath = fileURLToPath(new URL('../../bin/liquidflow-daemon.js', import.meta.url));
-  const env = { ...process.env };
+  const env = { ...process.env, ELECTRON_RUN_AS_NODE: '1' };
   if (opts.insecureTLS) env.LIQUID_FLOW_INSECURE = '1';
   const child = spawn(process.execPath, [daemonBinPath], {
     detached: true,

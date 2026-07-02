@@ -1,25 +1,37 @@
-// Nagłówek: Serwer demona obsługujący gniazdo Unix / named pipe.
-// Przekazuje zapytania RPC do Controller i rozsyła zdarzenia (broadcast) do połączonych klientów.
 import net from 'node:net';
 import fs from 'node:fs';
+import path from 'node:path';
 import { buildMethods } from './protocol.js';
 
-export function serve(controller, { socketPath }) {
+export function serve(controller, { socketPath, idleMs = 10000, exit = () => process.exit(0) }) {
   const methods = buildMethods(controller);
   const clients = new Set();
   let idleTimer = null;
   let isClosed = false;
 
+  const pidPath = process.platform === 'win32'
+    ? null
+    : path.join(path.dirname(socketPath), 'daemon.pid');
+
+  function writePidFile() {
+    if (!pidPath) return;
+    try { fs.writeFileSync(pidPath, String(process.pid)); } catch {}
+  }
+  function removePidFile() {
+    if (!pidPath) return;
+    try { fs.unlinkSync(pidPath); } catch {}
+  }
+
   function scheduleIdleCheck() {
     if (clients.size > 0 || isClosed) return;
-    if (controller.state && controller.state.session) return;
     if (idleTimer) clearTimeout(idleTimer);
     idleTimer = setTimeout(() => {
-      if (clients.size === 0 && (!controller.state || !controller.state.session)) {
+      if (clients.size === 0 && !isClosed) {
         closeServer();
-        process.exit(0);
+        try { controller.dispose && controller.dispose(); } catch {}
+        exit();
       }
-    }, 60000);
+    }, idleMs);
     if (idleTimer.unref) idleTimer.unref();
   }
 
@@ -157,12 +169,15 @@ export function serve(controller, { socketPath }) {
       if (process.platform !== 'win32') {
         try { fs.chmodSync(socketPath, 0o600); } catch {}
       }
+      writePidFile();
+      scheduleIdleCheck();
     });
   }
 
   function closeServer() {
     isClosed = true;
     cancelIdleCheck();
+    removePidFile();
     for (const ev of eventsToForward) {
       if (eventHandlers[ev]) {
         controller.removeListener(ev, eventHandlers[ev]);
