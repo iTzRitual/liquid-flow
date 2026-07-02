@@ -6,6 +6,12 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.146] — 2026-07-02
+
+### Fixed
+
+- Pinned desktop data home (`LIQUID_FLOW_HOME`) to `@liquidflow/core`'s `defaultAppDir()` so Desktop, CLI, and MCP share the exact same data directory and daemon (Plan 028).
+
 ## [0.9.145] — 2026-07-02
 
 ### Changed

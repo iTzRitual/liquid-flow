@@ -4,12 +4,18 @@
 import { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, session } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { defaultAppDir } from '@liquidflow/core';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 
 // Katalog danych aplikacji (zanim załadujemy backend, który go odczytuje).
-process.env.LIQUID_FLOW_HOME = process.env.LIQUID_FLOW_HOME || app.getPath('userData');
+// Wszystkie trzy apki muszą wskazywać ten sam katalog danych, żeby dzielić
+// jednego demona. app.getPath('userData') zależy od nazwy aplikacji (inne w dev
+// i w buildzie) i NIGDY nie pokrywa się z domyślnym katalogiem CLI/MCP — dlatego
+// przypinamy kanoniczny defaultAppDir() z rdzenia. Jawny LIQUID_FLOW_HOME wciąż
+// ma pierwszeństwo (testy/override).
+process.env.LIQUID_FLOW_HOME = process.env.LIQUID_FLOW_HOME || defaultAppDir();
 
 const DEV = process.env.LIQUID_DEV === '1';
 const DEV_URL = 'http://localhost:5173';

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as store from './store.js';
+import { defaultAppDir } from './store.js';
 
 // Każdy test używa innej nazwy sklepu, więc współdzielą jeden LIQUID_FLOW_HOME
 // (ustawiony w setupFile) bez wzajemnych kolizji.
@@ -142,5 +143,22 @@ describe('trwała historia logu (jsonl)', () => {
     for (let i = 0; i < 10; i++) store.appendLogEntry(shop, 4, { TS: `t${i}`, Text: `e${i}`, Color: '#666' });
     const tail = store.readLogTail(shop, 4, 3);
     expect(tail.map((e) => e.Text)).toEqual(['e7', 'e8', 'e9']);
+  });
+});
+
+describe('defaultAppDir', () => {
+  it('ignores LIQUID_FLOW_HOME and returns the canonical per-OS dir', () => {
+    const before = process.env.LIQUID_FLOW_HOME;
+    process.env.LIQUID_FLOW_HOME = '/tmp/some/override';
+    try {
+      const dir = defaultAppDir();
+      expect(dir).not.toBe('/tmp/some/override');
+      const leaf = path.basename(dir);
+      // macOS/Windows → 'LiquidFlow'; Linux → 'liquid-flow'
+      expect(['LiquidFlow', 'liquid-flow']).toContain(leaf);
+    } finally {
+      if (before === undefined) delete process.env.LIQUID_FLOW_HOME;
+      else process.env.LIQUID_FLOW_HOME = before;
+    }
   });
 });

@@ -11,7 +11,7 @@ import crypto from 'node:crypto';
 
 // Katalog danych — wieloplatformowy. W aplikacji Electron nadpisywany przez
 // LIQUID_FLOW_HOME (= app.getPath('userData')). Domyślne wartości per-OS:
-function defaultAppDir() {
+export function defaultAppDir() {
   const home = os.homedir();
   if (process.platform === 'win32') {
     return path.join(process.env.APPDATA || path.join(home, 'AppData', 'Roaming'), 'LiquidFlow');
