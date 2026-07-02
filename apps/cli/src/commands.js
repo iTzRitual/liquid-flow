@@ -75,8 +75,8 @@ export function buildCommands(ctx) {
   };
 
   // /templates: od razu pokaż loader, potem listę.
-  const goTemplates = () => {
-    if (!ctrl.getCurrentShop()) { log.logErr(log.tmsg('LoginFirst')); return; }
+  const goTemplates = async () => {
+    if (!await ctrl.getCurrentShop()) { log.logErr(log.tmsg('LoginFirst')); return; }
     withLoading(t.LoadingTemplates, openTemplatesPicker);
   };
 
@@ -186,9 +186,9 @@ export function buildCommands(ctx) {
   // inny edytor przez LIQUIDFLOW_DIFF_CMD): lewa strona to PRAWDZIWA ścieżka
   // lokalna (edycja w IDE zapisuje się tam, więc watcher/git widzą zmianę),
   // prawa to zdalna wersja zapisana do pliku tymczasowego (tylko do referencji).
-  const openInIde = (m, preview) => {
+  const openInIde = async (m, preview) => {
     if (preview?.kind !== 'text' && preview?.kind !== 'tooLarge') return;
-    const localPath = ctrl.localFilePath(m.File);
+    const localPath = await ctrl.localFilePath(m.File);
     const remotePath = writeRemoteTemp(m.File.Name, preview.remote);
     openIdeDiff(localPath, remotePath, (cmd, err) => {
       log.logErr(log.tmsg('IdeDiffFailed', { cmd, error: err.message }));
@@ -449,7 +449,7 @@ export function buildCommands(ctx) {
     { name: '/templates', desc: t.CmdTemplates, run: () => goTemplates() },
     { name: '/conflicts', desc: t.CmdConflicts, run: () => showConflicts() },
     { name: '/git', desc: t.CmdGit, run: () => gitMenu() },
-    { name: '/open', desc: t.CmdOpen, run: () => { const d = ctrl.currentFolder(); if (d) { openExternal(d); log.logInfo(log.tmsg('Opening', { path: d })); } else log.logErr(log.tmsg('NoActiveTemplate')); } },
+    { name: '/open', desc: t.CmdOpen, run: async () => { const d = await ctrl.currentFolder(); if (d) { openExternal(d); log.logInfo(log.tmsg('Opening', { path: d })); } else log.logErr(log.tmsg('NoActiveTemplate')); } },
     { name: '/clear', desc: t.CmdClear, run: () => clearLog() },
     { name: '/settings', desc: t.CmdSettings, run: () => settingsMenu() },
     { name: '/exit(quit)', desc: t.CmdExit, run: () => exit() },

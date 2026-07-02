@@ -30,6 +30,7 @@ const cur = (label) => new RegExp('›\\s*' + label); // kursor (›) na danej e
 beforeEach(() => {
   hookValue = {
     ctrl: fakeCtrl,
+    ready: true,
     t,
     state: { currentShop: { Name: 'shop' }, currentTemplate: { Id: '1', Name: 'tpl' }, language: 'pl', logWrap: false, headerMode: 'auto' },
     mismatches: [],

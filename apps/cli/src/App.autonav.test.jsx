@@ -34,6 +34,7 @@ const wait = (ms = 40) => new Promise((r) => setTimeout(r, ms));
 beforeEach(() => {
   hookValue = {
     ctrl: fakeCtrl,
+    ready: true,
     t,
     state: { currentShop: { Name: 'shop' }, currentTemplate: { Id: '1', Name: 'tpl' }, language: 'pl', logWrap: false, headerMode: 'auto' },
     mismatches: [conflictA, conflictB],

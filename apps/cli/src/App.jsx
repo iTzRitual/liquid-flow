@@ -33,7 +33,7 @@ import InfoScreen from './components/InfoScreen.jsx';
 export default function App() {
   const { exit } = useApp();
   const { stdout } = useStdout();
-  const { ctrl, t, state, mismatches, log, logVersion, git, shops, progress, refreshShops, clearLog } = useController();
+  const { ctrl, ready, t, state, mismatches, log, logVersion, git, shops, progress, refreshShops, clearLog } = useController();
 
   // mode: { type: 'input' } | { type: 'picker', ... } | { type: 'form', ... }
   const [mode, setMode] = useState({ type: 'input' });
@@ -45,9 +45,9 @@ export default function App() {
   // je ze `state` (pamiętane między uruchomieniami), a zapis idzie przez `ctrl`
   // (emituje 'state' → odświeżenie). Settery zachowują dawną sygnaturę dla komend.
   const logWrap = !!state?.logWrap;
-  const setLogWrap = (v) => ctrl.setUiPref('logWrap', v);
+  const setLogWrap = (v) => ctrl?.setUiPref('logWrap', v);
   const headerPref = state?.headerMode || 'auto';
-  const setHeaderPref = (v) => ctrl.setUiPref('headerMode', v);
+  const setHeaderPref = (v) => ctrl?.setUiPref('headerMode', v);
   const [logScroll, setLogScroll] = useState(0); // ile wizualnych wierszy od dołu (0 = najnowsze)
   // Nawigacja „wstecz”: każda otwierana nakładka dostaje wskaźnik `parent` (ekran,
   // z którego przyszliśmy). Esc wraca do rodzica, a dopiero z ekranu najwyższego
@@ -186,13 +186,13 @@ export default function App() {
   // Na starcie (gdy niepołączony) od razu otwórz listę sklepów do połączenia.
   const booted = useRef(false);
   useEffect(() => {
-    if (booted.current) return;
+    if (!ready || booted.current) return;
     if (state && !state.currentShop) {
       booted.current = true;
       pendingParentRef.current = null;
       commands.find((c) => c.name === '/connect')?.run();
     }
-  }, [state, commands]);
+  }, [ready, state, commands]);
 
   // Filtrowanie palety na podstawie wpisanego tekstu (po wiodącym '/').
   const palette = query.startsWith('/') ? query.slice(1).toLowerCase() : null;
@@ -312,6 +312,14 @@ export default function App() {
   // Okno za niskie, by zmieścić bieżący tryb nawet bez nagłówka — pokaż prośbę o
   // powiększenie zamiast rozsypanego/zdublowanego widoku (Ink przy przepełnieniu
   // dokleja kopię ramki). Komunikat mieści się w 1 wierszu (truncate-end).
+  if (ready === false || !ctrl) {
+    return (
+      <Box height={termRows} alignItems="center" justifyContent="center">
+        <Spinner color="cyan" /><Text> {t.Loading}</Text>
+      </Box>
+    );
+  }
+
   if (tooSmall) {
     return (
       <Box height={termRows} alignItems="center" justifyContent="center" paddingX={1}>
