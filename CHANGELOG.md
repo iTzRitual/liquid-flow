@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.138] — 2026-07-02
+### Changed
+- Removed `plans/` from `.gitignore` so planning documents are tracked and pushed to the repo.
+
 ## [0.9.137] — 2026-07-02
 ### Changed
 - Reverted the "no conflicts" info screen back to dismissing on any keypress (not Enter-only), with the hint text simplified to a plain "Zamknij dowolnym klawiszem" / "Close with any key" (no live countdown text).
