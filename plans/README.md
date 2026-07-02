@@ -15,12 +15,12 @@ version in all four `package.json` files (root, `apps/cli`, `packages/core`,
 
 ## Execution order & status
 
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 022  | Shared daemon foundation — one Controller, many thin clients (daemon + `DaemonClient` + `connectController` in core) | P1 | L | — | TODO |
-| 023  | Migrate the CLI onto the shared daemon (`connectController`) | P1 | M | 022 | TODO |
-| 024  | Migrate the MCP server onto the shared daemon | P1 | M | 022 | TODO |
-| 025  | Migrate the desktop app onto the shared daemon | P2 | M | 022 | TODO |
+| Plan | Title                                                                                                                | Priority | Effort | Depends on | Status |
+| ---- | -------------------------------------------------------------------------------------------------------------------- | -------- | ------ | ---------- | ------ |
+| 022  | Shared daemon foundation — one Controller, many thin clients (daemon + `DaemonClient` + `connectController` in core) | P1       | L      | —          | DONE   |
+| 023  | Migrate the CLI onto the shared daemon (`connectController`)                                                         | P1       | M      | 022        | DONE   |
+| 024  | Migrate the MCP server onto the shared daemon                                                                        | P1       | M      | 022        | DONE   |
+| 025  | Migrate the desktop app onto the shared daemon                                                                       | P2       | M      | 022        | TODO   |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
@@ -41,11 +41,11 @@ as thin clients. Split into a foundation plan + three app migrations so each is
 one clean, independently-reviewable diff:
 
 - **022 (foundation, P1, L)** — new `liquidflow-daemon` process + `DaemonClient`
-  + `connectController()` factory in `@liquidflow/core`, over a local
-  unix-socket/named-pipe. Purely additive; migrates **no** app, so it can't
-  regress anything. Auto-spawns the daemon on first use; `LIQUID_FLOW_NO_DAEMON=1`
-  keeps today's in-process behavior. This is the whole hard part (RPC surface,
-  event broadcast, snapshot-on-connect, lifecycle, tests).
+    - `connectController()` factory in `@liquidflow/core`, over a local
+      unix-socket/named-pipe. Purely additive; migrates **no** app, so it can't
+      regress anything. Auto-spawns the daemon on first use; `LIQUID_FLOW_NO_DAEMON=1`
+      keeps today's in-process behavior. This is the whole hard part (RPC surface,
+      event broadcast, snapshot-on-connect, lifecycle, tests).
 - **023 (CLI, P1, M)**, **024 (MCP, P1, M)**, **025 (desktop, P2, M)** — each
   swaps `new Controller()` → `await connectController()`. 023 and 024 are the
   pair the user explicitly wants sharing (watch in CLI, drive via MCP), so they
