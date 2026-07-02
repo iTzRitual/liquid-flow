@@ -1,6 +1,6 @@
 {
   "name": "@liquidflow/desktop",
-  "version": "0.9.92",
+  "version": "0.9.93",
   "description": "Liquid Flow — aplikacja desktopowa (Electron) do synchronizacji szablonów Liquid",
   "type": "module",
   "main": "electron/main.js",

@@ -2,42 +2,47 @@
 // Subskrybuje zdarzenia kontrolera (log / mismatches / state / git) i wystawia
 // aktualny stan oraz odświeżanie listy sklepów.
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Controller, translationsFor } from '@liquidflow/core';
+import { useEffect, useState, useCallback } from 'react';
+import { connectController, translationsFor } from '@liquidflow/core';
 
 const LOG_LIMIT = 500;
 
 export function useController() {
-  const ref = useRef(null);
-  if (!ref.current) {
-    ref.current = new Controller({ insecureTLS: process.env.LIQUID_FLOW_INSECURE === '1' });
-  }
-  const ctrl = ref.current;
-
-  const [state, setState] = useState(() => ctrl.getState());
-  // Tłumaczenia dla bieżącego języka — odświeżane przy każdej zmianie stanu
-  // (zmiana języka emituje 'state'). App przekazuje `t` do komponentów i komend.
-  const [t, setT] = useState(() => translationsFor(ctrl.getState().language));
+  const [ctrl, setCtrl] = useState(null);
+  const [ready, setReady] = useState(false);
+  const [state, setState] = useState(null);
+  const [t, setT] = useState(() => translationsFor('pl'));
   const [mismatches, setMismatches] = useState([]);
   const [log, setLog] = useState([]);
   // Rośnie przy każdym przełączeniu kanału logu (zmiana sklepu/szablonu) — App
   // używa go, by zjechać scrollem na dół świeżego strumienia.
   const [logVersion, setLogVersion] = useState(0);
   const [git, setGit] = useState(null);
-  const [shops, setShops] = useState(() => ctrl.listShops());
+  const [shops, setShops] = useState([]);
   const [progress, setProgress] = useState(null);
 
   useEffect(() => {
+    let client = null;
+    let disposed = false;
+
     const onLog = (e) => setLog((l) => [...l, e].slice(-LOG_LIMIT));
     // Pełna podmiana bufora po przełączeniu kanału (osobny log per szablon/sklep).
-    const onLogReset = (entries) => { setLog(entries.slice(-LOG_LIMIT)); setLogVersion((v) => v + 1); };
-    const onMis = (m) => setMismatches(m);
+    const onLogReset = (entries) => { setLog((entries || []).slice(-LOG_LIMIT)); setLogVersion((v) => v + 1); };
+    const onMis = (m) => setMismatches(m || []);
     // Zmiana stanu = potencjalna zmiana połączenia (login/logout) → odśwież listę
     // sklepów, żeby flaga isCurrent (● bieżący / URL) była zawsze aktualna.
-    const onState = (s) => { setState(s); setT(translationsFor(s.language)); setShops(ctrl.listShops()); };
+    const onState = (s) => {
+      if (!s) return;
+      setState(s);
+      setT(translationsFor(s.language));
+      if (client) {
+        client.listShops().then((shp) => { if (!disposed && shp) setShops(shp); }).catch(() => {});
+      }
+    };
     const onGit = (g) => setGit(g);
     const onProgress = (p) => {
-      const tr = translationsFor(ctrl.getState().language);
+      const lang = client?.getState()?.language || 'pl';
+      const tr = translationsFor(lang);
       if (p.phase === 'download') {
         if (p.state === 'done') setProgress(null);
         else setProgress({ kind: 'download', label: tr.DownloadingFiles, done: p.done || 0, total: p.total || 0, indeterminate: p.state === 'start' });
@@ -49,30 +54,52 @@ export function useController() {
       }
     };
 
-    ctrl.on('log', onLog);
-    ctrl.on('log:reset', onLogReset);
-    ctrl.on('mismatches', onMis);
-    ctrl.on('state', onState);
-    ctrl.on('git', onGit);
-    ctrl.on('progress', onProgress);
+    (async () => {
+      client = await connectController({ insecureTLS: process.env.LIQUID_FLOW_INSECURE === '1' });
+      if (disposed) { client.dispose(); return; }
 
-    setLog(ctrl.getLog(0));
-    setState(ctrl.getState());
-    setShops(ctrl.listShops());
+      client.on('log', onLog);
+      client.on('log:reset', onLogReset);
+      client.on('mismatches', onMis);
+      client.on('state', onState);
+      client.on('git', onGit);
+      client.on('progress', onProgress);
+
+      const st = client.getState();
+      const shp = await client.listShops();
+      if (!disposed) {
+        if (st) {
+          setState(st);
+          setT(translationsFor(st.language));
+        }
+        setLog(client.getLog(0));
+        setShops(shp || []);
+        setCtrl(client);
+        setReady(true);
+      }
+    })();
 
     return () => {
-      ctrl.off('log', onLog);
-      ctrl.off('log:reset', onLogReset);
-      ctrl.off('mismatches', onMis);
-      ctrl.off('state', onState);
-      ctrl.off('git', onGit);
-      ctrl.off('progress', onProgress);
-      ctrl.dispose();
+      disposed = true;
+      if (client) {
+        client.off('log', onLog);
+        client.off('log:reset', onLogReset);
+        client.off('mismatches', onMis);
+        client.off('state', onState);
+        client.off('git', onGit);
+        client.off('progress', onProgress);
+        client.dispose();
+      }
     };
+  }, []);
+
+  const refreshShops = useCallback(() => {
+    if (ctrl) {
+      ctrl.listShops().then((shp) => setShops(shp || [])).catch(() => {});
+    }
   }, [ctrl]);
 
-  const refreshShops = useCallback(() => setShops(ctrl.listShops()), [ctrl]);
   const clearLog = useCallback(() => setLog([]), []);
 
-  return { ctrl, t, state, mismatches, log, logVersion, git, shops, progress, refreshShops, clearLog };
+  return { ctrl, ready, t, state, mismatches, log, logVersion, git, shops, progress, refreshShops, clearLog };
 }
