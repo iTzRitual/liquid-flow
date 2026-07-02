@@ -22,6 +22,7 @@ version in all four `package.json` files (root, `apps/cli`, `packages/core`,
 | 024  | Migrate the MCP server onto the shared daemon                                                                        | P1       | M      | 022        | DONE   |
 | 025  | Migrate the desktop app onto the shared daemon                                                                       | P2       | M      | 022        | DONE   |
 | 027  | Post-migration bookkeeping — CLI changelog entry, lockfile check, parallel-worktree hygiene note                     | P3       | S      | 022–025    | DONE   |
+| 028  | Unify data home across apps — desktop pins core `defaultAppDir()` so all apps share one daemon (fixes split shops)   | P1       | S      | 022–025    | DONE   |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
