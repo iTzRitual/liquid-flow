@@ -31,6 +31,7 @@ packages/core/   @liquidflow/core — cała logika, niezależna od UI
   index.js         publiczny barrel export
 apps/desktop/    @liquidflow/desktop — electron/ (main.js, preload.cjs) + renderer/ (Vite+Tailwind+shadcn)
 apps/cli/        @liquidflow/cli — bin/liquidflow.js + src/ (Ink)
+apps/mcp/        @liquidflow/mcp — serwer MCP dla agentów AI (bin/liquidflow-mcp.js + src/server.js)
 ```
 
 **Wzorzec kluczowy:** `core` nie importuje Electrona ani Ink/React. `Controller`
@@ -416,7 +417,8 @@ Jak `t` (tablica dla bieżącego języka) trafia do warstw:
 
 Warstwa VCS (`git.js`) celowo trzyma **angielskie** stringi techniczne (komunikaty
 commitów/błędy plumbingu to dane repo, nie UI); teksty widoczne w historii
-(np. komunikat „restore") przekazuje `controller.js` już przetłumaczone.
+(np. komunikat „restore") przekazuje `controller.js` już przetłumaczone. Opisy i wyniki
+narzędzi serwera MCP (`apps/mcp`) również są w języku angielskim jako kontrakt API.
 
 **Weryfikacja po zmianach i18n** (uruchamiać z katalogu repo):
 - parytet kluczy + brak „nieprzetłumaczonych" (en === pl, a w treści są polskie znaki):
@@ -444,9 +446,9 @@ commitów/błędy plumbingu to dane repo, nie UI); teksty widoczne w historii
   Pracujemy bezpośrednio na `main`. Remote:
   `git@github.com:iTzRitual/comarch-liquid-sync-2026.git`.
 - **Wersjonowanie (OBOWIĄZKOWE przy każdym commicie)**: przed każdym commitem
-  zwiększ numer patch w `version` o 1 we **wszystkich trzech** plikach
+  zwiększ numer patch w `version` o 1 we **wszystkich czterech** plikach
   jednocześnie: `package.json` (root), `apps/cli/package.json`,
-  `packages/core/package.json`. Aktualną wersję odczytaj z jednego z tych plików
+  `packages/core/package.json`, `apps/mcp/package.json`. Aktualną wersję odczytaj z jednego z tych plików
   (są zawsze zsynchronizowane). Przykład: `0.9.91` → `0.9.92`. Minor (`0.X.0`)
   zwiększamy tylko przy dużych kamieniach milowych (nowa funkcja o istotnym
   zakresie). **Nigdy nie commituj bez zbumpowania wersji.**

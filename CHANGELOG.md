@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.140] — 2026-07-02
+### Added
+- Added `@liquidflow/mcp`, an MCP (Model Context Protocol) server workspace exposing sync, conflict resolution, log polling, and git checkpoints to AI agents over stdio (plan 020).
+
 ## [0.9.139] — 2026-07-02
 ### Changed
 - CLI process name now appears as `liquidflow` instead of `node` in process listings.

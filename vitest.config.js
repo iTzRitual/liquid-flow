@@ -14,6 +14,7 @@ export default defineConfig({
       'apps/cli/**/*.test.js',
       // Komponenty Ink (JSX) — interakcje przez ink-testing-library.
       'apps/cli/**/*.test.jsx',
+      'apps/mcp/**/*.test.js',
     ],
     environment: 'node',
     // Świeży, izolowany katalog danych (LIQUID_FLOW_HOME) per plik testowy —
