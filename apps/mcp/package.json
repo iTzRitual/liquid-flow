@@ -1,0 +1,18 @@
+{
+  "name": "@liquidflow/mcp",
+  "version": "0.9.138",
+  "description": "Liquid Flow — serwer MCP (Model Context Protocol) dla agentów AI",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "liquidflow-mcp": "bin/liquidflow-mcp.js"
+  },
+  "scripts": {
+    "start": "node bin/liquidflow-mcp.js"
+  },
+  "dependencies": {
+    "@liquidflow/core": "*",
+    "@modelcontextprotocol/sdk": "^1",
+    "zod": "^3"
+  }
+}

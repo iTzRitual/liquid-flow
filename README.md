@@ -102,6 +102,43 @@ aby nie ubić sesji synchronizacji).
 | `/clear` | wyczyść panel logu |
 | `/exit` (`/quit`) | zakończ |
 
+## Serwer MCP (@liquidflow/mcp)
+
+Liquid Flow udostępnia serwer MCP (Model Context Protocol), który pozwala agentom AI (np. Claude Code, Claude Desktop) programowo sterować synchronizacją, konfliktami, logami oraz git-checkpointami za pomocą protokołu MCP.
+
+### Jak uruchomić
+
+Serwer działa na strumieniach stdio:
+
+```bash
+# Uruchomienie bezpośrednio z monorepo
+node apps/mcp/bin/liquidflow-mcp.js
+
+# Lub po zlinkowaniu pakietu:
+npm link --workspace @liquidflow/mcp && liquidflow-mcp
+```
+
+### Konfiguracja hosta MCP
+
+Przykładowy wpis konfiguracyjny do dodania w pliku konfiguracyjnym Twojego klienta MCP (np. claude_desktop_config.json):
+
+```json
+{
+  "mcpServers": {
+    "liquidflow": {
+      "command": "node",
+      "args": ["/bezwzględna/ścieżka/do/repo/apps/mcp/bin/liquidflow-mcp.js"]
+    }
+  }
+}
+```
+
+### Bezpieczeństwo i ograniczenia
+
+- **Brak haseł przez MCP**: Narzędzie connect_shop obsługuje wyłącznie połączenia z zapisanymi wcześniej sklepami posiadającymi zapamiętane hasło (SavePassword). Dodawanie nowych sklepów lub uwierzytelnianie nowych sesji musi odbywać się przez CLI lub aplikację desktopową.
+- **Purity strumienia stdio**: Serwer komunikuje się wyłącznie przez stdout. Logi techniczne i błędy są przekazywane za pomocą mechanizmu błędów MCP lub kierowane na stderr.
+
+
 ## Gdzie są pliki
 
 Katalog danych aplikacji (wieloplatformowy):
