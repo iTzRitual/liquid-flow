@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // Punkt wejścia serwera MCP `liquidflow-mcp` (transport stdio).
 // UWAGA: stdout należy do protokołu MCP — żadnych console.log.
-import { Controller } from '@liquidflow/core';
+import { connectController } from '@liquidflow/core';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { buildServer } from '../src/server.js';
 
-const ctrl = new Controller();
+const ctrl = await connectController({ insecureTLS: process.env.LIQUID_FLOW_INSECURE === '1' });
 const server = buildServer(ctrl);
 
 const shutdown = () => { try { ctrl.dispose(); } catch {} process.exit(0); };

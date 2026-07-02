@@ -122,7 +122,7 @@ export function buildServer(ctrl) {
       }
       return {
         ...r,
-        workspace: ctrl.currentFolder()
+        workspace: await ctrl.currentFolder()
       };
     })
   );
@@ -134,13 +134,13 @@ export function buildServer(ctrl) {
       description: 'Get the directories for the active sync session workspace. You should edit files in the edit directory, and changes will be automatically uploaded.'
     },
     wrap(async () => {
-      if (!ctrl.state || !ctrl.state.session) {
+      const st = ctrl.getState();
+      if (!st || !st.currentTemplate || !st.currentShop) {
         throw new Error('No active sync session — call select_template first.');
       }
-      const templateDir = ctrl.currentFolder();
-      const shopName = ctrl.state.session.shopName;
-      const tplId = ctrl.state.session.templateId;
-      const editDir = store.templateModeDir(shopName, tplId, 0);
+      const templateDir = await ctrl.currentFolder();
+      // editDir = tryb roboczy '0'; policz lokalnie przez store (czysta ścieżka)
+      const editDir = store.templateModeDir(st.currentShop.Name, st.currentTemplate.Id, 0);
       return {
         templateDir,
         editDir,
