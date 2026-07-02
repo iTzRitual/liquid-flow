@@ -20,7 +20,7 @@ version in all four `package.json` files (root, `apps/cli`, `packages/core`,
 | 022  | Shared daemon foundation — one Controller, many thin clients (daemon + `DaemonClient` + `connectController` in core) | P1       | L      | —          | DONE   |
 | 023  | Migrate the CLI onto the shared daemon (`connectController`)                                                         | P1       | M      | 022        | DONE   |
 | 024  | Migrate the MCP server onto the shared daemon                                                                        | P1       | M      | 022        | DONE   |
-| 025  | Migrate the desktop app onto the shared daemon                                                                       | P2       | M      | 022        | TODO   |
+| 025  | Migrate the desktop app onto the shared daemon                                                                       | P2       | M      | 022        | DONE   |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
