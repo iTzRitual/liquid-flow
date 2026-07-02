@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.139] — 2026-07-02
+### Changed
+- CLI process name now appears as `liquidflow` instead of `node` in process listings.
+- Removed `node` wrapper from CLI start script to show proper process name.
+
 ## [0.9.138] — 2026-07-02
 ### Changed
 - Removed `plans/` from `.gitignore` so planning documents are tracked and pushed to the repo.

@@ -1,6 +1,6 @@
 {
   "name": "@liquidflow/cli",
-  "version": "0.9.138",
+  "version": "0.9.139",
   "description": "Liquid Flow — interaktywne CLI (liquidflow) do synchronizacji szablonów Liquid",
   "type": "module",
   "license": "MIT",
@@ -8,7 +8,7 @@
     "liquidflow": "bin/liquidflow.js"
   },
   "scripts": {
-    "start": "node bin/liquidflow.js"
+    "start": "bin/liquidflow.js"
   },
   "dependencies": {
     "@liquidflow/core": "*",

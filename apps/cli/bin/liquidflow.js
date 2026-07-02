@@ -5,5 +5,7 @@
 
 import { register } from 'tsx/esm/api';
 
+process.title = 'liquidflow';
+
 register();
 await import(new URL('../src/index.jsx', import.meta.url).href);
