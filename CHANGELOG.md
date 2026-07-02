@@ -6,6 +6,13 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.141] — 2026-07-02
+### Added
+- Shared daemon foundation: a headless process (`liquidflow-daemon`) owning one
+  Controller, with `DaemonClient` and a `connectController()` factory in
+  `@liquidflow/core` for CLI/desktop/MCP to attach over a local socket. No app
+  is migrated yet (plans 023–025). `LIQUID_FLOW_NO_DAEMON=1` forces in-process.
+
 ## [0.9.140] — 2026-07-02
 ### Added
 - Added `@liquidflow/mcp`, an MCP (Model Context Protocol) server workspace exposing sync, conflict resolution, log polling, and git checkpoints to AI agents over stdio (plan 020).

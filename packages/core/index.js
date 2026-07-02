@@ -10,3 +10,6 @@ export * as store from './src/store.js';
 export * as git from './src/git.js';
 export * as log from './src/log.js';
 export { lineDiff, diffSummary, buildDiffRows } from './src/diff.js';
+
+export { connectController, DaemonClient } from './src/daemon/client.js';
+export { serve as serveDaemon } from './src/daemon/server.js';

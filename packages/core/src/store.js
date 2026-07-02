@@ -109,6 +109,16 @@ export function metaDir(shopName) {
   return path.join(shopDir(shopName), 'meta');
 }
 
+// Ścieżka gniazda demona (Unix socket / named pipe). Podąża za LIQUID_FLOW_HOME
+// przez APP_DIR, więc testy z tmp-home dostają własne gniazdo.
+export function daemonSocketPath() {
+  if (process.platform === 'win32') {
+    return '\\.\pipe\liquidflow-' + crypto.createHash('sha1').update(APP_DIR).digest('hex').slice(0, 16);
+  }
+  ensureAppDirs();
+  return path.join(APP_DIR, 'daemon.sock');
+}
+
 // Bezwzględna ścieżka pliku lokalnego dla danego (template, mode, name).
 export function localFilePath(shopName, templateId, mode, name) {
   const parts = String(name).split('/').filter((p) => p.length);

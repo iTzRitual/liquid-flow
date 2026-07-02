@@ -1,7 +1,7 @@
 {
   "name": "@liquidflow/core",
-  "version": "0.9.140",
-  "description": "Liquid Flow — wspólna logika (klient SOAP, silnik synchronizacji, store, git) niezależna od warstwy prezentacji",
+  "version": "0.9.141",
+  "description": "Liquid Flow \u2014 wsp\u00f3lna logika (klient SOAP, silnik synchronizacji, store, git) niezale\u017cna od warstwy prezentacji",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -11,5 +11,8 @@
   "license": "MIT",
   "engines": {
     "node": ">=18"
+  },
+  "bin": {
+    "liquidflow-daemon": "bin/liquidflow-daemon.js"
   }
 }
