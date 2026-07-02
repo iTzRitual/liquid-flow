@@ -107,6 +107,31 @@ against the official docs on 2026-07-02, with a pinned v1-SDK fallback as an
 escape hatch. This realizes the deferred direction finding **DIR-03**
 (headless/scriptable surface) via MCP rather than shell subcommands.
 
+**Run 5b** — 2026-07-02 (`reconcile` / review of the 020 execution by a weaker
+model). Two verified corrections to the executor's "APPROVE, all set to merge"
+report:
+1. **The code is good but is NOT on `main`.** It lives on the unmerged branch
+   `subagent-Executor-for-Plan-020-self-250ed085` (`30820c9`). Independent
+   static re-review confirmed all 14 tools faithful, `resolve_conflict` threads
+   the mismatch `Type`, no credential leak, no `console.*`, correct SDK usage —
+   so the implementation is sound. But `main` advanced to `0.9.139` while the
+   branch (cut from `2a0d9d2`) bumped to `0.9.138`, so a plain `git merge`
+   **conflicts on four files** (`package.json` ×3 + `CHANGELOG.md`). The
+   executor's "just run `git merge`" advice is wrong. Landing it is plan **021**
+   (re-bump to `0.9.140`, resolve the changelog).
+2. **Plan-fact defect (my fault, not the executor's):** plan 020 told the
+   executor to install `@modelcontextprotocol/server`/`client` at `^1`. Those
+   split packages only exist at `2.0.0-beta.1` — there is no stable `^1` — so
+   the primary install was unresolvable and the executor **correctly** took the
+   documented fallback to the unified `@modelcontextprotocol/sdk@1.29.0` + zod
+   v3 with raw-shape `inputSchema`. The fallback is the right long-term choice;
+   do not "upgrade" `apps/mcp` to the beta split packages. (This is why the
+   plan carried a fallback at all — it worked as intended.)
+
+Note: `npm test` was **not** re-run in this reconcile (no installed tree on
+`main`); the executor reported 311/311 green twice and plan 021's post-merge
+`npm test` gate re-verifies before the code lands.
+
 Each executor: read the plan fully before starting, honor its STOP conditions,
 and update your row when done.
 
@@ -139,7 +164,9 @@ commit (see CLAUDE.md).
 | 017  | Expand folded unchanged lines in the conflict diff preview (Tab toggle, CLI) | P2 | M | — | DONE (revised) — merged to `main` @ `eba0596` (v0.9.130); Tab-expand fixed in `7b3ad9f` (v0.9.131) to actually grow the overlay (was cramming expanded content into a 1-row viewport). |
 | 018  | Fix corrupted `tooLarge`/`binary` diff-preview render (title truncate + overlay sizing, CLI) | P1 | S | — | DONE — merged to `main` @ `926649c` (v0.9.128). |
 | 019  | Auto-suppress identical-content timestamp conflicts + Tab-expand grows the diff window (CLI) | P1 | M | supersedes 016 | DONE — implemented directly on `main` @ `7b3ad9f` (v0.9.131), pushed. |
-| 020  | MCP server (`@liquidflow/mcp`) — expose sync/conflicts/log/git to AI agents over stdio | P2 | L | — | TODO |
+| 020  | MCP server (`@liquidflow/mcp`) — expose sync/conflicts/log/git to AI agents over stdio | P2 | L | — | DONE — reviewed & correct; folded into the 021 merge commit `2f7b632`, awaiting land to `main`. |
+| 021  | Land plan 020 onto `main` — conflict-resolved merge (re-bump to v0.9.140) | P1 | S | 020 | DONE — APPROVED. Merge executed + reviewed in worktree `worktree-agent-ab7e18648cb9143cd` @ `2f7b632`; criteria re-run green (311/311 tests, stdio stdout pure, all four `package.json` v0.9.140, zero conflict markers). **NOT yet on `main`** — landing is the maintainer's decision. |
+
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
