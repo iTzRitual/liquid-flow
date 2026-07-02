@@ -6,6 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.143] — 2026-07-02
+### Changed
+- MCP server attaches to the shared daemon; agent-driven sync is now visible in the CLI/desktop and shares one watcher.
+
 ## [0.9.142] — 2026-07-02
 ### Fixed
 - Hardened DaemonClient.connect() to wait for initial snapshot before resolving so getState() is non-null immediately after connect (plan 026).
