@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.142] — 2026-07-02
+### Fixed
+- Hardened DaemonClient.connect() to wait for initial snapshot before resolving so getState() is non-null immediately after connect (plan 026).
+- Fixed malformed Windows named-pipe path in daemonSocketPath().
+
 ## [0.9.141] — 2026-07-02
 ### Added
 - Shared daemon foundation: a headless process (`liquidflow-daemon`) owning one

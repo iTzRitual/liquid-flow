@@ -1,7 +1,7 @@
 {
   "name": "liquid-flow",
-  "version": "0.9.141",
-  "description": "Liquid Flow \u2014 synchronizacja i hot-reload szablon\u00f3w Liquid sklep\u00f3w Comarch e-Sklep. Aplikacja desktopowa i CLI.",
+  "version": "0.9.142",
+  "description": "Liquid Flow — synchronizacja i hot-reload szablonów Liquid sklepów Comarch e-Sklep. Aplikacja desktopowa i CLI.",
   "private": true,
   "type": "module",
   "license": "MIT",

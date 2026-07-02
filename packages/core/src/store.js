@@ -113,7 +113,7 @@ export function metaDir(shopName) {
 // przez APP_DIR, więc testy z tmp-home dostają własne gniazdo.
 export function daemonSocketPath() {
   if (process.platform === 'win32') {
-    return '\\.\pipe\liquidflow-' + crypto.createHash('sha1').update(APP_DIR).digest('hex').slice(0, 16);
+    return '\\\\.\\pipe\\liquidflow-' + crypto.createHash('sha1').update(APP_DIR).digest('hex').slice(0, 16);
   }
   ensureAppDirs();
   return path.join(APP_DIR, 'daemon.sock');

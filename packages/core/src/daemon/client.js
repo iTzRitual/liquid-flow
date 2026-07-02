@@ -17,7 +17,19 @@ export class DaemonClient extends EventEmitter {
       socket.on('connect', () => {
         connected = true;
         const client = new DaemonClient(socket);
-        resolve(client);
+        if (client.getState()) {
+          resolve(client);
+          return;
+        }
+        // snapshot to pierwsza wiadomość serwera po połączeniu — poczekaj na nią,
+        // żeby getState()/getMismatches()/getLog() były gotowe (drop-in za Controller).
+        const done = () => resolve(client);
+        client.once('state', done);
+        // zabezpieczenie: gdyby snapshot nie dotarł, nie wieszaj się w nieskończoność
+        setTimeout(() => {
+          client.removeListener('state', done);
+          resolve(client);
+        }, 2000).unref?.();
       });
 
       socket.on('error', (err) => {

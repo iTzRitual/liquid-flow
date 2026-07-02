@@ -40,10 +40,7 @@ describe('Daemon — integration', () => {
     const client = await DaemonClient.connect(socketPath);
     clients.push(client);
 
-    if (!client.getState()) {
-      await new Promise((r) => client.once('state', r));
-    }
-
+    expect(client.getState()).not.toBeNull();
     expect(client.getState()).toEqual(ctrl.getState());
     expect(client.getMismatches()).toEqual(ctrl.getMismatches());
     expect(client.getLog(0)).toEqual(ctrl.getLog(0));

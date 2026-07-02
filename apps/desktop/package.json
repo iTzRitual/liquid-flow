@@ -1,6 +1,6 @@
 {
   "name": "@liquidflow/desktop",
-  "version": "0.9.91",
+  "version": "0.9.92",
   "description": "Liquid Flow — aplikacja desktopowa (Electron) do synchronizacji szablonów Liquid",
   "type": "module",
   "main": "electron/main.js",
@@ -33,15 +33,22 @@
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "assets/icon.png",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
       "icon": "assets/icon.png",
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "linux": {
       "icon": "assets/icon.png",
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "Development"
     }
   },
