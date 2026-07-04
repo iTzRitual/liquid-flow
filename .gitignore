@@ -5,6 +5,9 @@ coverage/
 .DS_Store
 *.log
 
+# Exported shop config bundles (may contain credentials) — never commit
+*.lfshops
+
 # Local AI tooling (Claude Code skills / agents) — not part of the product
 .claude/
 .agents/

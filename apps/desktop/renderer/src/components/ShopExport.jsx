@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { tfmt } from '@liquidflow/core';
+import { fmt } from '../api.js';
 import { Download, Loader2 } from 'lucide-react';
 
 export default function ShopExport() {
@@ -42,7 +42,7 @@ export default function ShopExport() {
       if (!res) return;
       const saved = await call(() => api.saveExportFile({ json: res.json, defaultName: 'liquidflow-shops.lfshops' }));
       if (saved && !saved.canceled) {
-        toast.success(tfmt(t.ShareExportedTo || 'Wyeksportowano {count} sklepów do {path}', { count: res.count, path: saved.path }));
+        toast.success(fmt(t.ShareExportedTo || 'Wyeksportowano {count} sklepów do {path}', { count: res.count, path: saved.path }));
         navigate('welcome');
       }
     } catch {

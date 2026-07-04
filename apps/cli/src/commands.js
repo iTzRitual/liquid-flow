@@ -111,7 +111,7 @@ export function buildCommands(ctx) {
       items: shops.map((s) => ({ key: String(s.Id), label: s.Name, hint: s.Url })),
       onConfirm: (sel) => {
         const ids = sel.filter((d) => d.action === 'add').map((d) => Number(d.Name));
-        if (!ids.length) { log.logInfo(log.tmsg('ShareNothingSelected')); return; }
+        if (!ids.length) { log.logInfo(log.tmsg('ShareNothingSelected')); backToInput(); return; }
         openForm(t.ShareExportTitle || 'Eksport sklepów', [
           { name: 'Passphrase', label: t.SharePassphraseOptional || 'Hasło pakietu (opcjonalne)', mask: '*' },
           { name: 'Path', label: t.ShareFilePath || 'Ścieżka pliku', initial: 'liquidflow-shops.lfshops' },
@@ -119,6 +119,9 @@ export function buildCommands(ctx) {
           const res = await ctrl.exportShops({ ids, passphrase: vals.Passphrase });
           fs.writeFileSync(vals.Path, res.json);
           log.logOk(log.tmsg('ShareExportedTo', { count: res.count, path: vals.Path }));
+          // withLoading NIE wraca sam do inputu przy sukcesie (trzyma kadr, aż fn
+          // otworzy widok) — tu nic nie otwieramy, więc wracamy jawnie.
+          backToInput();
         }));
       },
     });
@@ -129,12 +132,15 @@ export function buildCommands(ctx) {
       { name: 'Path', label: t.ShareFilePath || 'Ścieżka pliku' },
       { name: 'Passphrase', label: t.SharePassphraseOptional || 'Hasło pakietu (opcjonalne)', mask: '*' },
     ], (vals) => withLoading(t.ShareImporting || 'Importowanie…', async () => {
+      // withLoading nie wraca sam do inputu przy sukcesie — każda ścieżka, która
+      // nie otwiera kolejnego widoku, musi jawnie wołać backToInput() (inaczej
+      // loader kręci się w nieskończoność).
       let json;
       try { json = fs.readFileSync(vals.Path, 'utf8'); }
-      catch { log.logErr(log.tmsg('ShareFileReadFailed', { path: vals.Path })); return; }
+      catch { log.logErr(log.tmsg('ShareFileReadFailed', { path: vals.Path })); backToInput(); return; }
       let preview;
       try { preview = await ctrl.importPreview({ json, passphrase: vals.Passphrase }); }
-      catch (e) { log.logErr(e.message); return; }
+      catch (e) { log.logErr(e.message); backToInput(); return; }
       openCheckList({
         title: t.ShareImportTitle || 'Import sklepów',
         items: preview.shops.map((s) => ({
@@ -144,6 +150,7 @@ export function buildCommands(ctx) {
           const res = await ctrl.importShops({ json, passphrase: vals.Passphrase, selections });
           refreshShops();
           log.logOk(log.tmsg('ShareImportedResult', res));
+          backToInput();
         }),
       });
     }));

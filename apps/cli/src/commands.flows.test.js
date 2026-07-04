@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { translationsFor, MismatchType } from '@liquidflow/core';
 import { buildCommands } from './commands.js';
 
@@ -8,7 +11,7 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 // Elastyczny ctx: przechwytuje WSZYSTKIE otwarcia (pickery/formularze/connect/
 // conflicts) do tablic, a helpery wykonawcze (safe/withLoading) odpalają od razu.
 function makeCtx(overrides = {}) {
-  const cap = { pickers: [], forms: [], connect: null, conflicts: null, diff: null };
+  const cap = { pickers: [], forms: [], connect: null, conflicts: null, diff: null, checklists: [] };
   const { ctrl: ctrlOverrides, ...otherOverrides } = overrides;
   const ctx = {
     ctrl: {
@@ -35,6 +38,7 @@ function makeCtx(overrides = {}) {
     openForm: vi.fn((title, fields, onSubmit) => { cap.forms.push({ title, fields, onSubmit }); }),
     openConflicts: vi.fn((payload) => { cap.conflicts = payload; }),
     openConnect: vi.fn((payload) => { cap.connect = payload; }),
+    openCheckList: vi.fn((payload) => { cap.checklists.push(payload); }),
     openDiff: vi.fn((payload) => { cap.diff = payload; }),
     openInfo: vi.fn((payload) => { cap.info = payload; }),
     logWrap: false,
@@ -336,5 +340,66 @@ describe('/conflicts — akcja usuwająca wymaga potwierdzenia (bezpieczeństwo)
     cap.conflicts.onAction('download', cap.conflicts.files[0]);
     await tick();
     expect(runCommand).toHaveBeenCalledWith(expect.objectContaining({ comm: 'download' }));
+  });
+});
+
+// Regresja: `withLoading` NIE wraca sam do inputu przy sukcesie — trzyma kadr,
+// aż `fn` otworzy kolejny widok. Ścieżki export/import, które kończą się bez
+// otwarcia widoku (sukces zapisu, błąd odczytu, brak zaznaczenia) MUSZĄ jawnie
+// wołać backToInput(), inaczej loader kręci się w nieskończoność (był to bug).
+describe('udostępnianie sklepów (export/import) — powrót do inputu', () => {
+  it('export: po zapisie pliku wraca do inputu', async () => {
+    const exportShops = vi.fn(async () => ({ json: '{"ok":1}', count: 1, encrypted: false }));
+    const { ctx, cap } = makeCtx({ ctrl: { exportShops } });
+    run(ctx, '/connect');
+    cap.connect.onAction('export');
+    expect(cap.checklists).toHaveLength(1);
+    cap.checklists[0].onConfirm([{ Name: '1', action: 'add' }]); // zaznaczony sklep Id=1
+    const form = cap.forms.at(-1);
+    const tmp = path.join(os.tmpdir(), `lf-export-test-${Date.now()}.lfshops`);
+    await form.onSubmit({ Passphrase: '', Path: tmp });
+    await tick();
+    expect(exportShops).toHaveBeenCalledWith(expect.objectContaining({ ids: [1] }));
+    expect(fs.readFileSync(tmp, 'utf8')).toContain('ok');
+    expect(ctx.backToInput).toHaveBeenCalled();
+    fs.rmSync(tmp, { force: true });
+  });
+
+  it('export: brak zaznaczonych → wraca do inputu, nie otwiera formularza', () => {
+    const { ctx, cap } = makeCtx();
+    run(ctx, '/connect');
+    cap.connect.onAction('export');
+    cap.checklists[0].onConfirm([]); // nic nie zaznaczone
+    expect(cap.forms).toHaveLength(0);
+    expect(ctx.backToInput).toHaveBeenCalled();
+  });
+
+  it('import: błąd odczytu pliku wraca do inputu', async () => {
+    const { ctx, cap } = makeCtx();
+    run(ctx, '/connect');
+    cap.connect.onAction('import');
+    const form = cap.forms.at(-1);
+    await form.onSubmit({ Path: path.join(os.tmpdir(), 'lf-nope-does-not-exist.lfshops'), Passphrase: '' });
+    await tick();
+    expect(ctx.backToInput).toHaveBeenCalled();
+  });
+
+  it('import: po zaimportowaniu wybranych wraca do inputu', async () => {
+    const importPreview = vi.fn(async () => ({ encrypted: false, shops: [{ Name: 'Nowy', Url: 'https://n.pl', hasPassword: false, exists: false }] }));
+    const importShops = vi.fn(async () => ({ added: 1, updated: 0, skipped: 0 }));
+    const { ctx, cap } = makeCtx({ ctrl: { importPreview, importShops } });
+    const tmp = path.join(os.tmpdir(), `lf-import-test-${Date.now()}.lfshops`);
+    fs.writeFileSync(tmp, '{"app":"LiquidFlow"}');
+    run(ctx, '/connect');
+    cap.connect.onAction('import');
+    const form = cap.forms.at(-1);
+    await form.onSubmit({ Path: tmp, Passphrase: '' });
+    await tick();
+    expect(cap.checklists).toHaveLength(1); // preview otworzył listę wyboru
+    cap.checklists.at(-1).onConfirm([{ Name: 'Nowy', action: 'add' }]);
+    await tick();
+    expect(importShops).toHaveBeenCalled();
+    expect(ctx.backToInput).toHaveBeenCalled();
+    fs.rmSync(tmp, { force: true });
   });
 });

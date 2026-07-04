@@ -6,6 +6,18 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.149] — 2026-07-04
+
+### Fixed
+- Desktop no longer starts to a blank/black window: the new shop export/import
+  screens imported `@liquidflow/core` into the renderer, pulling Node built-ins
+  (`node:fs`/`node:crypto`) into the browser bundle and breaking the module graph.
+  The renderer now uses a local `fmt()` token formatter and talks only via IPC.
+- CLI shop export/import no longer hangs on a spinning loader after finishing:
+  `withLoading` does not auto-return to the input screen on success, so the
+  export-saved, import-done, read-error and nothing-selected paths now explicitly
+  return to input. Added regression tests in `commands.flows.test.js`.
+
 ## [0.9.148] — 2026-07-04
 
 ### Added

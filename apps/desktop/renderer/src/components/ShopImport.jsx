@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { tfmt } from '@liquidflow/core';
+import { fmt } from '../api.js';
 import { Upload, FileText, Loader2 } from 'lucide-react';
 
 export default function ShopImport() {
@@ -87,7 +87,7 @@ export default function ShopImport() {
       const res = await call(() => api.importShops({ json, passphrase, selections }));
       if (res) {
         await refreshShops();
-        toast.success(tfmt(t.ShareImportedResult || 'Zaimportowano: {added} dodane, {updated} zaktualizowane, {skipped} pominięte', res));
+        toast.success(fmt(t.ShareImportedResult || 'Zaimportowano: {added} dodane, {updated} zaktualizowane, {skipped} pominięte', res));
         navigate('welcome');
       }
     } catch {
