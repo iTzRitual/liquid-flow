@@ -157,6 +157,9 @@ export class DaemonClient extends EventEmitter {
   signInSaved(id) { return this.call('shops.signInSaved', id); }
   logout() { return this.call('shops.logout'); }
   removeShop(id) { return this.call('shops.remove', id); }
+  exportShops(d) { return this.call('shops.export', d); }
+  importPreview(d) { return this.call('shops.importPreview', d); }
+  importShops(d) { return this.call('shops.import', d); }
 
   listTemplates() { return this.call('templates.list'); }
   selectTemplate(id) { return this.call('templates.select', id); }

@@ -23,6 +23,9 @@ export function buildMethods(ctrl) {
     'shops.signInSaved': (id) => ctrl.signInSaved(id),
     'shops.logout': () => ctrl.logout(),
     'shops.remove': (id) => ctrl.removeShop(id),
+    'shops.export': (d) => ctrl.exportShops(d),
+    'shops.importPreview': (d) => ctrl.importPreview(d),
+    'shops.import': (d) => ctrl.importShops(d),
 
     'templates.list': () => ctrl.listTemplates(),
     'templates.select': (id) => ctrl.selectTemplate(id),
