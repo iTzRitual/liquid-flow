@@ -26,6 +26,7 @@ const nextUid = () => ++MODE_UID;
 import Picker from './components/Picker.jsx';
 import ConflictList from './components/ConflictList.jsx';
 import ConnectList from './components/ConnectList.jsx';
+import CheckList from './components/CheckList.jsx';
 import Form from './components/Form.jsx';
 import DiffView from './components/DiffView.jsx';
 import InfoScreen from './components/InfoScreen.jsx';
@@ -119,6 +120,11 @@ export default function App() {
       // trybem (loader/formularz/sub-picker), więc nie owijamy ich w back().
       // Akcje (Dodaj/Usuń/wybór sklepu) zapisują ten ekran jako rodzica, by Esc
       // z formularza/sub-pickera wrócił do listy sklepów, a nie do inputu.
+      openCheckList: (data) => {
+        const self = { type: 'checklist', uid: nextUid(), ...data, parent: takeParent() };
+        self.onConfirm = (...a) => { pendingParentRef.current = self; data.onConfirm?.(...a); };
+        setMode(self);
+      },
       openConnect: (data) => {
         const self = { type: 'connect', uid: nextUid(), ...data, parent: takeParent() };
         self.onShop = (...a) => { pendingParentRef.current = self; data.onShop?.(...a); };
@@ -353,6 +359,10 @@ export default function App() {
 
       {mode.type === 'conflicts' && wrapAction(
         <ConflictList key={mode.uid} title={mode.title} files={mode.files} bulk={mode.bulk} onAction={mode.onAction} onBulk={mode.onBulk} onCancel={() => cancelTo(mode)} maxRows={ovMax} initialIndex={mode.index || 0} onIndexChange={(i) => { mode.index = i; }} t={t} />
+      )}
+
+      {mode.type === 'checklist' && wrapAction(
+        <CheckList key={mode.uid} title={mode.title} items={mode.items} onConfirm={mode.onConfirm} onCancel={() => cancelTo(mode)} maxRows={ovMax} t={t} />
       )}
 
       {mode.type === 'connect' && wrapAction(

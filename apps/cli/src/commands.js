@@ -2,6 +2,7 @@
 // (@liquidflow/core Controller). buildCommands(ctx) zwraca świeżą listę przy
 // każdym renderze, dzięki czemu handlery widzą aktualny stan.
 
+import fs from 'node:fs';
 import { LANGUAGES, MismatchType, log, tfmt, buildDiffRows } from '@liquidflow/core';
 import { openExternal } from './open.js';
 import { openIdeDiff, writeRemoteTemp } from './ideDiff.js';
@@ -16,7 +17,7 @@ function fmtTs(ts) {
 }
 
 export function buildCommands(ctx) {
-  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, openConflicts, openConnect, openDiff, openInfo, logWrap, setLogWrap, headerPref, setHeaderPref, exit, safe, skipToInput, backToInput, withLoading, dropParent } = ctx;
+  const { ctrl, t, state, git, shops, refreshShops, clearLog, openPicker, openForm, openConflicts, openConnect, openCheckList, openDiff, openInfo, logWrap, setLogWrap, headerPref, setHeaderPref, exit, safe, skipToInput, backToInput, withLoading, dropParent } = ctx;
   const hasShop = !!state?.currentShop;
   const hasTemplate = !!state?.currentTemplate;
 
@@ -104,6 +105,50 @@ export function buildCommands(ctx) {
     }
   };
 
+  const exportFlow = () => {
+    openCheckList({
+      title: t.ShareExportTitle || 'Eksport sklepów',
+      items: shops.map((s) => ({ key: String(s.Id), label: s.Name, hint: s.Url })),
+      onConfirm: (sel) => {
+        const ids = sel.filter((d) => d.action === 'add').map((d) => Number(d.Name));
+        if (!ids.length) { log.logInfo(log.tmsg('ShareNothingSelected')); return; }
+        openForm(t.ShareExportTitle || 'Eksport sklepów', [
+          { name: 'Passphrase', label: t.SharePassphraseOptional || 'Hasło pakietu (opcjonalne)', mask: '*' },
+          { name: 'Path', label: t.ShareFilePath || 'Ścieżka pliku', initial: 'liquidflow-shops.lfshops' },
+        ], (vals) => withLoading(t.ShareExporting || 'Eksportowanie…', async () => {
+          const res = await ctrl.exportShops({ ids, passphrase: vals.Passphrase });
+          fs.writeFileSync(vals.Path, res.json);
+          log.logOk(log.tmsg('ShareExportedTo', { count: res.count, path: vals.Path }));
+        }));
+      },
+    });
+  };
+
+  const importFlow = () => {
+    openForm(t.ShareImportTitle || 'Import sklepów', [
+      { name: 'Path', label: t.ShareFilePath || 'Ścieżka pliku' },
+      { name: 'Passphrase', label: t.SharePassphraseOptional || 'Hasło pakietu (opcjonalne)', mask: '*' },
+    ], (vals) => withLoading(t.ShareImporting || 'Importowanie…', async () => {
+      let json;
+      try { json = fs.readFileSync(vals.Path, 'utf8'); }
+      catch { log.logErr(log.tmsg('ShareFileReadFailed', { path: vals.Path })); return; }
+      let preview;
+      try { preview = await ctrl.importPreview({ json, passphrase: vals.Passphrase }); }
+      catch (e) { log.logErr(e.message); return; }
+      openCheckList({
+        title: t.ShareImportTitle || 'Import sklepów',
+        items: preview.shops.map((s) => ({
+          key: s.Name, label: s.Name, hint: s.Url, conflict: s.exists,
+        })),
+        onConfirm: (selections) => withLoading(t.ShareImporting || 'Importowanie…', async () => {
+          const res = await ctrl.importShops({ json, passphrase: vals.Passphrase, selections });
+          refreshShops();
+          log.logOk(log.tmsg('ShareImportedResult', res));
+        }),
+      });
+    }));
+  };
+
   const connect = () => {
     const shopItems = shops.map((s) => ({
       label: s.Name,
@@ -113,6 +158,8 @@ export function buildCommands(ctx) {
     const actions = [];
     if (hasShop) actions.push({ key: 'logout', label: t.DisconnectSession });
     actions.push({ key: 'add', label: t.AddConnectionShort });
+    if (shops.length) actions.push({ key: 'export', label: t.ShareExport || 'Export shops' });
+    actions.push({ key: 'import', label: t.ShareImport || 'Import shops' });
     if (shops.length) actions.push({ key: 'remove', label: t.RemoveShopTitle });
     openConnect({
       title: t.ConnectToShop,
@@ -122,6 +169,8 @@ export function buildCommands(ctx) {
       onAction: (key) => {
         if (key === 'add') { loginForm(); return; }
         if (key === 'logout') { backToInput(); ctrl.logout(); return; }
+        if (key === 'export') { exportFlow(); return; }
+        if (key === 'import') { importFlow(); return; }
         if (key === 'remove') { removeShopPicker(); return; }
       },
       onSlash: skipToInput,
