@@ -11,6 +11,7 @@ import * as git from './git.js';
 import { ISklep24Client, SoapError } from './soap.js';
 import { SyncSession } from './syncEngine.js';
 import { translationsFor, tfmt, LANGUAGES } from './translations.js';
+import { buildShopRecords, buildEnvelope, readEnvelope } from './shareConfig.js';
 
 const COMMIT_DEBOUNCE_MS = 3000;
 
@@ -233,6 +234,107 @@ export class Controller extends EventEmitter {
     this.passwords.delete(id);
     store.deleteShopDir(shopName);
     this.emitState();
+  }
+
+  // ---------- udostępnianie konfiguracji (export / import sklepów) ----------
+  // Buduje przenośny pakiet z WYBRANYCH sklepów. `ids` puste/brak = wszystkie.
+  // Pusta `passphrase` → pakiet bez haseł (kolega wpisze je ręcznie). Zwraca
+  // { json, count, encrypted } — warstwa aplikacji zapisuje `json` do pliku.
+  exportShops({ ids, passphrase } = {}) {
+    const idSet = Array.isArray(ids) && ids.length ? new Set(ids.map(Number)) : null;
+    const shops = this.config.Shops.filter((s) => !idSet || idSet.has(Number(s.Id)));
+    const includeSecrets = !!(passphrase && String(passphrase).length);
+    const records = buildShopRecords(shops, store.decrypt, includeSecrets);
+    const envelope = buildEnvelope(records, passphrase);
+    logbuf.logOk(logbuf.tmsg('ShopsExported', { count: records.length }));
+    return { json: JSON.stringify(envelope, null, 2), count: records.length, encrypted: !!envelope.encrypted };
+  }
+
+  // Podgląd pakietu — NIE zwraca haseł do UI. Lista sklepów + flagi
+  // exists/hasPassword + `encrypted`. Rzuca przetłumaczony błąd (zła fraza itd.).
+  importPreview({ json, passphrase } = {}) {
+    const envelope = this._parseShareJson(json);
+    let records;
+    try { records = readEnvelope(envelope, passphrase); }
+    catch (e) { throw this._shareErr(e); }
+    const existing = new Set(this.config.Shops.map((s) => s.Name));
+    const shops = records
+      .filter((r) => this._validShopName(r.Name))
+      .map((r) => ({
+        Name: r.Name, Url: r.Url,
+        hasPassword: !!(r.SavePassword && r.Password),
+        exists: existing.has(r.Name),
+      }));
+    return { encrypted: !!envelope.encrypted, shops };
+  }
+
+  // Import wybranych sklepów. `selections` = [{ Name, action, saveAs? }],
+  //   action: 'add' | 'update' | 'skip'. Brak `selections` → dodaj wszystkie.
+  // Zwraca { added, updated, skipped }.
+  importShops({ json, passphrase, selections } = {}) {
+    const envelope = this._parseShareJson(json);
+    let records;
+    try { records = readEnvelope(envelope, passphrase); }
+    catch (e) { throw this._shareErr(e); }
+    const byName = new Map(records.map((r) => [r.Name, r]));
+    const sel = Array.isArray(selections) ? selections : records.map((r) => ({ Name: r.Name, action: 'add' }));
+    let added = 0, updated = 0, skipped = 0;
+    for (const d of sel) {
+      const rec = byName.get(d && d.Name);
+      if (!rec || !this._validShopName(rec.Name) || (d && d.action === 'skip')) { skipped++; continue; }
+      if (d.action === 'update') {
+        const existing = this.config.Shops.find((s) => s.Name === rec.Name);
+        if (existing) { this._applyImportedShop(existing, rec); updated++; }
+        else { this._addImportedShop(rec, rec.Name); added++; }
+      } else { // 'add' (i „rename": add zawsze unika kolizji przez sufiks)
+        this._addImportedShop(rec, this._uniqueShopName(d.saveAs || rec.Name)); added++;
+      }
+    }
+    store.saveConfig(this.config);
+    logbuf.logOk(logbuf.tmsg('ShopsImported', { added, updated, skipped }));
+    this.emitState();
+    return { added, updated, skipped };
+  }
+
+  // --- helpery importu/exportu ---
+  _validShopName(name) { return typeof name === 'string' && /^[A-Za-z0-9]+$/.test(name); }
+  _parseShareJson(json) {
+    try { return JSON.parse(json); } catch { throw new Error(this.t.ShareBadFile); }
+  }
+  _shareErr(e) {
+    const t = this.t;
+    if (e && e.code === 'PassphraseRequired') return new Error(t.SharePassphraseRequired);
+    if (e && e.code === 'BadPassphrase') return new Error(t.ShareBadPassphrase);
+    if (e && e.code === 'BadFormat') return new Error(t.ShareBadFile);
+    return e;
+  }
+  _nextShopId() {
+    return this.config.Shops.length ? Math.max(...this.config.Shops.map((s) => s.Id)) + 1 : 1;
+  }
+  _uniqueShopName(name) {
+    const names = new Set(this.config.Shops.map((s) => s.Name));
+    if (!names.has(name)) return name;
+    let i = 2, cand;
+    do { cand = name + i++; } while (names.has(cand));
+    return cand;
+  }
+  // Nadpisz pola połączenia istniejącego sklepu z rekordu (re-szyfrowanie
+  // KLUCZEM LOKALNYM tej maszyny). Nie rusza Id ani plików na dysku.
+  _applyImportedShop(shop, rec) {
+    shop.Url = rec.Url;
+    shop.Login = rec.Login || 'webmaster';
+    shop.SavePassword = !!(rec.SavePassword && rec.Password);
+    shop.Password = shop.SavePassword ? store.encrypt(rec.Password) : '';
+    shop.Templates = Array.isArray(rec.Templates) ? rec.Templates.map((tpl) => ({
+      Id: tpl.Id, Name: tpl.Name,
+      SavePassword: !!(tpl.SavePassword && tpl.Password),
+      Password: (tpl.SavePassword && tpl.Password) ? store.encrypt(tpl.Password) : '',
+    })) : [];
+  }
+  _addImportedShop(rec, name) {
+    const shop = { Id: this._nextShopId(), Name: name, Login: rec.Login || 'webmaster', Templates: [] };
+    this._applyImportedShop(shop, rec);
+    this.config.Shops.push(shop);
   }
 
   // ---------- szablony ----------
