@@ -7,6 +7,7 @@ export { ISklep24Client, SoapError } from './src/soap.js';
 export { SyncSession, MismatchType } from './src/syncEngine.js';
 export { translationsFor, tfmt, localeFor, LANGUAGES } from './src/translations.js';
 export * as store from './src/store.js';
+export * as shareConfig from './src/shareConfig.js';
 export { defaultAppDir } from './src/store.js';
 export * as git from './src/git.js';
 export * as log from './src/log.js';
