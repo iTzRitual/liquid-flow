@@ -24,7 +24,7 @@ version in all four `package.json` files (root, `apps/cli`, `packages/core`,
 | 027  | Post-migration bookkeeping — CLI changelog entry, lockfile check, parallel-worktree hygiene note                     | P3       | S      | 022–025    | DONE   |
 | 028  | Unify data home across apps — desktop pins core `defaultAppDir()` so all apps share one daemon (fixes split shops)   | P1       | S      | 022–025    | DONE   |
 | 029  | Leak-proof daemon lifecycle — daemon exits when no clients remain (no orphaned processes, clean start)               | P1       | M      | 022, 028   | DONE   |
-| 030  | Share shop configuration between machines — in-app export/import of selected shops (CLI + desktop, passphrase-protected, MCP excluded) | P2 | L | — | TODO |
+| 030  | Share shop configuration between machines — in-app export/import of selected shops (CLI + desktop, passphrase-protected, MCP excluded) | P2 | L | — | DONE |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
 
