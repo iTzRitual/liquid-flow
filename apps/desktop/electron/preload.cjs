@@ -16,6 +16,11 @@ contextBridge.exposeInMainWorld('api', {
   signInSaved: (id) => invoke('shops.signInSaved', id),
   logout: () => invoke('shops.logout'),
   removeShop: (id) => invoke('shops.remove', id),
+  exportShops: (d) => invoke('shops.export', d),
+  importPreview: (d) => invoke('shops.importPreview', d),
+  importShops: (d) => invoke('shops.import', d),
+  saveExportFile: (d) => invoke('sys.saveExport', d),
+  readImportFile: () => invoke('sys.readImport'),
 
   // szablony
   listTemplates: () => invoke('templates.list'),

@@ -1,7 +1,8 @@
 // Proces główny Electrona. Ustawia katalog danych, tworzy okno + ikonę w tray,
 // mostkuje IPC do kontrolera i przekazuje zdarzenia do interfejsu.
 
-import { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, session } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, session, dialog } from 'electron';
+import fsPromises from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defaultAppDir } from '@liquidflow/core';
@@ -105,6 +106,27 @@ function registerIpc(ctrl) {
     'shops.signInSaved': (id) => ctrl.signInSaved(id),
     'shops.logout': () => ctrl.logout(),
     'shops.remove': (id) => ctrl.removeShop(id),
+    'shops.export': (d) => ctrl.exportShops(d),
+    'shops.importPreview': (d) => ctrl.importPreview(d),
+    'shops.import': (d) => ctrl.importShops(d),
+    'sys.saveExport': async ({ json, defaultName } = {}) => {
+      const r = await dialog.showSaveDialog({
+        defaultPath: defaultName || 'liquidflow-shops.lfshops',
+        filters: [{ name: 'LiquidFlow', extensions: ['lfshops', 'json'] }],
+      });
+      if (r.canceled || !r.filePath) return { canceled: true };
+      await fsPromises.writeFile(r.filePath, json, 'utf8');
+      return { canceled: false, path: r.filePath };
+    },
+    'sys.readImport': async () => {
+      const r = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [{ name: 'LiquidFlow', extensions: ['lfshops', 'json'] }],
+      });
+      if (r.canceled || !r.filePaths?.[0]) return { canceled: true };
+      const json = await fsPromises.readFile(r.filePaths[0], 'utf8');
+      return { canceled: false, json, path: r.filePaths[0] };
+    },
 
     'templates.list': () => ctrl.listTemplates(),
     'templates.select': (tplId) => ctrl.selectTemplate(tplId),

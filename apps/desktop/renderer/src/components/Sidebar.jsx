@@ -1,7 +1,7 @@
 import React from 'react';
 import { useApp } from '../App.jsx';
 import { Button } from '@/components/ui/button';
-import { Plus, Store, Check } from 'lucide-react';
+import { Plus, Store, Check, Upload, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Sidebar() {
@@ -62,10 +62,20 @@ export default function Sidebar() {
           );
         })}
       </div>
-      <div className="border-t border-border p-2">
+      <div className="border-t border-border p-2 space-y-1.5">
         <Button variant="outline" size="sm" className="w-full" onClick={() => navigate('shopForm', { editing: null })}>
           <Plus className="h-4 w-4" /> {t.ShopAdd}
         </Button>
+        <div className="flex gap-1.5">
+          {shops.length > 0 && (
+            <Button variant="ghost" size="sm" className="flex-1 text-xs" onClick={() => navigate('shopExport')} title={t.ShareExportTitle || 'Eksportuj'}>
+              <Upload className="h-3.5 w-3.5 mr-1" /> {t.ShareExport || 'Eksport'}
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" className="flex-1 text-xs" onClick={() => navigate('shopImport')} title={t.ShareImportTitle || 'Importuj'}>
+            <Download className="h-3.5 w-3.5 mr-1" /> {t.ShareImport || 'Import'}
+          </Button>
+        </div>
       </div>
     </aside>
   );

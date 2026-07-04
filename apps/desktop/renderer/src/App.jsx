@@ -5,6 +5,8 @@ import { Toaster } from '@/components/ui/sonner';
 import TopBar from './components/TopBar.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import ShopForm from './components/ShopForm.jsx';
+import ShopExport from './components/ShopExport.jsx';
+import ShopImport from './components/ShopImport.jsx';
 import TemplateList from './components/TemplateList.jsx';
 import TemplateUnlock from './components/TemplateUnlock.jsx';
 import SyncView from './components/SyncView.jsx';
@@ -118,6 +120,8 @@ function MainContent() {
   const { route } = useApp();
   switch (route.view) {
     case 'shopForm': return <ShopForm editing={route.editing} />;
+    case 'shopExport': return <ShopExport />;
+    case 'shopImport': return <ShopImport />;
     case 'templates': return <TemplateList />;
     case 'unlock': return <TemplateUnlock template={route.template} />;
     case 'sync': return <SyncView />;
