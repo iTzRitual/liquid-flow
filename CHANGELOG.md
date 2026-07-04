@@ -6,6 +6,16 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.148] — 2026-07-04
+
+### Added
+
+- Share shop configuration between machines: in-app export/import of selected
+  shops (CLI and desktop), passphrase-protected (PBKDF2 + AES-256-GCM), with a
+  per-shop selection step and name-collision resolution (skip/update/rename).
+  Passwords are re-encrypted under the importing machine's local key; the MCP
+  server is intentionally excluded.
+
 ## [0.9.147] — 2026-07-03
 
 ### Fixed
