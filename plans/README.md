@@ -24,8 +24,29 @@ version in all four `package.json` files (root, `apps/cli`, `packages/core`,
 | 027  | Post-migration bookkeeping — CLI changelog entry, lockfile check, parallel-worktree hygiene note                     | P3       | S      | 022–025    | DONE   |
 | 028  | Unify data home across apps — desktop pins core `defaultAppDir()` so all apps share one daemon (fixes split shops)   | P1       | S      | 022–025    | DONE   |
 | 029  | Leak-proof daemon lifecycle — daemon exits when no clients remain (no orphaned processes, clean start)               | P1       | M      | 022, 028   | DONE   |
+| 030  | Share shop configuration between machines — in-app export/import of selected shops (CLI + desktop, passphrase-protected, MCP excluded) | P2 | L | — | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale)
+
+## Run 7 (030) — share shop configuration within a team
+
+Generated 2026-07-04 (`plan` from a maintainer feature request: "share my shops
+with a teammate — I've added 15, let them import conveniently, in-app not by
+dropping files in a folder; export/import both start with all shops checked but I
+can uncheck to pick a subset; CLI + desktop, **not** MCP since it gets no password
+access"). Planned against `b49b1d6` (v0.9.147).
+
+Core constraint driving the design: shop passwords in `config.json` are encrypted
+with a **machine-local random key** (`store.js` `.key`), so a raw copy is useless
+elsewhere. The export decrypts locally and re-protects the bundle under an
+**optional user passphrase** (PBKDF2 + AES-256-GCM; blank passphrase = no
+passwords in the file); import re-encrypts each password under the importer's own
+local key. Decisions baked into the plan: passphrase optional, share connection +
+template-unlock passwords (never local files/git/meta), and name collisions
+warn + let the user choose Skip/Update/Rename per shop. Crypto/config work runs in
+the shared daemon (the process that owns the local key); file dialogs stay
+Electron-local; CLI does its own file I/O. Single plan, phased core → RPC → CLI →
+desktop → i18n so each phase is an independently-verifiable commit.
 
 ## Run 6 (022–025) — unify the three apps over one shared daemon
 
