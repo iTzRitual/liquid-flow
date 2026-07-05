@@ -6,6 +6,13 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.152] — 2026-07-05
+
+### Added
+- `WindowChrome` component: frameless application window with custom, per-platform controls (macOS traffic lights, Windows and Linux/Adwaita min/max/close) instead of the native OS title bar. Storybook story `Ekrany/Okno aplikacji` renders the full app window (with the onboarding screen inside) as a floating desktop window in macOS/Windows/Linux variants.
+
+---
+
 ## [0.9.151] — 2026-07-05
 
 ### Added
