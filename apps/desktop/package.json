@@ -13,7 +13,9 @@
     "build": "vite build && electron-builder",
     "build:mac": "vite build && electron-builder --mac",
     "build:win": "vite build && electron-builder --win",
-    "build:linux": "vite build && electron-builder --linux"
+    "build:linux": "vite build && electron-builder --linux",
+    "storybook": "storybook dev -p 6006 --no-open",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@liquidflow/core": "*"
@@ -61,6 +63,8 @@
     "@radix-ui/react-switch": "^1.1.2",
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.6",
+    "@storybook/addon-mcp": "^0.6.0",
+    "@storybook/react-vite": "^10.4.6",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
@@ -74,6 +78,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "sonner": "^1.7.1",
+    "storybook": "^10.4.6",
     "tailwind-merge": "^2.6.0",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",

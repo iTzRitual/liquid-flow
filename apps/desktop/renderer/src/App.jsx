@@ -12,7 +12,9 @@ import TemplateUnlock from './components/TemplateUnlock.jsx';
 import SyncView from './components/SyncView.jsx';
 import EmptyState from './components/EmptyState.jsx';
 
-const AppCtx = createContext(null);
+// Eksportowany, żeby Storybook (design gallery) mógł wstrzyknąć mockowy kontekst
+// bez bootowania całej apki przez window.api.
+export const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
 
 export default function App() {

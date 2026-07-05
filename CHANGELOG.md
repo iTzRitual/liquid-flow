@@ -6,6 +6,17 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.150] — 2026-07-05
+
+### Added
+- Storybook 10 (react-vite) as a design gallery for the desktop redesign (branch `redesign`): `.storybook` config, a mocked `AppCtx` harness (`renderer/src/stories/mock.jsx`) with real PL/EN translations and fixtures, and initial Sidebar/ConflictsPanel stories. Light/dark toolbar toggle.
+- `@storybook/addon-mcp` exposing a Storybook MCP server at `http://localhost:6006/mcp`, registered for Claude Code in `.mcp.json` (project scope). CLAUDE.md documents the mandatory MCP-first workflow for desktop UI work.
+
+### Changed
+- `AppCtx` is now exported from the desktop `App.jsx` so screens can be rendered in isolation with a mocked context.
+
+---
+
 ## [0.9.149] — 2026-07-04
 
 ### Fixed
