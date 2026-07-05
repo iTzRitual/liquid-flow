@@ -325,6 +325,19 @@ const pl = {
   WelcomePickShop: 'Wybierz sklep z listy po lewej, aby rozpocząć synchronizację.',
   WelcomeAddFirst: 'Dodaj swój pierwszy sklep Comarch e-Sklep, aby rozpocząć.',
 
+  // --- onboarding (ekran startowy) ---
+  OnboardTitle: 'Dodaj swój pierwszy sklep',
+  OnboardAddAndSignIn: 'Dodaj i zaloguj',
+  OnboardImportConfig: 'Zaimportuj konfigurację',
+  OrSeparator: 'lub',
+  AppTagline: 'Zaawansowane środowisko desktopowe do dwukierunkowej synchronizacji i wersjonowania danych e-commerce.',
+  FeatureLoggingTitle: 'Live Logging',
+  FeatureLoggingDesc: 'Podgląd procesów synchronizacji i komunikacji SOAP w czasie rzeczywistym.',
+  FeatureConflictTitle: 'Bezpieczne rozwiązywanie konfliktów',
+  FeatureConflictDesc: 'Wizualny panel różnic chroniący przed utratą danych i przypadkowym nadpisaniem.',
+  FeatureAutomationTitle: 'Gotowy do automatyzacji',
+  FeatureAutomationDesc: 'Pełna kontrola nad strukturą szablonów i stanem repozytorium sklepu.',
+
   // --- podgląd różnic (diff preview) ---
   ActionPreviewShort: 'Podgląd',
   PreviewLoading: 'Ładowanie podglądu…',
@@ -685,6 +698,19 @@ const en = {
   NoEntries: 'No entries.',
   WelcomePickShop: 'Pick a shop from the list on the left to start syncing.',
   WelcomeAddFirst: 'Add your first Comarch e-Sklep store to get started.',
+
+  // --- onboarding ---
+  OnboardTitle: 'Add your first shop',
+  OnboardAddAndSignIn: 'Add and sign in',
+  OnboardImportConfig: 'Import configuration',
+  OrSeparator: 'or',
+  AppTagline: 'An advanced desktop environment for two-way synchronization and versioning of e-commerce data.',
+  FeatureLoggingTitle: 'Live Logging',
+  FeatureLoggingDesc: 'Watch synchronization and SOAP communication in real time.',
+  FeatureConflictTitle: 'Safe conflict resolution',
+  FeatureConflictDesc: 'A visual diff panel that guards against data loss and accidental overwrites.',
+  FeatureAutomationTitle: 'Automation-ready',
+  FeatureAutomationDesc: 'Full control over template structure and the shop repository state.',
 
   // --- podgląd różnic (diff preview) ---
   ActionPreviewShort: 'Preview',

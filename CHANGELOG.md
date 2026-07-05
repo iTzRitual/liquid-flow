@@ -6,6 +6,13 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.151] — 2026-07-05
+
+### Added
+- Onboarding redesign iteration 0 (branch `redesign`): new two-column `Onboarding` screen (branding/hero + first-shop form + import) built on design tokens with real shadcn primitives, plus its Storybook story. New PL/EN i18n keys for the onboarding copy and feature bullets.
+
+---
+
 ## [0.9.150] — 2026-07-05
 
 ### Added
