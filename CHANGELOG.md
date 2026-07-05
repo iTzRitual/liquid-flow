@@ -6,6 +6,13 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.153] — 2026-07-05
+
+### Changed
+- Window chrome now matches the design: no separate title bar and no app name — the window controls float directly over the content (macOS traffic lights top-left, Windows/Linux min/max/close top-right). Onboarding restyled so the window surface is a light gray and the form lives in its own inset white rounded container, with the top gutter reserved for the floating controls.
+
+---
+
 ## [0.9.152] — 2026-07-05
 
 ### Added

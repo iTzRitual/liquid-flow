@@ -39,9 +39,9 @@ export default function Onboarding() {
   ];
 
   return (
-    <div className="grid h-full grid-cols-1 overflow-hidden md:grid-cols-2">
-      {/* Lewa kolumna — hero / branding */}
-      <div className="hidden flex-col justify-between gap-8 bg-muted/40 p-10 md:flex">
+    <div className="grid h-full grid-cols-1 overflow-hidden bg-muted md:grid-cols-2">
+      {/* Lewa kolumna — hero / branding (bezpośrednio na szarym tle okna) */}
+      <div className="hidden flex-col justify-between gap-8 p-10 pt-12 md:flex">
         <div className="space-y-4">
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-extrabold tracking-tight">Liquid</span>
@@ -69,9 +69,11 @@ export default function Onboarding() {
         </ul>
       </div>
 
-      {/* Prawa kolumna — formularz */}
-      <div className="flex items-center justify-center overflow-y-auto p-8">
-        <div className="w-full max-w-sm space-y-6">
+      {/* Prawa kolumna — formularz w osobnym białym kontenerze (gutter dookoła;
+          górny gutter mieści kontrolki okna z WindowChrome) */}
+      <div className="px-4 pb-4 pt-12">
+        <div className="flex h-full items-center justify-center overflow-y-auto rounded-2xl bg-background p-8 shadow-sm">
+          <div className="w-full max-w-sm space-y-6">
           <h1 className="text-2xl font-bold">{t.OnboardTitle}</h1>
 
           <div className="space-y-4">
@@ -116,6 +118,7 @@ export default function Onboarding() {
           <Button variant="outline" className="w-full" onClick={() => navigate('shopImport')}>
             {t.OnboardImportConfig}
           </Button>
+          </div>
         </div>
       </div>
     </div>
