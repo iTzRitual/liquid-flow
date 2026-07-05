@@ -6,6 +6,13 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.154] — 2026-07-05
+
+### Changed
+- Onboarding container top gutter is now platform-aware: on macOS the form container sits flush with the side gutter (window controls are on the left, so no top reservation is needed); on Windows/Linux the top gutter is shortened to just clear the corner controls. `Onboarding` takes a `platform` prop for this.
+
+---
+
 ## [0.9.153] — 2026-07-05
 
 ### Changed

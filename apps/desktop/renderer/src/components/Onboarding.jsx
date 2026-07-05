@@ -9,7 +9,10 @@ import { Loader2, Zap, Shuffle, PackageCheck } from 'lucide-react';
 // Ekran startowy (pierwsze uruchomienie): lewa kolumna = branding/hero,
 // prawa = formularz „dodaj pierwszy sklep" + import konfiguracji.
 // Iteracja 0 redesignu — stylowana na tokenach, dopieszczana w Storybooku.
-export default function Onboarding() {
+// `platform` steruje górnym gutterem prawego kontenera: na macOS przyciski okna
+// są po lewej (światła), więc prawy kontener nie potrzebuje zapasu u góry; na
+// Windows/Linux przyciski są po prawej — krótki zapas na kontrolki.
+export default function Onboarding({ platform = 'mac' } = {}) {
   const { t, version, call, api, refreshShops, navigate, setCurrentTemplate } = useApp();
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
@@ -41,7 +44,7 @@ export default function Onboarding() {
   return (
     <div className="grid h-full grid-cols-1 overflow-hidden bg-muted md:grid-cols-2">
       {/* Lewa kolumna — hero / branding (bezpośrednio na szarym tle okna) */}
-      <div className="hidden flex-col justify-between gap-8 p-10 pt-12 md:flex">
+      <div className="hidden flex-col justify-between gap-8 p-10 md:flex">
         <div className="space-y-4">
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-extrabold tracking-tight">Liquid</span>
@@ -70,8 +73,8 @@ export default function Onboarding() {
       </div>
 
       {/* Prawa kolumna — formularz w osobnym białym kontenerze (gutter dookoła;
-          górny gutter mieści kontrolki okna z WindowChrome) */}
-      <div className="px-4 pb-4 pt-12">
+          na Win/Linux górny gutter mieści kontrolki okna, na macOS równy z bokami) */}
+      <div className={`px-4 pb-4 ${platform === 'mac' ? 'pt-4' : 'pt-9'}`}>
         <div className="flex h-full items-center justify-center overflow-y-auto rounded-2xl bg-background p-8 shadow-sm">
           <div className="w-full max-w-sm space-y-6">
           <h1 className="text-2xl font-bold">{t.OnboardTitle}</h1>

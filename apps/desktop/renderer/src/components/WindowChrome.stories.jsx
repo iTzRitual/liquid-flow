@@ -13,7 +13,7 @@ function AppWindow({ platform }) {
       <div className="h-[80vh] max-h-[760px] w-full max-w-5xl">
         <MockApp ctx={ctx}>
           <WindowChrome platform={platform}>
-            <Onboarding />
+            <Onboarding platform={platform} />
           </WindowChrome>
         </MockApp>
       </div>
