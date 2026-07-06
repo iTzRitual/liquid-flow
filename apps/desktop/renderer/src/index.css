@@ -1,16 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 0 0% 94.1%;           /* #F0F0F0 */
     --foreground: 240 10% 4%;
-    --card: 0 0% 100%;
+    --card: 0 0% 100%;                  /* #FFFFFF */
     --card-foreground: 240 10% 4%;
-    --popover: 0 0% 100%;
+    --popover: 0 0% 100%;               /* #FFFFFF */
     --popover-foreground: 240 10% 4%;
-    --primary: 16 100% 50%;            /* akcent Liquid Flow */
+    --primary: 225 100% 60%;            /* akcent Liquid Flow #3365FF */
     --primary-foreground: 0 0% 100%;
     --secondary: 240 5% 96%;
     --secondary-foreground: 240 6% 10%;
@@ -26,18 +28,18 @@
     --warning-foreground: 0 0% 10%;
     --border: 240 6% 90%;
     --input: 240 6% 90%;
-    --ring: 16 100% 50%;
+    --ring: 225 100% 60%;
     --radius: 0.6rem;
   }
 
   .dark {
-    --background: 240 10% 5%;
-    --foreground: 0 0% 95%;
-    --card: 240 8% 8%;
-    --card-foreground: 0 0% 95%;
-    --popover: 240 8% 8%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 16 100% 55%;
+    --background: 0 0% 94.1%;           /* #F0F0F0 - stałe tło */
+    --foreground: 240 10% 4%;
+    --card: 0 0% 100%;                  /* #FFFFFF - stałe tło */
+    --card-foreground: 240 10% 4%;
+    --popover: 0 0% 100%;               /* #FFFFFF */
+    --popover-foreground: 240 10% 4%;
+    --primary: 225 100% 60%;            /* akcent Liquid Flow #3365FF */
     --primary-foreground: 0 0% 100%;
     --secondary: 240 5% 14%;
     --secondary-foreground: 0 0% 95%;
@@ -53,7 +55,7 @@
     --warning-foreground: 0 0% 10%;
     --border: 240 5% 18%;
     --input: 240 5% 18%;
-    --ring: 16 100% 55%;
+    --ring: 225 100% 60%;
   }
 }
 
@@ -61,6 +63,7 @@
   * { @apply border-border; }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Rubik', sans-serif;
     font-feature-settings: 'rlig' 1, 'calt' 1;
     -webkit-font-smoothing: antialiased;
     margin: 0;
