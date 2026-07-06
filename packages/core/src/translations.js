@@ -1,33 +1,33 @@
-// Tłumaczenia interfejsu. Domyślny język: polski.
+// Interface translations. Default language: Polish.
 //
-// Tabela jest PŁASKA i zawiera WYŁĄCZNIE wartości tekstowe (stringi) — całość
-// jest serializowana przez IPC do warstwy desktopowej, więc nie wolno tu
-// trzymać funkcji. Teksty z dynamiczną częścią używają tokenów `{nazwa}` i są
-// składane przez `tfmt(str, params)`.
+// The table is FLAT and holds ONLY text values (strings) — the whole thing is
+// serialized over IPC to the desktop layer, so no functions may be kept here.
+// Texts with a dynamic part use `{name}` tokens and are assembled with
+// `tfmt(str, params)`.
 //
-// ZASADA: każdy NOWY tekst widoczny dla użytkownika MUSI mieć wpis w obu
-// tablicach (`pl` i `en`). Producenci tekstu (core/CLI/desktop) nie hardkodują
-// łańcuchów — sięgają po klucz z tej tabeli.
+// RULE: every NEW user-facing text MUST have an entry in both tables (`pl` and
+// `en`). Text producers (core/CLI/desktop) do not hardcode strings — they reach
+// for a key from this table.
 
 export const LANGUAGES = [
   { Id: 'pl', Name: 'Polski' },
   { Id: 'en', Name: 'English' },
 ];
 
-// Mapowanie języka aplikacji na locale do formatowania dat/godzin.
+// Maps the application language to a locale for formatting dates/times.
 export const LOCALES = { pl: 'pl-PL', en: 'en-GB' };
 export function localeFor(lang) {
   return LOCALES[lang] || LOCALES.pl;
 }
 
-// Podstaw wartości pod tokeny `{nazwa}`. Brakujące tokeny zostają nietknięte.
+// Substitute values into `{name}` tokens. Missing tokens are left untouched.
 export function tfmt(str, params = {}) {
   return String(str == null ? '' : str).replace(/\{(\w+)\}/g, (m, k) =>
     Object.prototype.hasOwnProperty.call(params, k) ? String(params[k]) : m);
 }
 
 const pl = {
-  // --- ogólne / wspólne ---
+  // --- general / shared ---
   AppName: 'Liquid Flow',
   eShop: 'Comarch e-Sklep',
   Tagline: 'Synchronizacja szablonów Liquid — Comarch e-Sklep',
@@ -43,7 +43,7 @@ const pl = {
   Optional: '(opcjonalne)',
   Empty: '(puste)',
 
-  // --- sklepy / szablony ---
+  // --- shops / templates ---
   Shops: 'Twoje sklepy',
   ShopAdd: 'Dodaj sklep',
   ShopName: 'Nazwa sklepu',
@@ -58,7 +58,7 @@ const pl = {
   OpenLocalFolder: 'Otwórz folder lokalny',
   OpenShop: 'Otwórz sklep',
 
-  // --- pliki / synchronizacja ---
+  // --- files / synchronization ---
   Log: 'Log',
   Files: 'Pliki',
   Download: 'Pobierz',
@@ -83,7 +83,7 @@ const pl = {
   Locally: 'lokalnie',
   Remotely: 'zdalnie',
 
-  // --- błędy ---
+  // --- errors ---
   FilePathTooLong: 'Za długa nazwa pliku ze ścieżką ! Limit to 64 znaki.',
   InvalidFileSize: 'Przekroczono maksymalny rozmiar pliku!',
   InvalidLoginOrPassword: 'Nieprawidłowa nazwa użytkownika lub hasło',
@@ -98,7 +98,7 @@ const pl = {
   ConnectionTimeout: 'Przekroczono limit czasu połączenia (timeout)',
   SoapHttpError: 'HTTP {status} z serwera SOAP',
 
-  // --- kontroler: logi / błędy ---
+  // --- controller: logs / errors ---
   ConnectedToShop: 'Połączono ze sklepem: {name}',
   ConnectedToShopSaved: 'Połączono ze sklepem: {name} (zapisane hasło)',
   Disconnected: 'Rozłączono',
@@ -168,15 +168,15 @@ const pl = {
   GitPullError: 'Git pull: {msg}',
   GitNoRemoteConfigured: 'Git: brak skonfigurowanego zdalnego repozytorium (ustaw przez /git → remote)',
 
-  // --- silnik synchronizacji ---
+  // --- synchronization engine ---
   LocalFolderReady: 'Folder lokalny gotowy — pliki już pobrane',
   MismatchesChecked: 'Sprawdzono niezgodności — konflikty: {count}',
   SyncActiveHotReload: 'Synchronizacja aktywna — hot-reload ({name})',
   RemoteChangesDetected: '⚠ Wykryto zmiany zdalne — konflikty: {count} (/conflicts)',
   FilesDownloaded: 'Pobrano {count} plików ze sklepu',
   DownloadingFiles: 'Pobieranie plików ze sklepu',
-  // Logi zdarzeń na pliku (z etykietą pliku {label}) — pełne szablony, by
-  // dało się je przetłumaczyć na żywo (deskryptor i18n, nie sklejka).
+  // File event logs (with the file label {label}) — full templates, so they can
+  // be translated on the fly (an i18n descriptor, not a concatenation).
   LogFileChanged: 'Plik został zmieniony — {label}',
   LogFileCreated: 'Plik został utworzony — {label}',
   LogFileDeleted: 'Plik został usunięty — {label}',
@@ -186,7 +186,7 @@ const pl = {
   LogFileDeletedRemote: 'Plik został usunięty (zdalnie) — {label}',
   UnsafeRemotePath: 'Pominięto plik o niebezpiecznej ścieżce — {name}',
 
-  // --- CLI: input / nagłówek / status ---
+  // --- CLI: input / header / status ---
   InputPlaceholder: 'wpisz / aby zobaczyć komendy · /exit wyjście',
   ShopLabel: 'Sklep:',
   TemplateLabel: 'Szablon:',
@@ -194,7 +194,7 @@ const pl = {
   ConflictsShort: '⚠ {count}',
   WindowTooSmall: '⚠ Okno terminala za małe — powiększ do min. {rows} wierszy',
 
-  // --- CLI: listy / formularze / log (okienkowanie) ---
+  // --- CLI: lists / forms / log (windowing) ---
   MoreAbove: '↑ {count} więcej',
   MoreBelow: '↓ {count} więcej',
   PickerEmpty: '— pusto —  (Esc aby wrócić)',
@@ -211,7 +211,7 @@ const pl = {
   NewerEntries: '↓ {count} nowszych',
   LogEmpty: '— pusto —',
 
-  // --- CLI: komendy i przepływy ---
+  // --- CLI: commands and flows ---
   ConfirmYes: 'Tak, kontynuuj',
   ConfirmNo: 'Nie / anuluj',
   SignInShopTitle: 'Zaloguj sklep',
@@ -325,7 +325,7 @@ const pl = {
   WelcomePickShop: 'Wybierz sklep z listy po lewej, aby rozpocząć synchronizację.',
   WelcomeAddFirst: 'Dodaj swój pierwszy sklep Comarch e-Sklep, aby rozpocząć.',
 
-  // --- onboarding (ekran startowy) ---
+  // --- onboarding (start screen) ---
   OnboardTitle: 'Dodaj swój pierwszy sklep',
   OnboardAddAndSignIn: 'Dodaj i zaloguj',
   OnboardImportConfig: 'Zaimportuj konfigurację',
@@ -338,7 +338,7 @@ const pl = {
   FeatureAutomationTitle: 'Gotowy do automatyzacji',
   FeatureAutomationDesc: 'Pełna kontrola nad strukturą szablonów i stanem repozytorium sklepu.',
 
-  // --- podgląd różnic (diff preview) ---
+  // --- diff preview ---
   ActionPreviewShort: 'Podgląd',
   PreviewLoading: 'Ładowanie podglądu…',
   DiffTitle: 'Podgląd: {name}',
@@ -354,7 +354,7 @@ const pl = {
   IdeDiffFailed: 'Nie udało się otworzyć IDE ({cmd}): {error}. Ustaw zmienną LIQUIDFLOW_DIFF_CMD, jeśli używasz innego edytora.',
   LogAutoReconciled: 'Pominięto pozorne konflikty (identyczna zawartość): {count}',
 
-  // --- udostępnianie konfiguracji (export / import sklepów) ---
+  // --- config sharing (shop export / import) ---
   ShareExport: 'Eksportuj sklepy',
   ShareImport: 'Importuj sklepy',
   ShareExportTitle: 'Eksport sklepów',
@@ -381,7 +381,7 @@ const pl = {
   ShopsImported: 'Zaimportowano sklepy ({added}/{updated}/{skipped})',
   CheckListNav: '↑/↓ wybór · spacja zaznacz · a wszystkie · Enter zatwierdź · Esc anuluj',
 
-  // --- udostępnianie konfiguracji (export / import sklepów) ---
+  // --- config sharing (shop export / import) ---
   ShareExport: 'Eksportuj sklepy',
   ShareImport: 'Importuj sklepy',
   ShareExportTitle: 'Eksport sklepów',
@@ -416,7 +416,7 @@ const pl = {
 const en = {
   ...pl,
 
-  // --- ogólne / wspólne ---
+  // --- general / shared ---
   Tagline: 'Liquid template sync — Comarch e-Sklep',
   Yes: 'Yes',
   No: 'No',
@@ -430,7 +430,7 @@ const en = {
   Optional: '(optional)',
   Empty: '(empty)',
 
-  // --- sklepy / szablony ---
+  // --- shops / templates ---
   Shops: 'Your shops',
   ShopAdd: 'Add shop',
   ShopName: 'Shop name',
@@ -443,7 +443,7 @@ const en = {
   OpenLocalFolder: 'Open local folder',
   OpenShop: 'Open shop',
 
-  // --- pliki / synchronizacja ---
+  // --- files / synchronization ---
   Download: 'Download',
   Upload: 'Upload',
   DownloadAll: 'Download all',
@@ -466,7 +466,7 @@ const en = {
   Locally: 'locally',
   Remotely: 'remotely',
 
-  // --- błędy ---
+  // --- errors ---
   FilePathTooLong: 'File path is too long! The limit is 64 characters.',
   InvalidFileSize: 'Maximum file size exceeded!',
   InvalidLoginOrPassword: 'Invalid username or password',
@@ -481,7 +481,7 @@ const en = {
   ConnectionTimeout: 'Connection timed out',
   SoapHttpError: 'HTTP {status} from SOAP server',
 
-  // --- kontroler: logi / błędy ---
+  // --- controller: logs / errors ---
   ConnectedToShop: 'Connected to shop: {name}',
   ConnectedToShopSaved: 'Connected to shop: {name} (saved password)',
   Disconnected: 'Disconnected',
@@ -544,7 +544,7 @@ const en = {
   GitPullError: 'Git pull: {msg}',
   GitNoRemoteConfigured: 'Git: no remote configured (set one via /git → remote)',
 
-  // --- silnik synchronizacji ---
+  // --- synchronization engine ---
   LocalFolderReady: 'Local folder ready — files already downloaded',
   MismatchesChecked: 'Mismatches checked — conflicts: {count}',
   SyncActiveHotReload: 'Synchronization active — hot-reload ({name})',
@@ -560,7 +560,7 @@ const en = {
   LogFileDeletedRemote: 'File deleted (remotely) — {label}',
   UnsafeRemotePath: 'Skipped file with unsafe path — {name}',
 
-  // --- CLI: input / nagłówek / status ---
+  // --- CLI: input / header / status ---
   InputPlaceholder: 'type / to see commands · /exit to quit',
   ShopLabel: 'Shop:',
   TemplateLabel: 'Template:',
@@ -568,7 +568,7 @@ const en = {
   ConflictsShort: '⚠ {count}',
   WindowTooSmall: '⚠ Terminal window too small — resize to at least {rows} rows',
 
-  // --- CLI: listy / formularze / log (okienkowanie) ---
+  // --- CLI: lists / forms / log (windowing) ---
   MoreAbove: '↑ {count} more',
   MoreBelow: '↓ {count} more',
   PickerEmpty: '— empty —  (Esc to go back)',
@@ -585,7 +585,7 @@ const en = {
   NewerEntries: '↓ {count} newer',
   LogEmpty: '— empty —',
 
-  // --- CLI: komendy i przepływy ---
+  // --- CLI: commands and flows ---
   ConfirmYes: 'Yes, continue',
   ConfirmNo: 'No / cancel',
   SignInShopTitle: 'Sign in to shop',
@@ -712,7 +712,7 @@ const en = {
   FeatureAutomationTitle: 'Automation-ready',
   FeatureAutomationDesc: 'Full control over template structure and the shop repository state.',
 
-  // --- podgląd różnic (diff preview) ---
+  // --- diff preview ---
   ActionPreviewShort: 'Preview',
   PreviewLoading: 'Loading preview…',
   DiffTitle: 'Preview: {name}',
@@ -728,7 +728,7 @@ const en = {
   IdeDiffFailed: 'Failed to open IDE ({cmd}): {error}. Set LIQUIDFLOW_DIFF_CMD if you use a different editor.',
   LogAutoReconciled: 'Skipped spurious conflicts (identical content): {count}',
 
-  // --- udostępnianie konfiguracji (export / import sklepów) ---
+  // --- config sharing (shop export / import) ---
   ShareExport: 'Export shops',
   ShareImport: 'Import shops',
   ShareExportTitle: 'Export shops',

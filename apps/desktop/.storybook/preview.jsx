@@ -1,15 +1,15 @@
 import React from 'react';
 import '../renderer/src/index.css';
 
-// api.js robi `const api = window.api` na starcie modułu — w Storybooku (bez
-// Electrona) window.api nie istnieje, więc podstawiamy atrapę, żeby import
-// grafu komponentów się nie wywalił. Realne dane wstrzykuje MockApp przez ctx.
+// api.js does `const api = window.api` at module startup — in Storybook (without
+// Electron) window.api does not exist, so we substitute a stub so the component
+// graph import does not blow up. Real data is injected by MockApp via ctx.
 if (typeof window !== 'undefined' && !window.api) {
   window.api = new Proxy({}, { get: () => async () => undefined });
 }
 
-// Przełącznik motywu (light/dark) w pasku narzędzi — dokłada/zdejmuje klasę
-// `.dark` na <html>, dokładnie jak apka.
+// Theme switcher (light/dark) in the toolbar — adds/removes the `.dark` class
+// on <html>, exactly like the app.
 const withTheme = (Story, ctx) => {
   const dark = ctx.globals.theme === 'dark';
   React.useEffect(() => {

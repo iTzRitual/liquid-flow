@@ -3,19 +3,19 @@ import React, { useEffect, useState } from 'react';
 import { tfmt } from '@liquidflow/core';
 import { windowList } from '../window.js';
 
-// Generyczna lista wyboru.
-//   pozycja akcji:     { label, hint?, value }
-//   pozycja przełącznik:{ kind:'toggle', label, on:bool, onToggle:(newVal)=>void }
-// ↑/↓ nawigacja, Enter wybór (akcja). Na przełączniku ←/→ (lub Enter) zmienia
-// Tak/Nie inline — bez wchodzenia w podmenu. Esc anuluje. `maxRows` ogranicza
-// wysokość (przewijanie za zaznaczeniem).
-// `initialIndex`/`onIndexChange` pozwalają zapamiętać pozycję kursora między
-// wejściami: gdy z tej listy otwieramy kolejny ekran, a potem wracamy Esc, kursor
-// wraca na ten sam wiersz (App trzyma indeks na obiekcie trybu‑rodzica).
+// Generic selection list.
+//   action item:  { label, hint?, value }
+//   toggle item:  { kind:'toggle', label, on:bool, onToggle:(newVal)=>void }
+// ↑/↓ navigation, Enter selects (action). On a toggle, ←/→ (or Enter) changes
+// Yes/No inline — without entering a submenu. Esc cancels. `maxRows` caps the
+// height (scrolling follows the selection).
+// `initialIndex`/`onIndexChange` let the cursor position be remembered between
+// visits: when this list opens the next screen and we then return via Esc, the
+// cursor returns to the same row (App keeps the index on the parent mode object).
 export default function Picker({ title, items, onSelect, onCancel, onSlash, maxRows = 12, initialIndex = 0, onIndexChange, t }) {
   const [i, setI] = useState(() => Math.min(Math.max(0, initialIndex), Math.max(0, items.length - 1)));
-  const [toggles, setToggles] = useState({}); // lokalne (optymistyczne) wartości przełączników
-  useEffect(() => { onIndexChange?.(i); }, [i]); // raportuj pozycję rodzicowi (pamięć kursora)
+  const [toggles, setToggles] = useState({}); // local (optimistic) toggle values
+  useEffect(() => { onIndexChange?.(i); }, [i]); // report the position to the parent (cursor memory)
 
   const toggleVal = (idx) => (idx in toggles ? toggles[idx] : items[idx].on);
   const hasToggle = items.some((it) => it && it.kind === 'toggle');

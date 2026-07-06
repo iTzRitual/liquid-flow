@@ -10,7 +10,7 @@ function bar(done, total) {
   return { filled: '█'.repeat(filled), empty: '░'.repeat(BAR_WIDTH - filled), pct: Math.round(pct * 100) };
 }
 
-// Żywy loader startu synchronizacji: spinner + (dla pobierania) pasek 0-100%.
+// A live sync-startup loader: a spinner + (for downloads) a 0-100% bar.
 export default function ProgressView({ progress }) {
   if (!progress) return null;
   const { kind, label, done, total, indeterminate } = progress;

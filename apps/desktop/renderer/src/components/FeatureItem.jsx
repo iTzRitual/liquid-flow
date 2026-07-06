@@ -1,6 +1,6 @@
 import React from "react";
 
-// Pojedyncza pozycja cechy (ikona + tytuł + opis), np. w liście hero onboardingu.
+// A single feature item (icon + title + description), e.g. in the onboarding hero list.
 export default function FeatureItem({ icon: Icon, title, desc }) {
     return (
         <li className="flex items-start gap-3">

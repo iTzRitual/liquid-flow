@@ -3,7 +3,7 @@ import { Text } from 'ink';
 
 const FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
-// Animowany spinner ASCII (braille). Sam zarządza własnym interwałem.
+// An animated ASCII (braille) spinner. Manages its own interval.
 export default function Spinner({ color = 'cyan', interval = 80 }) {
   const [i, setI] = useState(0);
   useEffect(() => {

@@ -22,7 +22,7 @@ describe('buildVlines', () => {
     const longLog = [{ Id: 1, TS: now, Color: '#2A2', Text: 'x'.repeat(200) }];
     const v = buildVlines(longLog, true, 46);
     expect(v.length).toBeGreaterThan(1);
-    // szerokość wiersza = cols-2 (paddingX) — żaden wiersz nie przekracza
+    // row width = cols-2 (paddingX) — no row exceeds it
     expect(v.every((l) => [...l.text].length <= 44)).toBe(true);
   });
 

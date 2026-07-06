@@ -13,14 +13,14 @@ import Spinner from './components/Spinner.jsx';
 import LogPane, { buildVlines } from './components/LogPane.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 
-// Licznik unikalnych identyfikatorów nakładek. Każdy otwarty ekran (mode) dostaje
-// własny `uid`, używany jako React `key` renderowanego komponentu. Dzięki temu gdy
-// przechodzimy MIĘDZY dwoma ekranami tego SAMEGO typu (np. picker → picker w
-// podmenu /git, albo connect → picker „usuń sklep”), React REMONTUJE komponent
-// zamiast reużywać instancji — inaczej wewnętrzny `useState` kursora przeżywa
-// przejście i `initialIndex` (który zasiewa tylko stan początkowy) jest ignorowany,
-// więc powrót Esc do rodzica gubiłby pozycję. W obrębie jednego ekranu uid jest
-// stały (brak zbędnych remontów przy nawigacji/toggle/re-renderze App).
+// Counter of unique overlay identifiers. Every opened screen (mode) gets its own
+// `uid`, used as the React `key` of the rendered component. This way, when moving
+// BETWEEN two screens of the SAME type (e.g. picker → picker in the /git submenu,
+// or connect → the "remove shop" picker), React REMOUNTS the component instead of
+// reusing the instance — otherwise the cursor's internal `useState` would survive
+// the transition and `initialIndex` (which only seeds the initial state) would be
+// ignored, so returning to the parent via Esc would lose the position. Within a
+// single screen the uid is stable (no needless remounts on navigation/toggle/App re-render).
 let MODE_UID = 0;
 const nextUid = () => ++MODE_UID;
 import Picker from './components/Picker.jsx';
@@ -42,24 +42,24 @@ export default function App() {
   const [highlight, setHighlight] = useState(0);
   const [termRows, setTermRows] = useState(stdout?.rows || 24);
   const [termCols, setTermCols] = useState(stdout?.columns || 80);
-  // Preferencje UI (zawijanie logów, tryb nagłówka) żyją w configu rdzenia — czytamy
-  // je ze `state` (pamiętane między uruchomieniami), a zapis idzie przez `ctrl`
-  // (emituje 'state' → odświeżenie). Settery zachowują dawną sygnaturę dla komend.
+  // UI preferences (log wrapping, header mode) live in the core config — we read
+  // them from `state` (persisted across runs), and writes go through `ctrl`
+  // (which emits 'state' → a refresh). The setters keep the old signature for the commands.
   const logWrap = !!state?.logWrap;
   const setLogWrap = (v) => ctrl?.setUiPref('logWrap', v);
   const headerPref = state?.headerMode || 'auto';
   const setHeaderPref = (v) => ctrl?.setUiPref('headerMode', v);
-  const [logScroll, setLogScroll] = useState(0); // ile wizualnych wierszy od dołu (0 = najnowsze)
-  // Nawigacja „wstecz”: każda otwierana nakładka dostaje wskaźnik `parent` (ekran,
-  // z którego przyszliśmy). Esc wraca do rodzica, a dopiero z ekranu najwyższego
-  // poziomu — do inputu. `pendingParentRef` przenosi rodzica przez asynchroniczne
-  // otwarcia (loader → ekran): ustawiamy go w momencie interakcji użytkownika
-  // (wybór w pickerze/formularzu, akcja w connect/conflicts), a konsumuje go
-  // helper otwierający kolejną nakładkę. Czyszczony przy starcie komendy (skok od
-  // inputu nie ma rodzica) i przy cofaniu.
+  const [logScroll, setLogScroll] = useState(0); // number of visual rows from the bottom (0 = newest)
+  // "Back" navigation: every opened overlay gets a `parent` pointer (the screen we
+  // came from). Esc returns to the parent, and only from the top-level screen back
+  // to the input. `pendingParentRef` carries the parent through asynchronous opens
+  // (loader → screen): we set it at the moment of user interaction (a selection in
+  // the picker/form, an action in connect/conflicts), and the helper opening the
+  // next overlay consumes it. Cleared on command start (a jump from the input has
+  // no parent) and on going back.
   const pendingParentRef = useRef(null);
   const takeParent = () => { const p = pendingParentRef.current; pendingParentRef.current = null; return p || null; };
-  // Cofnięcie z nakładki: pokaż rodzica (jeśli jest), inaczej wróć do inputu.
+  // Back out of an overlay: show the parent (if any), otherwise return to the input.
   const cancelTo = (m) => {
     pendingParentRef.current = null;
     const p = m?.parent;
@@ -67,12 +67,12 @@ export default function App() {
     else { setMode({ type: 'input' }); setQuery(''); }
   };
 
-  // Reaguj na zmianę rozmiaru terminala. Ink przy resize tylko przelicza layout
-  // istniejącego drzewa (nie wywołuje ponownie komponentów) i nie czyści ekranu —
-  // dlatego: (1) czyścimy cały ekran, by terminal nie zostawił zawiniętych, za
-  // szerokich wierszy z poprzedniego rozmiaru, (2) aktualizujemy stan (rows+cols),
-  // co wymusza pełny re-render wszystkich komponentów zależnych od szerokości
-  // (Divider liczy '─'×cols, Header przełącza kolumny↔wiersze).
+  // React to terminal resize. On resize Ink only recomputes the layout of the
+  // existing tree (it does not re-invoke components) and does not clear the screen —
+  // so: (1) we clear the whole screen so the terminal does not leave wrapped,
+  // too-wide rows from the previous size, (2) we update the state (rows+cols),
+  // which forces a full re-render of all width-dependent components (Divider
+  // computes '─'×cols, Header switches columns↔rows).
   useEffect(() => {
     if (!stdout) return undefined;
     const onResize = () => {
@@ -84,7 +84,7 @@ export default function App() {
     return () => stdout.off('resize', onResize);
   }, [stdout]);
 
-  // Pomocnicy przekazywani do komend — otwieranie nakładek i bezpieczne akcje.
+  // Helpers passed to the commands — opening overlays and safe actions.
   const ctx = useMemo(() => {
     const back = () => { setMode({ type: 'input' }); setQuery(''); };
     const safe = (fn) => Promise.resolve().then(fn).catch((e) => corelog.logErr(e?.message || String(e)));
@@ -92,9 +92,9 @@ export default function App() {
       ctrl, t, state, mismatches, git, shops, refreshShops, clearLog, exit, safe,
       logWrap, setLogWrap,
       headerPref, setHeaderPref,
-      // Wybór pozycji zamyka picker (back → input), a wskaźnik rodzica zapisujemy
-      // tuż przed handlerem — jeśli ten otworzy kolejną nakładkę, dostanie ona ten
-      // picker jako rodzica (Esc wróci tu, a nie do inputu).
+      // Selecting an item closes the picker (back → input), and we record the parent
+      // pointer just before the handler — if it opens another overlay, that overlay
+      // gets this picker as its parent (Esc returns here, not to the input).
       openPicker: (title, items, onSelect, opts = {}) => {
         const self = { type: 'picker', uid: nextUid(), title, items, onSlash: opts.onSlash, parent: takeParent() };
         self.onSelect = (it, i) => { pendingParentRef.current = self; back(); onSelect?.(it, i); };
@@ -105,10 +105,10 @@ export default function App() {
         self.onSubmit = (vals) => { pendingParentRef.current = self; back(); onSubmit?.(vals); };
         setMode(self);
       },
-      // ekran konfliktów (karty + stopka seryjna). Handlery same sterują trybem
-      // (loader/odświeżenie/potwierdzenie), więc nie owijamy ich w back(). Ekran
-      // jest zawsze wchodzony z poziomu inputu (/conflicts lub wskaźnik), więc
-      // rodzic = input; jego akcje (potwierdzenia) dostają ten ekran jako rodzica.
+      // conflicts screen (cards + bulk footer). The handlers drive the mode
+      // themselves (loader/refresh/confirmation), so we do not wrap them in back().
+      // The screen is always entered from the input (/conflicts or the indicator),
+      // so parent = input; its actions (confirmations) get this screen as their parent.
       openConflicts: (data) => {
         pendingParentRef.current = null;
         const self = { type: 'conflicts', uid: nextUid(), ...data, parent: null };
@@ -116,10 +116,10 @@ export default function App() {
         self.onBulk = (...a) => { pendingParentRef.current = self; data.onBulk?.(...a); };
         setMode(self);
       },
-      // ekran łączenia (lista sklepów + stopka akcji). Handlery same sterują
-      // trybem (loader/formularz/sub-picker), więc nie owijamy ich w back().
-      // Akcje (Dodaj/Usuń/wybór sklepu) zapisują ten ekran jako rodzica, by Esc
-      // z formularza/sub-pickera wrócił do listy sklepów, a nie do inputu.
+      // connect screen (shop list + action footer). The handlers drive the mode
+      // themselves (loader/form/sub-picker), so we do not wrap them in back().
+      // The actions (Add/Remove/select shop) record this screen as their parent, so
+      // Esc from the form/sub-picker returns to the shop list, not to the input.
       openCheckList: (data) => {
         const self = { type: 'checklist', uid: nextUid(), ...data, parent: takeParent() };
         self.onConfirm = (...a) => { pendingParentRef.current = self; data.onConfirm?.(...a); };
@@ -131,34 +131,34 @@ export default function App() {
         self.onAction = (...a) => { pendingParentRef.current = self; data.onAction?.(...a); };
         setMode(self);
       },
-      // ekran podglądu diff (read-only). Esc wraca do rodzica (ekranu konfliktów).
+      // diff preview screen (read-only). Esc returns to the parent (the conflicts screen).
       openDiff: (data) => {
         const self = { type: 'diff', uid: nextUid(), ...data, parent: takeParent() };
         setMode(self);
       },
-      // krótki, samoznikający komunikat (np. „brak konfliktów”) — zamiast migawki
-      // logu, zostaje na ekranie `duration` ms, z odliczeniem, i znika po DOWOLNYM
-      // klawiszu. Zawsze wraca do inputu (wchodzony tylko z poziomu inputu).
+      // a short, self-dismissing message (e.g. "no conflicts") — instead of a log
+      // flash, it stays on screen for `duration` ms, with a countdown, and dismisses
+      // on ANY key. Always returns to the input (only ever entered from the input).
       openInfo: (data) => {
         pendingParentRef.current = null;
         const self = { type: 'info', uid: nextUid(), ...data };
         self.onDismiss = () => { back(); data.onDismiss?.(); };
         setMode(self);
       },
-      // porzuć zapamiętanego rodzica — gdy ekran, z którego przyszliśmy, przestaje
-      // być aktualny (np. po `init` ekran „brak repo” znika), kolejny otwarty
-      // widok ma wrócić Esc do inputu, a nie do nieaktualnego ekranu.
+      // drop the remembered parent — when the screen we came from is no longer
+      // current (e.g. after `init` the "no repo" screen disappears), the next opened
+      // view should return via Esc to the input, not to the stale screen.
       dropParent: () => { pendingParentRef.current = null; },
-      // wyjście z listy startowej do zwykłego inputu z otwartą paletą
+      // exit the startup list to the plain input with the palette open
       skipToInput: () => { setMode({ type: 'input' }); setQuery('/'); },
-      // powrót do czystego inputu (np. gdy operacja z loaderem nie otwiera widoku)
+      // return to a clean input (e.g. when an operation with a loader opens no view)
       backToInput: back,
-      // pokaż ekran ładowania na czas operacji (np. pobierania listy szablonów),
-      // a po niej fn otwiera właściwy widok; przy błędzie wróć do inputu.
-      // `title` (opcjonalny) nadpisuje domyślny nagłówek loadera. Użycie loadera
-      // zamiast „gołego” inputu eliminuje też mignięcie ekranu głównego, gdy fn
-      // jest asynchroniczne (back()→input zdąża się wyrenderować przed otwarciem
-      // właściwego widoku) — spinner trzyma kadr do czasu otwarcia widoku.
+      // show a loading screen for the duration of an operation (e.g. fetching the
+      // template list), after which fn opens the actual view; on error, return to the
+      // input. The optional `title` overrides the loader's default header. Using the
+      // loader instead of a "bare" input also eliminates the main-screen flash when fn
+      // is asynchronous (back()→input manages to render before the actual view opens)
+      // — the spinner holds the frame until the view opens.
       withLoading: (label, fn, title) => {
         setMode({ type: 'loading', label, title });
         Promise.resolve().then(fn).catch((e) => {
@@ -172,15 +172,15 @@ export default function App() {
 
   const commands = useMemo(() => buildCommands(ctx), [ctx]);
 
-  // Auto-nawigacja po rozwiązaniu konfliktu w tle: `/conflicts` → Podgląd
-  // (`mode.type === 'diff'`) zapamiętuje OGLĄDANY plik (`watchMismatch`).
-  // Cykliczny poll konfliktów (`mismatches`, patrz useController) leci nadal,
-  // nawet gdy patrzysz na diff/edytujesz w IDE — jeśli zapis w IDE spowodował,
-  // że watcher wysłał plik (lub go pobrał) i dany plik zniknął z `mismatches`,
-  // wracamy sami: do odświeżonej listy konfliktów (jeśli coś zostało) albo na
-  // ekran główny (jeśli to był ostatni — `renderConflicts([])` woła
-  // `backToInput()` z komunikatem „brak konfliktów”). Po nawigacji `mode.type`
-  // przestaje być `'diff'`, więc efekt się nie powtarza dla tego samego pliku.
+  // Auto-navigation after a conflict is resolved in the background: `/conflicts` →
+  // Preview (`mode.type === 'diff'`) remembers the VIEWED file (`watchMismatch`).
+  // The periodic conflict poll (`mismatches`, see useController) keeps running even
+  // while you look at a diff / edit in an IDE — if an IDE save caused the watcher to
+  // upload the file (or download it) and that file dropped out of `mismatches`, we
+  // navigate ourselves: to the refreshed conflict list (if any remain) or to the
+  // main screen (if it was the last — `renderConflicts([])` calls `backToInput()`
+  // with a "no conflicts" message). After navigating, `mode.type` is no longer
+  // `'diff'`, so the effect does not repeat for the same file.
   useEffect(() => {
     if (mode.type !== 'diff' || !mode.watchMismatch) return;
     const { fileMode, name } = mode.watchMismatch;
@@ -189,7 +189,7 @@ export default function App() {
     commands.renderConflicts?.(mismatches);
   }, [mismatches, mode, commands]);
 
-  // Na starcie (gdy niepołączony) od razu otwórz listę sklepów do połączenia.
+  // On startup (when disconnected) immediately open the shop list to connect.
   const booted = useRef(false);
   useEffect(() => {
     if (!ready || booted.current) return;
@@ -200,7 +200,7 @@ export default function App() {
     }
   }, [ready, state, commands]);
 
-  // Filtrowanie palety na podstawie wpisanego tekstu (po wiodącym '/').
+  // Filter the palette based on the typed text (after the leading '/').
   const palette = query.startsWith('/') ? query.slice(1).toLowerCase() : null;
   const filtered = useMemo(() => {
     if (palette === null) return [];
@@ -208,72 +208,74 @@ export default function App() {
   }, [commands, palette]);
 
   useEffect(() => { setHighlight(0); }, [query]);
-  // Po przełączeniu kanału logu (zmiana sklepu/szablonu) zjedź na dół, by
-  // pokazać najnowszy strumień (a nie zachować scroll z poprzedniego kanału).
+  // After switching the log channel (shop/template change) scroll to the bottom,
+  // to show the newest stream (rather than keeping the previous channel's scroll).
   useEffect(() => { setLogScroll(0); }, [logVersion]);
 
-  // --- wymiary i pochodne (przed useInput, bo scroll ich używa) ---
+  // --- dimensions and derived values (before useInput, because scroll uses them) ---
   const paletteOpen = filtered.length > 0;
-  // Nagłówek degraduje się z wysokością okna: pełny → compact (1 wiersz) →
-  // ukryty (nakładka „nachodzi" na nagłówek), a gdy nawet bez nagłówka nie ma
-  // miejsca na minimum trybu → guard (ekran „okno za małe"). Liczone w layout.js.
+  // The header degrades with window height: full → compact (1 row) → hidden (the
+  // overlay "takes over" the header), and when even without the header there is no
+  // room for the mode's minimum → guard (the "window too small" screen). Computed in layout.js.
   const hl = headerLayout({ termRows, termCols, mode, pref: headerPref });
   const headerMode = hl.mode; // 'full' | 'compact' | 'none' | 'guard'
   const tooSmall = headerMode === 'guard';
-  // Realna wysokość nagłówka (z górnym dividerem). 0 gdy ukryty/guard.
+  // Actual header height (with the top divider). 0 when hidden/guard.
   const HEADER = hl.height;
-  // Log wypełnia dostępną wysokość. Pasek postępu, gdy widoczny, zajmuje 1 wiersz.
+  // The log fills the available height. The progress bar, when visible, takes 1 row.
   const progressRows = progress ? 1 : 0;
   const bottomSpacer = headerLayout({ termRows, termCols, mode, pref: 'auto' }).mode === 'full';
   const logRows = Math.max(1, termRows - HEADER - progressRows - (bottomSpacer ? 3 : 2));
-  // paleta (gdy log się nie mieści obok): pełna wysokość pod nagłówkiem
+  // palette (when the log does not fit alongside): full height below the header
   const paletteMax = Math.max(3, termRows - HEADER - 1);
-  // log: wizualne wiersze (zależne od trybu zawijania i szerokości) + zakres scrolla
+  // log: visual rows (depending on the wrap mode and width) + scroll range
   const vlines = useMemo(() => buildVlines(log, logWrap, termCols), [log, logWrap, termCols]);
-  // +1, bo na górze wskaźnik „↓ nowszych" zabiera wiersz z okna; bez tego
-  // najstarsze wpisy (tyle, ile zajmują wskaźniki) byłyby nieosiągalne.
+  // +1, because the "↓ newer" indicator at the top takes a row from the window;
+  // without it the oldest entries (as many as the indicators occupy) would be unreachable.
   const maxScroll = vlines.length > logRows ? vlines.length - logRows + 1 : 0;
   const logScrollClamped = Math.min(logScroll, maxScroll);
 
-  // --- nakładki (picker/form/conflicts/connect/loading) ---
-  // Spójna zasada: ekran przyklejony do DOŁU (jak input), a nad nim — log jako
-  // kontekst (filler). Wysokość ekranu liczymy z DANYCH (ile pozycji), więc krótki
-  // ekran nie zabiera całej wysokości — log dostaje resztę; długi ekran windowuje
-  // się, a log znika (1 linia logu NIE jest wymogiem — to tylko wypełnienie).
+  // --- overlays (picker/form/conflicts/connect/loading) ---
+  // A consistent rule: the screen sticks to the BOTTOM (like the input), and above
+  // it — the log as context (a filler). We compute the screen height from the DATA
+  // (how many items), so a short screen does not take the whole height — the log
+  // gets the rest; a long screen windows itself and the log disappears (1 log line
+  // is NOT required — it is only filler).
   //
-  // `overlayAvail` MUSI równać się REALNEJ wysokości flex‑boxa nakładki, inaczej
-  // `justifyContent:flex-end` spycha za krótki stos w dół i zostaje pusty wiersz
-  // (gap). Ten flex‑box jest jedynym (rosnącym) dzieckiem roota po nagłówku, więc:
+  // `overlayAvail` MUST equal the REAL height of the overlay's flex box, otherwise
+  // `justifyContent:flex-end` pushes a too-short stack down and an empty row (gap)
+  // remains. This flex box is the only (growing) child of the root after the header, so:
   //   root(termRows) − HEADER = termRows − HEADER.
   const overlayAvail = Math.max(1, termRows - HEADER);
-  // Naturalna (pełna) wysokość nakładki — TA SAMA liczba, którą layout.js bierze do
-  // degradacji nagłówka, więc próg „nakładka się okienkuje" == próg „nagłówek
-  // ustępuje" (jedno źródło prawdy w layout.js → header zmniejsza się dokładnie
-  // wtedy, gdy inaczej musielibyśmy okienkować treść).
+  // Natural (full) overlay height — the SAME number layout.js uses to degrade the
+  // header, so the "overlay windows itself" threshold == the "header gives way"
+  // threshold (a single source of truth in layout.js → the header shrinks exactly
+  // when we would otherwise have to window the content).
   const overlayNatural = naturalBodyRows(mode);
   const ovRows = Math.min(overlayNatural, overlayAvail);
-  const ovMax = Math.max(1, ovRows - 4); // body ekranu (chrome ekranu = 4 wiersze)
-  // log nad ekranem (bez wiersza przerwy — ekran lgnie wprost pod log); pokazujemy
-  // tylko gdy zostają ≥2 wiersze — 1‑wierszowy log to sam wskaźnik „↑ więcej" (bez
-  // treści), a log jest tu tylko wypełniaczem, więc go wtedy pomijamy (ekran
-  // zajmuje całą wysokość).
+  const ovMax = Math.max(1, ovRows - 4); // screen body (screen chrome = 4 rows)
+  // log above the screen (no gap row — the screen sits directly under the log); we
+  // show it only when ≥2 rows remain — a 1-row log is just the "↑ more" indicator
+  // (no content), and the log here is only a filler, so we then omit it (the screen
+  // takes the whole height).
   const ovLogRows = Math.max(0, overlayAvail - ovRows);
   const ovShowLog = ovLogRows >= 2 && log.length > 0;
 
-  // --- paleta w trybie input ---
-  // Slash NIE chowa logu: paleta zajmuje kawałek przy dole (tuż nad inputem),
-  // a log wypełnia resztę nad nią. Mieścimy się tylko gdy jest sensownie wysoko.
+  // --- palette in input mode ---
+  // Slash does NOT hide the log: the palette occupies a slice near the bottom (just
+  // above the input), and the log fills the rest above it. We only fit it when there
+  // is reasonably enough height.
   const showLogWithPalette = log.length > 0 && logRows >= 10;
   const logWithPalette = paletteOpen && showLogWithPalette;
-  // Aktywny tryb: log > divider > podpowiedzi > input (ten sam divider co pasywny,
-  // tuż pod logiem; bez spacera). Divider(1)+input(1) już są w budżecie logRows (−3);
-  // paleta to dodatkowy sibling, więc log oddaje jej tyle wierszy ile zajmie.
-  // −4 zostawia ≥3 wiersze logu nad dividerem.
+  // Active mode: log > divider > hints > input (the same divider as the passive one,
+  // just below the log; no spacer). Divider(1)+input(1) are already in the logRows
+  // budget (−3); the palette is an additional sibling, so the log yields it as many
+  // rows as it takes. −4 leaves ≥3 log rows above the divider.
   const paletteCap = Math.max(3, Math.min(filtered.length, logRows - 4));
   const paletteLogRows = Math.max(1, logRows - paletteCap);
 
-  // Klawiatura/scroll w trybie input. Paleta otwarta → nawigacja palety; paleta
-  // zamknięta → strzałki/kółko (alt‑scroll) przewijają log na ekranie głównym.
+  // Keyboard/scroll in input mode. Palette open → palette navigation; palette
+  // closed → arrows/wheel (alt-scroll) scroll the log on the main screen.
   useInput((input, key) => {
     if (paletteOpen) {
       if (key.upArrow) { setHighlight((h) => (h - 1 + filtered.length) % filtered.length); return; }
@@ -290,22 +292,23 @@ export default function App() {
   const onSubmit = (value) => {
     const v = (value || '').trim();
     setQuery('');
-    setLogScroll(0); // po komendzie wróć na dół, by zobaczyć świeży wynik
+    setLogScroll(0); // after a command return to the bottom, to see the fresh result
     if (!v.startsWith('/')) return;
-    pendingParentRef.current = null; // komenda startuje od inputu — brak rodzica
-    // dokładne dopasowanie ma pierwszeństwo, w innym wypadku podświetlona pozycja
+    pendingParentRef.current = null; // a command starts from the input — no parent
+    // an exact match takes precedence, otherwise the highlighted item
     const exact = commands.find((c) => c.name === v.split(' ')[0]);
     const target = exact || filtered[highlight];
     if (target) target.run();
   };
 
-  // Owija ekran nakładki we wspólny obszar akcji: log u góry (kontekst, filler),
-  // ekran przyklejony do dołu — spójnie z inputem. To FUNKCJA (nie komponent),
-  // żeby Box miał stabilną tożsamość w drzewie i nie remontował ekranu (zachowanie
-  // stanu useState pickerów). Log to wypełniacz — gdy brak miejsca (niskie okno),
-  // `ovShowLog` jest false i ekran zajmuje całą wysokość (nakładka „nachodzi" na
-  // miejsce po ukrytym nagłówku). Brak wiersza przerwy między logiem a ramką —
-  // ekran lgnie wprost pod (wyszarzony) log, jak input pod divider.
+  // Wraps the overlay screen in a shared action area: the log on top (context,
+  // filler), the screen stuck to the bottom — consistent with the input. This is a
+  // FUNCTION (not a component), so the Box has a stable identity in the tree and does
+  // not remount the screen (preserving the pickers' useState). The log is a filler —
+  // when there is no room (a low window), `ovShowLog` is false and the screen takes
+  // the whole height (the overlay "takes over" the hidden header's space). No gap row
+  // between the log and the frame — the screen sits directly under the (dimmed) log,
+  // like the input under the divider.
   const wrapAction = (node) => {
     return (
       <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
@@ -315,9 +318,9 @@ export default function App() {
     );
   };
 
-  // Okno za niskie, by zmieścić bieżący tryb nawet bez nagłówka — pokaż prośbę o
-  // powiększenie zamiast rozsypanego/zdublowanego widoku (Ink przy przepełnieniu
-  // dokleja kopię ramki). Komunikat mieści się w 1 wierszu (truncate-end).
+  // The window is too low to fit the current mode even without the header — show a
+  // request to enlarge instead of a broken/duplicated view (on overflow Ink appends
+  // a copy of the frame). The message fits in 1 row (truncate-end).
   if (ready === false || !ctrl) {
     return (
       <Box height={termRows} alignItems="center" justifyContent="center">
@@ -379,9 +382,10 @@ export default function App() {
 
       {mode.type === 'input' && (
         <>
-          {/* Środek rośnie i wypycha strefę akcji na dół. Log wypełnia górę, pod
-              nim divider, a poniżej (gdy paleta otwarta) podpowiedzi tuż nad
-              inputem: log > divider > podpowiedzi > input. Slash nie chowa logu. */}
+          {/* The middle grows and pushes the action area to the bottom. The log
+              fills the top, below it a divider, and beneath (when the palette is
+              open) the hints just above the input: log > divider > hints > input.
+              Slash does not hide the log. */}
           <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
             {paletteOpen
               ? (logWithPalette

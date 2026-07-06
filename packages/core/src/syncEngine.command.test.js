@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import { SyncSession, MismatchType } from './syncEngine.js';
 import * as store from './store.js';
 
-// Pokrycie orkiestracji command() (akcje z UI): pojedyncze i seryjne operacje,
-// w tym usuwanie lokalne/zdalne. Atrapa klienta z rejestrem wywołań.
+// Coverage of command() orchestration (UI actions): single and bulk operations,
+// including local/remote deletion. A fake client with a call log.
 function fakeClient() {
   return {
     calls: [],
@@ -67,7 +67,7 @@ describe('command() — operacje pojedyncze', () => {
 
 describe('command() — operacje seryjne', () => {
   it('downloadAll pobiera LocalMissing i Timestamp', async () => {
-    // jeden LocalMissing (jest zdalnie, brak lokalnie)
+    // one LocalMissing (present remotely, absent locally)
     client.remoteMeta = [{ Mode: 0, Name: 'remote.liquid', Date: '2026-01-01T00:00:00' }];
     client.files['0/remote.liquid'] = { Template: Buffer.from('R'), Date: '2026-01-01T00:00:00' };
     await session.refreshMismatches({ silent: true });
@@ -78,11 +78,11 @@ describe('command() — operacje seryjne', () => {
   });
 
   it('uploadAll wysyła RemoteMissing', async () => {
-    writeLocal(0, 'local.liquid', 'L'); // lokalny, brak zdalnie → RemoteMissing
-    client.remoteMeta = [{ Mode: 0, Name: 'local.liquid', Date: '2026-09-09T00:00:00' }]; // po wysyłce meta
+    writeLocal(0, 'local.liquid', 'L'); // local, absent remotely → RemoteMissing
+    client.remoteMeta = [{ Mode: 0, Name: 'local.liquid', Date: '2026-09-09T00:00:00' }]; // meta after upload
     await session.refreshMismatches({ silent: true });
-    // przed wysyłką to RemoteMissing (brak w remoteMeta na moment przeliczenia)…
-    // ustaw remoteMeta puste, by wykryć RemoteMissing:
+    // before the upload this is RemoteMissing (absent from remoteMeta at recompute time)…
+    // set remoteMeta empty to detect RemoteMissing:
     client.remoteMeta = [];
     await session.refreshMismatches({ silent: true });
     expect(session.mismatches.some((m) => m.Type === MismatchType.RemoteMissing)).toBe(true);
@@ -107,24 +107,24 @@ describe('refreshMismatches() — auto-uzgadnianie pozornych konfliktów Timesta
 
   it('identyczna zawartość: konflikt Timestamp NIE pojawia się, meta uzgodnione, bez transferu', async () => {
     writeLocal(0, 'auto.liquid', 'body\ntail');
-    // meta z rozjechanym remotets → kandydat Timestamp; ale treść identyczna
+    // meta with a diverged remotets → a Timestamp candidate; but the content is identical
     store.setMetaEntry(shop.Name, template.Id, 0, 'auto.liquid', '2020-01-01T00:00:00', '2020-01-01T00:00:00');
     client.remoteMeta = [{ Mode: 0, Name: 'auto.liquid', Date: '2026-05-05T00:00:00' }];
     client.files['0/auto.liquid'] = { Template: Buffer.from('body\ntail'), Date: '2026-05-05T00:00:00' };
 
     const mm = await session.refreshMismatches({ silent: true });
-    // pozorny konflikt zniknął (auto-uzgodniony)
+    // the apparent conflict is gone (auto-reconciled)
     expect(mm.some((m) => m.File.Name === 'auto.liquid')).toBe(false);
-    // treść pobrana raz do porównania, ale żadnego transferu bajtów
+    // content fetched once for comparison, but no byte transfer
     expect(getCount('auto.liquid')).toBe(1);
     expect(has('set')).toBe(false);
     expect(has('add')).toBe(false);
     expect(has('delete')).toBe(false);
-    // meta nadpisane bieżącym remotets → kolejny refresh też nic nie zgłasza
+    // meta overwritten with the current remotets → the next refresh also reports nothing
     expect(store.getMetaEntry(store.loadMeta(shop.Name, template.Id), 0, 'auto.liquid').remotets).toBe('2026-05-05T00:00:00');
     const mm2 = await session.refreshMismatches({ silent: true });
     expect(mm2.some((m) => m.File.Name === 'auto.liquid')).toBe(false);
-    expect(getCount('auto.liquid')).toBe(1); // brak nowego pobrania (nie jest już kandydatem)
+    expect(getCount('auto.liquid')).toBe(1); // no new fetch (no longer a candidate)
   });
 
   it('różna zawartość: konflikt Timestamp POZOSTAJE, meta nietknięte', async () => {
@@ -135,7 +135,7 @@ describe('refreshMismatches() — auto-uzgadnianie pozornych konfliktów Timesta
 
     const mm = await session.refreshMismatches({ silent: true });
     expect(mm.some((m) => m.File.Name === 'real.liquid' && m.Type === MismatchType.Timestamp)).toBe(true);
-    // meta bez zmian (nie ukrywamy realnej różnicy)
+    // meta unchanged (we do not hide a real difference)
     expect(store.getMetaEntry(store.loadMeta(shop.Name, template.Id), 0, 'real.liquid').remotets).toBe('2020-01-01T00:00:00');
   });
 
@@ -147,7 +147,7 @@ describe('refreshMismatches() — auto-uzgadnianie pozornych konfliktów Timesta
 
     await session.refreshMismatches({ silent: true });
     expect(getCount('cached.liquid')).toBe(1);
-    // drugi refresh z tymi samymi znacznikami → cache „potwierdzone różne", brak pobrania
+    // a second refresh with the same timestamps → the "known-different" cache, no fetch
     await session.refreshMismatches({ silent: true });
     expect(getCount('cached.liquid')).toBe(1);
     expect(session.mismatches.some((m) => m.File.Name === 'cached.liquid')).toBe(true);
@@ -165,7 +165,7 @@ describe('previewConflict() — podgląd różnic', () => {
     expect(Array.isArray(result.diff)).toBe(true);
     expect(result.diff.some((d) => d.type === 'del')).toBe(true);
     expect(result.diff.some((d) => d.type === 'add')).toBe(true);
-    // wyłącznie do odczytu — brak wywołań set/add/delete
+    // read-only — no set/add/delete calls
     expect(has('set')).toBe(false);
     expect(has('add')).toBe(false);
     expect(has('delete')).toBe(false);
@@ -177,7 +177,7 @@ describe('previewConflict() — podgląd różnic', () => {
     expect(result.kind).toBe('text');
     expect(result.local).toBeNull();
     expect(result.remote).toBe('tylko zdalne');
-    // nie powinien próbować czytać lokalnego pliku (nie istnieje)
+    // it should not try to read the local file (it does not exist)
     const calls = client.calls.filter(([k]) => k === 'get');
     expect(calls.length).toBe(1);
   });
@@ -189,7 +189,7 @@ describe('previewConflict() — podgląd różnic', () => {
     expect(result.kind).toBe('text');
     expect(result.remote).toBeNull();
     expect(result.local).toBe('tylko lokalne');
-    // nie może wołać liquidFilesGet (plik nie istnieje zdalnie)
+    // it must not call liquidFilesGet (the file does not exist remotely)
     const getCalls = client.calls.slice(before).filter(([k]) => k === 'get');
     expect(getCalls.length).toBe(0);
   });

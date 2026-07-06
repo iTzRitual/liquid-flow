@@ -1,10 +1,10 @@
-// Nagłówek: Protokół komunikacji z demonem (RPC i eventy nad Unix socket / named pipe).
-// Ramkowanie: Linie tekstu zakończone \n, każda to obiekt JSON.
+// Daemon communication protocol (RPC and events over a Unix socket / named pipe).
+// Framing: newline-terminated text lines, each a JSON object.
 //
-// Obiekty wysyłane przez klienta:
+// Objects sent by the client:
 //   { t: 'call', id: number, method: string, arg?: any }
 //
-// Obiekty wysyłane przez serwer:
+// Objects sent by the server:
 //   { t: 'snapshot', state: object, log: Array, mismatches: Array }
 //   { t: 'event', event: string, payload: any }
 //   { t: 'result', id: number, ok: true, value: any }

@@ -4,8 +4,8 @@ import { buildCommands } from './commands.js';
 
 const t = translationsFor('pl');
 
-// Minimalny ctx — stubujemy helpery powłoki; `withLoading` wykonuje async fn od
-// razu (bez loadera), a `openConflicts` przechwytuje payload do asercji.
+// A minimal ctx — we stub the shell helpers; `withLoading` runs the async fn
+// immediately (without a loader), and `openConflicts` captures the payload for assertions.
 function makeCtx(overrides = {}) {
   const captured = {};
   const ctx = {
@@ -97,17 +97,16 @@ describe('/conflicts — mapowanie typu konfliktu na akcje', () => {
     ]);
     await Promise.resolve();
     const values = cap.conflicts.bulk.map((b) => b.value);
-    expect(values).toContain('downloadAll'); // LocalMissing → pobierz wszystkie
-    expect(values).toContain('uploadAll');   // RemoteMissing → wyślij wszystkie
+    expect(values).toContain('downloadAll'); // LocalMissing → download all
+    expect(values).toContain('uploadAll');   // RemoteMissing → upload all
   });
 });
 
-// Auto-nawigacja w App.jsx po zapisie w IDE (patrz komentarz przy efekcie w
-// App.jsx) opiera się na dwóch rzeczach z tego modułu: `watchMismatch`
-// dołączonym do payloadu `openDiff` (żeby wiedzieć, KTÓRY plik obserwować w
-// tle) i `commands.renderConflicts` doczepionym do zwróconej tablicy (żeby
-// App.jsx mogło odświeżyć/zamknąć ekran z zewnątrz, gdy plik zniknie z
-// `mismatches`).
+// The auto-navigation in App.jsx after an IDE save (see the comment on the effect
+// in App.jsx) relies on two things from this module: `watchMismatch` attached to
+// the `openDiff` payload (to know WHICH file to watch in the background) and
+// `commands.renderConflicts` attached to the returned array (so App.jsx can
+// refresh/close the screen from the outside when the file drops out of `mismatches`).
 describe('/conflicts — podgląd (preview) i auto-nawigacja po IDE', () => {
   it('akcja "preview" przekazuje watchMismatch (Mode+Name) do openDiff', async () => {
     const mismatches = [{ File: { Name: 'a', Mode: 0 }, Type: MismatchType.Timestamp, FileTs: '2026-06-01', LocalTs: '2026-01-01', RemoteTs: '2026-01-01' }];

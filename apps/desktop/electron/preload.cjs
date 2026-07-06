@@ -1,15 +1,15 @@
-// Preload — bezpieczny mostek między rendererem a procesem głównym.
+// Preload — a secure bridge between the renderer and the main process.
 const { contextBridge, ipcRenderer } = require('electron');
 
 const invoke = (method, arg) => ipcRenderer.invoke('invoke', method, arg);
 
 contextBridge.exposeInMainWorld('api', {
-  // stan / język / tłumaczenia
+  // state / language / translations
   getState: () => invoke('state.get'),
   getTranslations: () => invoke('translations.get'),
   setLanguage: (id) => invoke('lang.set', id),
 
-  // sklepy
+  // shops
   listShops: () => invoke('shops.list'),
   currentShop: () => invoke('shops.current'),
   signInShop: (data) => invoke('shops.signIn', data),
@@ -22,13 +22,13 @@ contextBridge.exposeInMainWorld('api', {
   saveExportFile: (d) => invoke('sys.saveExport', d),
   readImportFile: () => invoke('sys.readImport'),
 
-  // szablony
+  // templates
   listTemplates: () => invoke('templates.list'),
   selectTemplate: (tplId) => invoke('templates.select', tplId),
   unlockTemplate: (data) => invoke('templates.unlock', data),
   currentTemplate: () => invoke('templates.current'),
 
-  // synchronizacja
+  // synchronization
   getMismatches: () => invoke('sync.mismatches'),
   runCommand: (data) => invoke('sync.command', data),
   previewConflict: (data) => invoke('sync.previewConflict', data),
@@ -56,7 +56,7 @@ contextBridge.exposeInMainWorld('api', {
   openShop: () => invoke('sys.openShop'),
   openExternal: (url) => invoke('sys.openExternal', url),
 
-  // zdarzenia push z backendu: { type, payload }
+  // push events from the backend: { type, payload }
   onEvent: (cb) => {
     const listener = (_e, msg) => cb(msg);
     ipcRenderer.on('event', listener);

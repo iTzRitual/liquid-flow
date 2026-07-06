@@ -1,7 +1,7 @@
-// Wierny test layoutu trybu input: prawdziwy Header + LogPane w obszarze
-// flexGrow (flex-end), tak jak w App.jsx. Sprawdza, że log przylega do górnego
-// dividera (brak pustej linii) i że nic nie wystaje poza wysokość okna.
-// Uruchom: node apps/cli/test/fill-height.mjs
+// A faithful test of the input mode layout: a real Header + LogPane in a flexGrow
+// (flex-end) area, just like in App.jsx. Checks that the log sits against the top
+// divider (no blank line) and that nothing overflows the window height.
+// Run: node apps/cli/test/fill-height.mjs
 import { register } from 'tsx/esm/api';
 register();
 const React = (await import('react')).default;
@@ -24,7 +24,7 @@ const state = { currentShop: { Name: 'walter', Url: 'https://walter.comarch-eskl
 const git = { active: true, autoCommit: true, autoPush: false };
 const mismatches = [1, 2, 3, 4];
 
-const HEADER = 8; // wartość kandydująca dla App.jsx (logo 7 + górny divider 1)
+const HEADER = 8; // the candidate value for App.jsx (logo 7 + top divider 1)
 
 function Probe({ rows, cols, nLogs }) {
   const logRows = Math.max(3, rows - HEADER - 3); // root = termRows; +1 za bottomSpacer (full header)
@@ -54,5 +54,5 @@ async function run(rows, cols, nLogs) {
   if (lines.length > rows) console.log(`!!! PRZEKROCZONO ${lines.length} > ${rows}`);
 }
 
-await run(30, 70, 50); // dużo logów → mają przylegać do górnego dividera
+await run(30, 70, 50); // many logs → they should sit against the top divider
 process.exit(0);

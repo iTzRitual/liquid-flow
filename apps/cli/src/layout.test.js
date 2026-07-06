@@ -9,7 +9,7 @@ import {
   FULL_HEADER_MIN_TERM_ROWS,
 } from './layout.js';
 
-const COLS = 80; // szerokie okno → pełny nagłówek nie jest stackowany
+const COLS = 80; // a wide window → the full header is not stacked
 
 describe('headerLayout — degradacja nagłówka z wysokością', () => {
   it('wysokie okno (input) → pełny nagłówek', () => {
@@ -32,44 +32,44 @@ describe('headerLayout — degradacja nagłówka z wysokością', () => {
 
   it('pref=compact nadal degraduje do none/guard przy za niskim oknie', () => {
     const mode = { type: 'conflicts', files: [1, 2], bulk: [1] }; // natural = 13
-    // compact (under(2)=12 < 13) nie mieści całej treści → ukryty
+    // compact (under(2)=12 < 13) does not fit all the content → hidden
     expect(headerLayout({ termRows: 14, termCols: COLS, mode, pref: 'compact' }).mode).toBe('none');
-    // poniżej globalnej podłogi → guard niezależnie od pref
+    // below the global floor → guard regardless of pref
     expect(headerLayout({ termRows: 7, termCols: COLS, mode, pref: 'compact' }).mode).toBe('guard');
   });
 
   it('conflicts: nagłówek degraduje, by zmieścić WSZYSTKIE karty (nie okienkować)', () => {
     const mode = { type: 'conflicts', files: [1, 2], bulk: [1] }; // natural = 2*4+1+4 = 13
-    // root = termRows, więc under(h) = termRows − h. Pełny nagłówek (8) mieści całą
-    // treść dopiero gdy under(8) ≥ 13 → termRows ≥ 21
+    // root = termRows, so under(h) = termRows − h. The full header (8) only fits
+    // all the content when under(8) ≥ 13 → termRows ≥ 21
     expect(headerLayout({ termRows: 21, termCols: COLS, mode }).mode).toBe('full');
-    // 20: pełny by okienkował karty (under(8)=12 < 13) → schodzi do compact (under(2)=18 ≥ 13)
+    // 20: full would window the cards (under(8)=12 < 13) → drops to compact (under(2)=18 ≥ 13)
     expect(headerLayout({ termRows: 20, termCols: COLS, mode }).mode).toBe('compact');
     expect(headerLayout({ termRows: 16, termCols: COLS, mode }).mode).toBe('compact');
-    // 14: nawet compact by okienkował (under(2)=12 < 13) → nagłówek ukryty (under(0)=14 ≥ 13)
+    // 14: even compact would window (under(2)=12 < 13) → header hidden (under(0)=14 ≥ 13)
     expect(headerLayout({ termRows: 14, termCols: COLS, mode }).mode).toBe('none');
   });
 
   it('picker z wieloma pozycjami woli mniejszy nagłówek niż okienkowanie listy', () => {
-    // 10 pozycji → natural = 14. Przy 20 wierszach pełny nagłówek (8) zostawia tylko
-    // under(8)=12 < 14 → musiałby okienkować listę. Wolimy compact (under(2)=18 ≥ 14),
-    // żeby pokazać wszystkie pozycje — to jest sedno zgłoszenia.
+    // 10 items → natural = 14. At 20 rows the full header (8) leaves only
+    // under(8)=12 < 14 → it would have to window the list. We prefer compact
+    // (under(2)=18 ≥ 14), to show all the items — that is the crux of the issue.
     const many = { type: 'picker', items: Array.from({ length: 10 }) };
     expect(headerLayout({ termRows: 20, termCols: COLS, mode: many }).mode).toBe('compact');
-    // mało pozycji przy tej samej wysokości → pełny nagłówek (treść i tak się mieści)
+    // few items at the same height → a full header (the content fits anyway)
     const few = { type: 'picker', items: [1, 2] }; // natural = 6
     expect(headerLayout({ termRows: 20, termCols: COLS, mode: few }).mode).toBe('full');
   });
 
   it('bardzo niskie okno (conflicts) → ukryty nagłówek, potem guard', () => {
     const mode = { type: 'conflicts', files: [1], bulk: [] }; // natural = 1*4 + 0 + 4 = 8
-    // 10: compact under(2)=8 ≥ 8 → compact (cała karta + nagłówek compact)
+    // 10: compact under(2)=8 ≥ 8 → compact (the whole card + a compact header)
     expect(headerLayout({ termRows: 10, termCols: COLS, mode }).mode).toBe('compact');
-    // 9: compact under(2)=7 < 8 → none (under(0)=9 ≥ 8 mieści całą kartę)
+    // 9: compact under(2)=7 < 8 → none (under(0)=9 ≥ 8 fits the whole card)
     expect(headerLayout({ termRows: 9, termCols: COLS, mode }).mode).toBe('none');
-    // rows=8 = globalna podłoga (appMinRows) → jeszcze NIE guard, nagłówek ukryty
+    // rows=8 = the global floor (appMinRows) → NOT guard yet, header hidden
     expect(headerLayout({ termRows: 8, termCols: COLS, mode }).mode).toBe('none');
-    // rows=7 < podłoga → guard
+    // rows=7 < floor → guard
     expect(headerLayout({ termRows: 7, termCols: COLS, mode }).mode).toBe('guard');
   });
 
@@ -79,16 +79,16 @@ describe('headerLayout — degradacja nagłówka z wysokością', () => {
     expect(naturalBodyRows({ type: 'conflicts', files: [1, 2], bulk: [1] })).toBe(13);
     expect(naturalBodyRows({ type: 'form', fields: [1, 2] })).toBe(6); // 2 + 4
     expect(naturalBodyRows({ type: 'loading' })).toBe(4);
-    // input/loader: log przewija się / stała treść → natural = minimum (bez degradacji)
+    // input/loader: the log scrolls / fixed content → natural = minimum (no degradation)
     expect(naturalBodyRows({ type: 'input' })).toBe(minBodyRows({ type: 'input' }));
   });
 
   it('diff: rozwinięcie (Tab) rośnie z `lines` do `fullLines` (okno się powiększa)', () => {
     const collapsed = { type: 'diff', lines: 1, fullLines: 163, expanded: false };
     const expanded = { type: 'diff', lines: 1, fullLines: 163, expanded: true };
-    expect(naturalBodyRows(collapsed)).toBe(5);   // 1 + 4 (zwinięty: mały box)
-    expect(naturalBodyRows(expanded)).toBe(167);  // 163 + 4 (rozwinięty: pełna treść)
-    // fallback gdy brak fullLines → używa lines
+    expect(naturalBodyRows(collapsed)).toBe(5);   // 1 + 4 (collapsed: a small box)
+    expect(naturalBodyRows(expanded)).toBe(167);  // 163 + 4 (expanded: full content)
+    // fallback when fullLines is missing → uses lines
     expect(naturalBodyRows({ type: 'diff', lines: 6, expanded: true })).toBe(10);
   });
 
@@ -101,7 +101,7 @@ describe('headerLayout — degradacja nagłówka z wysokością', () => {
 
   it('guard to globalna podłoga — ten sam próg i minRows dla KAŻDEGO trybu', () => {
     const floor = appMinRows();
-    expect(floor).toBe(8); // conflicts z bulk (8); root = termRows, brak „+1"
+    expect(floor).toBe(8); // conflicts with bulk (8); root = termRows, no "+1"
     const modes = [
       { type: 'input' },
       { type: 'picker', items: [1] },
@@ -111,14 +111,14 @@ describe('headerLayout — degradacja nagłówka z wysokością', () => {
       { type: 'connect', shops: [1] },
     ];
     for (const mode of modes) {
-      // Tuż poniżej podłogi: guard niezależnie od trybu (nie wyskoczy w środku pracy).
+      // Just below the floor: guard regardless of mode (it will not pop up mid-work).
       const below = headerLayout({ termRows: floor - 1, termCols: COLS, mode });
-      expect(below.mode, `guard dla ${mode.type} przy ${floor - 1}`).toBe('guard');
+      expect(below.mode, `guard for ${mode.type} at ${floor - 1}`).toBe('guard');
       expect(below.minRows).toBe(floor);
-      // Na podłodze: już nie guard (każdy tryb się mieści, choćby z ukrytym nagłówkiem).
+      // At the floor: no longer guard (every mode fits, even with a hidden header).
       const at = headerLayout({ termRows: floor, termCols: COLS, mode });
-      expect(at.mode, `nie‑guard dla ${mode.type} przy ${floor}`).not.toBe('guard');
-      expect(at.minRows).toBe(floor); // komunikat zawsze pokazuje globalne minimum
+      expect(at.mode, `non-guard for ${mode.type} at ${floor}`).not.toBe('guard');
+      expect(at.minRows).toBe(floor); // the message always shows the global minimum
     }
   });
 

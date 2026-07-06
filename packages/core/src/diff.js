@@ -1,25 +1,25 @@
-// Minimalna implementacja LCS-based line diff (bez zewnętrznych zależności).
-// Używana do podglądu różnic przed rozwiązaniem konfliktu.
+// Minimal LCS-based line diff implementation (no external dependencies).
+// Used to preview differences before resolving a conflict.
 
 const MAX_DIFF_BYTES = 256 * 1024;
 
-// Zwraca tablicę { type, line } gdzie type ∈ {'ctx','add','del'}.
-// Jeśli łączny rozmiar tekstu przekracza próg — zwraca { tooLarge: true }.
-// Wejście: dwa stringi UTF-8; dekodowanie Bufferów po stronie wywołującego.
+// Returns an array of { type, line } where type ∈ {'ctx','add','del'}.
+// If the combined text size exceeds the threshold — returns { tooLarge: true }.
+// Input: two UTF-8 strings; decoding Buffers is the caller's responsibility.
 export function lineDiff(aText, bText) {
   const aLen = (aText || '').length;
   const bLen = (bText || '').length;
   if (aLen + bLen > MAX_DIFF_BYTES) return { tooLarge: true };
 
-  // Normalizujemy końce linii (CRLF/CR → LF). Pliki szablonów z Comarch często
-  // mają zakończenia Windows (\r\n); bez tego każda linia niosłaby końcowy \r,
-  // który w terminalu przesuwa kursor na początek wiersza i rozbija render.
+  // Normalize line endings (CRLF/CR → LF). Comarch template files often have
+  // Windows endings (\r\n); without this every line would carry a trailing \r,
+  // which in the terminal moves the cursor to the start of the row and breaks rendering.
   const a = (aText || '').split(/\r\n|\r|\n/);
   const b = (bText || '').split(/\r\n|\r|\n/);
   const m = a.length;
   const n = b.length;
 
-  // Tablica LCS — Uint32Array oszczędza pamięć przy dużych plikach.
+  // LCS table — Uint32Array saves memory on large files.
   const dp = Array.from({ length: m + 1 }, () => new Uint32Array(n + 1));
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
@@ -29,7 +29,7 @@ export function lineDiff(aText, bText) {
     }
   }
 
-  // Odtworzenie ścieżki od końca.
+  // Reconstruct the path from the end.
   const out = [];
   let i = m;
   let j = n;
@@ -48,7 +48,7 @@ export function lineDiff(aText, bText) {
   return out.reverse();
 }
 
-// Wygodny wrapper: { added, removed, hunks } lub { tooLarge: true }.
+// Convenience wrapper: { added, removed, hunks } or { tooLarge: true }.
 export function diffSummary(aText, bText) {
   const diff = lineDiff(aText, bText);
   if (diff.tooLarge) return { tooLarge: true, added: 0, removed: 0, hunks: [] };
@@ -57,15 +57,15 @@ export function diffSummary(aText, bText) {
   return { added, removed, hunks: diff };
 }
 
-// Buduje wiersze do wyświetlenia z surowego line-diff: przypisuje numery linii
-// (lokalna `aLn` / zdalna `bLn`, 1-based) i ZWIJA długie ciągi niezmienionych
-// linii — pokazujemy tylko `context` wierszy wokół każdej zmiany, resztę jako
-// „fold" (jeden wiersz „N niezmienionych"). Dzięki temu w wielkim pliku z jedną
-// zmianą nie toniesz w setkach białych linii kontekstu. Zwraca tablicę:
-//   { type:'ctx'|'add'|'del', line, aLn, bLn }   (aLn lub bLn = null wg typu)
-//   { type:'fold', count }                        (N zwiniętych linii kontekstu)
-// Opcja `fold` (domyślnie `true`): gdy `false`, zwraca KAŻDY wiersz z numerem
-// linii i BEZ zwijania (tryb rozwinięty — użytkownik chce pełny kontekst).
+// Builds display rows from a raw line-diff: assigns line numbers (local `aLn` /
+// remote `bLn`, 1-based) and COLLAPSES long runs of unchanged lines — showing only
+// `context` rows around each change and the rest as a "fold" (one "N unchanged"
+// row). This way, in a large file with a single change, you are not drowning in
+// hundreds of blank context lines. Returns an array of:
+//   { type:'ctx'|'add'|'del', line, aLn, bLn }   (aLn or bLn = null by type)
+//   { type:'fold', count }                        (N collapsed context lines)
+// The `fold` option (default `true`): when `false`, returns EVERY row with a line
+// number and WITHOUT collapsing (expanded mode — the user wants full context).
 export function buildDiffRows(diff, { context = 3, fold = true } = {}) {
   if (!Array.isArray(diff)) return [];
   let a = 0;
@@ -75,9 +75,9 @@ export function buildDiffRows(diff, { context = 3, fold = true } = {}) {
     if (d.type === 'del') { a += 1; return { type: 'del', line: d.line, aLn: a, bLn: null }; }
     a += 1; b += 1; return { type: 'ctx', line: d.line, aLn: a, bLn: b };
   });
-  if (!fold) return items; // tryb rozwinięty: wszystkie wiersze, bez zwijania kontekstu
+  if (!fold) return items; // expanded mode: all rows, no context collapsing
 
-  // zaznacz wiersze do pokazania: każda zmiana + `context` linii w obie strony
+  // mark rows to show: every change + `context` lines on each side
   const keep = new Array(items.length).fill(false);
   for (let i = 0; i < items.length; i++) {
     if (items[i].type === 'ctx') continue;
@@ -86,7 +86,7 @@ export function buildDiffRows(diff, { context = 3, fold = true } = {}) {
     for (let j = lo; j <= hi; j++) keep[j] = true;
   }
 
-  // złóż wiersze; ciągłe luki niezmienionych linii (≥2) → jeden fold
+  // assemble rows; contiguous gaps of unchanged lines (≥2) → a single fold
   const rows = [];
   let i = 0;
   while (i < items.length) {
@@ -95,7 +95,7 @@ export function buildDiffRows(diff, { context = 3, fold = true } = {}) {
     while (j < items.length && !keep[j]) j += 1;
     const count = j - i;
     if (count >= 2) rows.push({ type: 'fold', count });
-    else rows.push(items[i]); // pojedyncza linia — taniej pokazać niż zwijać
+    else rows.push(items[i]); // a single line — cheaper to show than to fold
     i = j;
   }
   return rows;

@@ -42,7 +42,7 @@ export function serve(controller, { socketPath, idleMs = 10000, exit = () => pro
     }
   }
 
-  // Subskrypcja zdarzeń z Controller (jednorazowo na poziomie serwera)
+  // Subscribe to Controller events (once, at the server level)
   const eventsToForward = ['log', 'log:reset', 'mismatches', 'state', 'git', 'progress'];
   const eventHandlers = {};
 
@@ -67,7 +67,7 @@ export function serve(controller, { socketPath, idleMs = 10000, exit = () => pro
     clients.add(socket);
     cancelIdleCheck();
 
-    // Wyślij snapshot od razu po połączeniu
+    // Send a snapshot immediately after connecting
     try {
       const snapshot = {
         t: 'snapshot',
@@ -78,7 +78,7 @@ export function serve(controller, { socketPath, idleMs = 10000, exit = () => pro
       socket.write(JSON.stringify(snapshot) + '\n');
     } catch {}
 
-    // Wyślij git status tylko do tego klienta
+    // Send git status to this client only
     if (typeof controller.gitStatus === 'function') {
       controller.gitStatus().then((g) => {
         if (!socket.destroyed) {

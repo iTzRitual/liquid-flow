@@ -2,12 +2,12 @@ import React from 'react';
 import { render } from 'ink';
 import App from './App.jsx';
 
-// Alternatywny bufor ekranu (jak vim/htop): aplikacja dostaje własny ekran bez
-// historii przewijania, więc poprzednie klatki nie zostają w terminalu. Po
-// wyjściu przywracamy bufor główny — terminal wraca do stanu sprzed startu.
-// Dodatkowo „alternate scroll mode" (1007): w alt‑screenie kółko myszy wysyła
-// strzałki ↑/↓ do aplikacji (a nie przewija terminal), dzięki czemu scroll
-// przewija log na ekranie głównym.
+// Alternate screen buffer (like vim/htop): the app gets its own screen without
+// scrollback history, so previous frames do not linger in the terminal. On exit we
+// restore the main buffer — the terminal returns to its pre-start state.
+// Additionally "alternate scroll mode" (1007): in the alt screen the mouse wheel
+// sends ↑/↓ arrows to the application (instead of scrolling the terminal), which
+// lets scrolling move the log on the main screen.
 const ENTER_ALT = '\x1b[?1049h\x1b[?1007h\x1b[H';
 const LEAVE_ALT = '\x1b[?1007l\x1b[?1049l';
 
@@ -19,22 +19,22 @@ function leaveAlt() {
 }
 
 process.stdout.write(ENTER_ALT);
-// Bezpiecznik: przywróć ekran nawet przy nieoczekiwanym zakończeniu/crashu.
+// Safeguard: restore the screen even on an unexpected exit/crash.
 process.on('exit', leaveAlt);
 
-// Referencja do unmount Inka — ustawiana poniżej po render(); sygnały
-// nie mogą przyjść przed końcem bloku synchronicznego.
+// Reference to Ink's unmount — set below after render(); signals cannot arrive
+// before the end of the synchronous block.
 let _unmount = () => {};
 for (const sig of ['SIGTERM', 'SIGHUP']) {
-  // unmount() uruchamia cleanup React (→ ctrl.dispose()), co zamyka sesję
-  // synchronizacji zanim proces zginie.
+  // unmount() runs React's cleanup (→ ctrl.dispose()), which closes the sync
+  // session before the process dies.
   process.on(sig, () => { _unmount(); leaveAlt(); process.exit(0); });
 }
-// Świadomie ignorujemy Ctrl+C, żeby przypadkowe naciśnięcie nie ubiło sesji
-// synchronizacji. Wyjście tylko przez komendę /exit (albo zamknięcie terminala).
-// W trybie raw terminal nie wysyła SIGINT — Ink dostaje \x03 i dzięki
-// exitOnCtrlC:false go ignoruje; ten handler to zabezpieczenie na wypadek
-// braku raw mode (np. inny terminal/pipe).
+// We intentionally ignore Ctrl+C, so an accidental press does not kill the sync
+// session. The only way out is the /exit command (or closing the terminal).
+// In raw mode the terminal does not send SIGINT — Ink receives \x03 and, thanks to
+// exitOnCtrlC:false, ignores it; this handler is a safeguard in case raw mode is
+// unavailable (e.g. another terminal/pipe).
 process.on('SIGINT', () => {});
 
 const { waitUntilExit, unmount } = render(<App />, { exitOnCtrlC: false });

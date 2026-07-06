@@ -4,25 +4,25 @@ import { tfmt } from '@liquidflow/core';
 import Banner from './Banner.jsx';
 import StatusBar from './StatusBar.jsx';
 
-// Poniżej tej szerokości nagłówek przestaje być 2 kolumnami i układa się w
-// 2 wiersze (logo nad informacjami) — inaczej kolumna informacji jest za ciasna.
+// Below this width the header stops being 2 columns and stacks into 2 rows
+// (logo above the info) — otherwise the info column would be too cramped.
 export const HEADER_STACK_COLS = 52;
 
-// Nagłówek = 2 kolumny: LOGO i INFORMACJE.
-//  - logo: stałe, nigdy się nie kurczy ani nie zawija (flexShrink=0),
-//  - informacje: jedna kolumna zabierająca resztę szerokości (flexGrow=1).
-//    W środku wiersze statusu (tytuł/sklep/szablon/git, do lewej) u góry, a
-//    wskaźnik konfliktów (do prawej) przyklejony do dołu — justifyContent
-//    space-between rozsuwa je w pionie. Konflikty są w OSOBNYM wierszu tej samej
-//    kolumny, więc nie ściskają wierszy statusu (to nie trzecia kolumna).
-// Przy bardzo wąskim oknie (cols < HEADER_STACK_COLS) przełączamy się na układ
-// pionowy: logo na górze, informacje pod spodem (na pełną szerokość).
+// Header = 2 columns: LOGO and INFO.
+//  - logo: fixed, never shrinks or wraps (flexShrink=0),
+//  - info: a single column taking the rest of the width (flexGrow=1). Inside, the
+//    status rows (title/shop/template/git, left-aligned) sit at the top, and the
+//    conflicts indicator (right-aligned) sticks to the bottom — justifyContent
+//    space-between spreads them vertically. Conflicts are a SEPARATE row of the
+//    same column, so they do not squeeze the status rows (this is not a third column).
+// On a very narrow window (cols < HEADER_STACK_COLS) we switch to a vertical
+// layout: logo on top, info below it (at full width).
 export default function Header({ state, git, mismatches, cols = 80, t, compact = false }) {
   const conflicts = mismatches?.length || 0;
   const stacked = cols < HEADER_STACK_COLS;
 
-  // Wariant compact (niskie okno): jeden wiersz zamiast logo —
-  // „Liquid Flow │ ● Sklep │ Szablon │ ⚠ N", przycinany jako całość.
+  // Compact variant (low window): one row instead of the logo —
+  // "Liquid Flow │ ● Shop │ Template │ ⚠ N", truncated as a whole.
   if (compact) {
     const shop = state?.currentShop;
     const tpl = state?.currentTemplate;
@@ -47,7 +47,7 @@ export default function Header({ state, git, mismatches, cols = 80, t, compact =
   ) : null;
 
   if (stacked) {
-    // 2 wiersze: logo, a pod nim informacje na pełną szerokość.
+    // 2 rows: logo, and below it info at full width.
     return (
       <Box marginTop={1} flexDirection="column">
         <Box paddingLeft={1} flexShrink={0}><Banner /></Box>
@@ -59,7 +59,7 @@ export default function Header({ state, git, mismatches, cols = 80, t, compact =
     );
   }
 
-  // 2 kolumny: logo | informacje.
+  // 2 columns: logo | info.
   return (
     <Box marginTop={1}>
       <Box paddingLeft={1} flexShrink={0}><Banner /></Box>

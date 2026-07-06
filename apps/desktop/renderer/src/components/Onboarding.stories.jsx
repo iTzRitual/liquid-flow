@@ -17,7 +17,7 @@ export default {
   ],
 };
 
-// Pierwsze uruchomienie — brak sklepów.
+// First run — no shops.
 export const FirstRun = {
   parameters: { ctx: { shops: [], currentShop: null, currentTemplate: null, version: '0.9.150' } },
 };

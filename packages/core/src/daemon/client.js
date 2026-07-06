@@ -1,6 +1,6 @@
-// Nagłówek: Klient DaemonClient łączący się z demonem przez Unix socket / named pipe.
-// Zachowuje interfejs Controller (w tym synchroniczne getState/getMismatches/getLog)
-// oraz dostarcza fabrykę connectController() z automatycznym uruchamianiem demona.
+// DaemonClient connects to the daemon over a Unix socket / named pipe.
+// It preserves the Controller interface (including synchronous getState/getMismatches/getLog)
+// and provides the connectController() factory that auto-starts the daemon.
 
 import net from 'node:net';
 import { spawn } from 'node:child_process';
@@ -21,11 +21,11 @@ export class DaemonClient extends EventEmitter {
           resolve(client);
           return;
         }
-        // snapshot to pierwsza wiadomość serwera po połączeniu — poczekaj na nią,
-        // żeby getState()/getMismatches()/getLog() były gotowe (drop-in za Controller).
+        // snapshot is the server's first message after connecting — wait for it,
+        // so getState()/getMismatches()/getLog() are ready (a drop-in for Controller).
         const done = () => resolve(client);
         client.once('state', done);
-        // zabezpieczenie: gdyby snapshot nie dotarł, nie wieszaj się w nieskończoność
+        // safeguard: if the snapshot never arrives, do not hang forever
         setTimeout(() => {
           client.removeListener('state', done);
           resolve(client);
@@ -132,7 +132,7 @@ export class DaemonClient extends EventEmitter {
     });
   }
 
-  // --- Synchroniczne akcesory ---
+  // --- Synchronous accessors ---
   getState() {
     return this._state;
   }
@@ -146,7 +146,7 @@ export class DaemonClient extends EventEmitter {
     return this._log.filter((e) => e && e.Id > minId);
   }
 
-  // --- Asynchroniczne opakowania metod RPC ---
+  // --- Asynchronous wrappers around RPC methods ---
   setLanguage(id) { return this.call('lang.set', id); }
   getTranslations() { return this.call('translations.get'); }
   setUiPref(key, value) { return this.call('ui.setPref', { key, value }); }

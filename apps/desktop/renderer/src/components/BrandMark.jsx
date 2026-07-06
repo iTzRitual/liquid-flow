@@ -1,6 +1,6 @@
 import React from "react";
 
-// Wordmark "Liquid Flow" + opcjonalny numer wersji obok.
+// The "Liquid Flow" wordmark + an optional version number alongside.
 export default function BrandMark({ version }) {
     return (
         <div className="flex items-baseline gap-2">

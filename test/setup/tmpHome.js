@@ -1,7 +1,7 @@
-// setupFile Vitest — uruchamiany PRZED importami pliku testowego. Tworzy świeży,
-// unikalny katalog danych i ustawia `LIQUID_FLOW_HOME`, zanim `store.js` policzy
-// `APP_DIR` (robi to przy imporcie, jako `const`). Dzięki temu każdy plik testowy
-// dostaje izolowany stan na dysku, a po zakończeniu sprzątamy katalog.
+// A Vitest setupFile — runs BEFORE the test file's imports. Creates a fresh,
+// unique data directory and sets `LIQUID_FLOW_HOME` before `store.js` computes
+// `APP_DIR` (it does so at import time, as a `const`). This way every test file
+// gets isolated on-disk state, and we clean up the directory afterward.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';

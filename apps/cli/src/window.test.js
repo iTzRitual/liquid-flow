@@ -36,13 +36,13 @@ describe('windowList', () => {
   });
 
   it('wskaźnik „1 więcej" zastępowany bezpośrednio elementem (ten sam budżet wierszy)', () => {
-    // above=1 → element wchodzi bezpośrednio; below=1 → element wchodzi bezpośrednio
+    // above=1 → the item enters directly; below=1 → the item enters directly
     for (let idx = 0; idx < 4; idx++) {
       const w = windowList(4, idx, 3);
       expect(w.above).not.toBe(1);
       expect(w.below).not.toBe(1);
     }
-    // nigdy nie przekracza budżetu po korekcie
+    // never exceeds the budget after correction
     for (let idx = 0; idx < 4; idx++) {
       const w = windowList(4, idx, 3);
       const ind = (w.above > 0 ? 1 : 0) + (w.below > 0 ? 1 : 0);
@@ -57,12 +57,12 @@ describe('windowCards (karty o stałej wysokości)', () => {
   });
 
   it('mieści wszystkie karty gdy starcza miejsca', () => {
-    // 3 karty * 3 wiersze = 9 <= 30
+    // 3 cards * 3 rows = 9 <= 30
     expect(windowCards(3, 0, 30, 3)).toEqual({ start: 0, count: 3, above: 0, below: 0 });
   });
 
   it('okienkuje gdy karty się nie mieszczą, zaznaczona widoczna', () => {
-    const w = windowCards(20, 10, 12, 3); // budżet 12 wierszy, karta 3 → ~3-4 karty
+    const w = windowCards(20, 10, 12, 3); // a 12-row budget, card 3 → ~3-4 cards
     expect(10).toBeGreaterThanOrEqual(w.start);
     expect(10).toBeLessThan(w.start + w.count);
     expect(w.count * 3).toBeLessThanOrEqual(12);

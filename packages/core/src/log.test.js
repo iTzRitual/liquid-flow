@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as log from './log.js';
 
-// Reset do czystego kanału 'app' i języka PL przed każdym testem.
+// Reset to a clean 'app' channel and the PL language before each test.
 beforeEach(() => {
   log.setLanguage('pl');
   log.setActiveChannel('app');
@@ -53,7 +53,7 @@ describe('kanały (scope)', () => {
     log.logInfo('a');
     log.setActiveChannel('shop:1');
     const e = log.logInfo('b');
-    expect(e.Id).toBe(1); // nowy kanał → sekwencja od 1
+    expect(e.Id).toBe(1); // new channel → sequence starts at 1
   });
 
   it('persist dostaje każdy live-wpis', () => {
@@ -80,7 +80,7 @@ describe('sanityzacja wieloliniowego tekstu (oneLine)', () => {
     const raw = "fatal: 'origin' does not exist\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights.";
     const e = log.logErr(raw);
     expect(e.Text).not.toMatch(/[\r\n]/);
-    // tekst nie jest pusty i zawiera informacje z obu linii
+    // the text is not empty and carries information from both lines
     expect(e.Text).toContain('fatal:');
     expect(e.Text).toContain('⏎');
   });
@@ -100,7 +100,7 @@ describe('sanityzacja wieloliniowego tekstu (oneLine)', () => {
     const e = log.logErr(raw);
     expect(e.Text).not.toMatch(/[\r\n]/);
     log.setLanguage('en');
-    // literał nie ma msg, więc Text nie jest przeliczany przez setLanguage
+    // a literal has no msg, so Text is not recomputed by setLanguage
     expect(e.Text).not.toMatch(/[\r\n]/);
   });
 });

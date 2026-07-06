@@ -1,6 +1,6 @@
-// Otwieranie podglądu konfliktu jako diff w zewnętrznym IDE (domyślnie VS Code
-// `code --diff`), żeby użytkownik mógł rozwiązać go bezpośrednio w edytorze i
-// zapisać zmiany do prawdziwego pliku lokalnego (który potem trafia do gita).
+// Opens a conflict preview as a diff in an external IDE (VS Code's `code --diff`
+// by default), so the user can resolve it directly in the editor and save changes
+// to the real local file (which later flows into git).
 
 import { spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
@@ -13,9 +13,9 @@ function scratch() {
   return scratchDir;
 }
 
-// Zapisuje zdalną wersję pliku do katalogu tymczasowego (do porównania) i
-// zwraca jej ścieżkę. Zawartość jest tylko do referencji — edycja lokalnej
-// strony w IDE zapisuje się do prawdziwej ścieżki lokalnej.
+// Writes the remote version of a file to a temporary directory (for comparison)
+// and returns its path. The content is for reference only — editing the local
+// side in the IDE saves to the real local path.
 export function writeRemoteTemp(name, content) {
   const dest = path.join(scratch(), 'remote', name);
   mkdirSync(path.dirname(dest), { recursive: true });
@@ -23,8 +23,8 @@ export function writeRemoteTemp(name, content) {
   return dest;
 }
 
-// Odpala IDE w trybie diff (dwie ścieżki). Komenda nadpisywalna przez
-// LIQUIDFLOW_DIFF_CMD (domyślnie `code`, kompatybilne z forkami VS Code jak
+// Launches the IDE in diff mode (two paths). The command is overridable via
+// LIQUIDFLOW_DIFF_CMD (default `code`, compatible with VS Code forks like
 // Cursor: `LIQUIDFLOW_DIFF_CMD=cursor`).
 export function openIdeDiff(localPath, remotePath, onError) {
   const cmd = process.env.LIQUIDFLOW_DIFF_CMD || 'code';

@@ -5,8 +5,8 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import * as git from './git.js';
 
-// Testy integracyjne na PRAWDZIWYM `git` w katalogach tymczasowych. Jeśli git
-// nie jest dostępny (rzadkie na maszynie dev), pomijamy całość zamiast czerwienić.
+// Integration tests against REAL `git` in temporary directories. If git is not
+// available (rare on a dev machine), we skip the whole suite instead of failing it.
 let hasGit = false;
 beforeAll(async () => { hasGit = await git.isAvailable(); });
 
@@ -16,8 +16,8 @@ afterEach(() => { try { fs.rmSync(dir, { recursive: true, force: true }); } catc
 
 const write = (name, content) => fs.writeFileSync(path.join(dir, name), content);
 
-// Testy wywołują wiele podprocesów `git` — pod obciążeniem (pełna suita
-// w równoległych workerach) mogą przekroczyć domyślne 5 s. Timeout = 30 s.
+// The tests spawn many `git` subprocesses — under load (the full suite in
+// parallel workers) they can exceed the default 5 s. Timeout = 30 s.
 describe.runIf(true)('git.js', { timeout: 30000 }, () => {
   it('isAvailable wykrywa gita', async () => {
     expect(await git.isAvailable()).toBe(hasGit);
@@ -41,7 +41,7 @@ describe.runIf(true)('git.js', { timeout: 30000 }, () => {
   it('commitAll: zatwierdza zmiany; brak zmian → committed:false', async () => {
     write('a.liquid', 'x');
     await git.init(dir);
-    expect(await git.commitAll(dir, 'noop')).toEqual({ committed: false }); // nic się nie zmieniło
+    expect(await git.commitAll(dir, 'noop')).toEqual({ committed: false }); // nothing changed
 
     write('b.liquid', 'y');
     const r = await git.commitAll(dir, 'dodaj b');
@@ -76,7 +76,7 @@ describe.runIf(true)('git.js', { timeout: 30000 }, () => {
     await git.setRemote(dir, 'https://example.com/repo.git');
     expect(await git.getRemote(dir)).toBe('https://example.com/repo.git');
     await git.setRemote(dir, 'https://example.com/inny.git');
-    expect(await git.getRemote(dir)).toBe('https://example.com/inny.git'); // nadpisany, nie zdublowany
+    expect(await git.getRemote(dir)).toBe('https://example.com/inny.git'); // overwritten, not duplicated
   });
 
   it('push: wypycha do lokalnego bare-repo (origin)', async () => {
@@ -87,7 +87,7 @@ describe.runIf(true)('git.js', { timeout: 30000 }, () => {
     await git.setRemote(dir, bare);
     const r = await git.push(dir);
     expect(r.branch).toBe('main');
-    // commit dotarł do bare-repo
+    // the commit reached the bare repo
     const remoteLog = execFileSync('git', ['log', '--oneline'], { cwd: bare }).toString();
     expect(remoteLog).toContain('Initial snapshot');
 
@@ -96,9 +96,9 @@ describe.runIf(true)('git.js', { timeout: 30000 }, () => {
 
   it('push: niedostępny/nieprawidłowy remote → odrzuca (nie wisi)', async () => {
     write('a.liquid', 'x'); await git.init(dir);
-    // remote wskazuje na pusty katalog, który NIE jest repozytorium gita →
-    // push pada natychmiast (bez sieci, bez interaktywnego pytania o hasło,
-    // dzięki GIT_TERMINAL_PROMPT=0), więc push() musi się odrzucić, nie zawisnąć.
+    // the remote points at an empty directory that is NOT a git repository →
+    // the push fails immediately (no network, no interactive password prompt,
+    // thanks to GIT_TERMINAL_PROMPT=0), so push() must reject, not hang.
     const badRemote = fs.mkdtempSync(path.join(os.tmpdir(), 'lf-noremote-'));
     await git.setRemote(dir, badRemote);
     await expect(git.push(dir)).rejects.toThrow();
@@ -110,7 +110,7 @@ describe.runIf(true)('git.js', { timeout: 30000 }, () => {
     let st = await git.status(dir);
     expect(st).toMatchObject({ isRepo: true, dirty: false, commitCount: 1, remote: null });
 
-    write('b.liquid', 'y'); // niezacommitowana zmiana
+    write('b.liquid', 'y'); // an uncommitted change
     st = await git.status(dir);
     expect(st.dirty).toBe(true);
   });
@@ -143,20 +143,20 @@ describe.runIf(true)('git.js', { timeout: 30000 }, () => {
     await git.init(dir); // main — 1 commit (Initial snapshot)
     const mainHash = (await git.history(dir, 1))[0].hash;
 
-    // Przełącz na wip i zrób dodatkowy commit — HEAD jest teraz przed main.
+    // Switch to wip and make an extra commit — HEAD is now ahead of main.
     await git.createBranch(dir, 'liquidflow/wip');
     await git.switchBranch(dir, 'liquidflow/wip');
     write('b.liquid', 'y');
     await git.commitAll(dir, 'commit na wip');
 
-    // Utwórz feature/x z gałęzi main — mimo że HEAD = wip.
+    // Create feature/x from the main branch — even though HEAD = wip.
     await git.createBranch(dir, 'feature/x', 'main');
 
-    // Tip feature/x musi wskazywać na main (Initial snapshot), a nie na wip.
+    // The tip of feature/x must point at main (Initial snapshot), not wip.
     const branches = await git.listBranches(dir);
     expect(branches).toContain('feature/x');
 
-    // Sprawdź, że feature/x ma tylko 1 commit (taki jak main, nie 2 jak wip).
+    // Check that feature/x has only 1 commit (like main, not 2 like wip).
     await git.switchBranch(dir, 'feature/x');
     const featureHist = await git.history(dir, 10);
     expect(featureHist).toHaveLength(1);
@@ -271,7 +271,7 @@ describe.runIf(true)('git.js', { timeout: 30000 }, () => {
     // non-empty target refusal
     await expect(git.cloneInto(mode0Dir, bare)).rejects.toThrow('Target directory is not empty');
 
-    // bad remote — lokalny katalog niebędący repo git (bez DNS/sieci)
+    // bad remote — a local directory that is not a git repo (no DNS/network)
     const badRemote = fs.mkdtempSync(path.join(os.tmpdir(), 'lf-noremote-'));
     const badTargetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lf-clone-bad-'));
     const badMode0Dir = path.join(badTargetDir, '0');

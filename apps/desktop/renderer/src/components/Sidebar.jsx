@@ -22,7 +22,7 @@ export default function Sidebar() {
             navigate(currentTemplate ? "sync" : "templates");
             return;
         }
-        // jeśli hasło jest zapisane — zaloguj automatycznie, bez ponownego wpisywania
+        // if the password is saved — sign in automatically, without re-entering it
         if (shop.SavePassword) {
             try {
                 await call(() => api.signInSaved(shop.Id), {
@@ -33,7 +33,7 @@ export default function Sidebar() {
                 navigate("templates");
                 return;
             } catch {
-                /* nie udało się zapisanym hasłem — pokaż formularz logowania */
+                /* sign-in with the saved password failed — show the login form */
             }
         }
         navigate("shopForm", { editing: shop });

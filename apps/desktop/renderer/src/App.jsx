@@ -12,8 +12,8 @@ import TemplateUnlock from './components/TemplateUnlock.jsx';
 import SyncView from './components/SyncView.jsx';
 import EmptyState from './components/EmptyState.jsx';
 
-// Eksportowany, żeby Storybook (design gallery) mógł wstrzyknąć mockowy kontekst
-// bez bootowania całej apki przez window.api.
+// Exported so Storybook (the design gallery) can inject a mock context without
+// bootstrapping the whole app through window.api.
 export const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
 
@@ -27,7 +27,7 @@ export default function App() {
   const [currentTemplate, setCurrentTemplate] = useState(null);
   const [route, setRoute] = useState({ view: 'loading' });
 
-  // dane sesji synchronizacji
+  // sync session data
   const [mismatches, setMismatches] = useState([]);
   const [log, setLog] = useState([]);
   const [git, setGit] = useState(null);
@@ -48,7 +48,7 @@ export default function App() {
     setCurrentShop(await api.currentShop());
   }, []);
 
-  // start
+  // startup
   useEffect(() => {
     (async () => {
       try {
@@ -67,7 +67,7 @@ export default function App() {
     })();
   }, [refreshTranslations, refreshShops, navigate]);
 
-  // zdarzenia push z backendu
+  // push events from the backend
   useEffect(() => {
     const off = api.onEvent(({ type, payload }) => {
       if (type === 'log') setLog((prev) => [payload, ...prev].slice(0, 500));
@@ -89,9 +89,9 @@ export default function App() {
     const tr = await api.setLanguage(id);
     setT(tr.Translations || {});
     setLanguage(id);
-    // Backend przerysował bieżący log na nowy język — pobierz go ponownie, żeby
-    // już wyświetlone wpisy (z deskryptorem i18n) także się przetłumaczyły.
-    try { setLog((await api.getLog(0)).slice().reverse()); } catch { /* brak aktywnego logu */ }
+    // The backend re-rendered the current log in the new language — fetch it again,
+    // so already-displayed entries (with an i18n descriptor) also get translated.
+    try { setLog((await api.getLog(0)).slice().reverse()); } catch { /* no active log */ }
   }, []);
 
   const ctx = {

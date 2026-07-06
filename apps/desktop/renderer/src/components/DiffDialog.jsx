@@ -3,9 +3,9 @@ import { useApp } from '../App.jsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { fmt } from '@/lib/utils';
 
-// Read-only podgląd różnic przed rozwiązaniem konfliktu. `preview` pochodzi z
-// IPC (main policzył wiersze przez buildDiffRows): { kind, rows, added, removed }
-// albo { kind:'binary'|'tooLarge' }. Renderer tylko maluje — bez importu core.
+// Read-only diff preview before resolving a conflict. `preview` comes from IPC
+// (main already computed the rows via buildDiffRows): { kind, rows, added, removed }
+// or { kind:'binary'|'tooLarge' }. The renderer only paints it — no core import.
 export default function DiffDialog({ open, onOpenChange, title, preview }) {
   const { t } = useApp();
 

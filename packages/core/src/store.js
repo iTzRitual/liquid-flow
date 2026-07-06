@@ -1,7 +1,7 @@
-// Trwałe przechowywanie konfiguracji, metadanych synchronizacji i plików lokalnych.
-// Układ katalogów:
-//   <dataDir>/Shops/<NazwaSklepu>/files/<TemplateId>/<Mode>/<ścieżka/pliku>
-//   <dataDir>/Shops/<NazwaSklepu>/meta/<TemplateId>.json   (localts / remotets)
+// Persistent storage of configuration, synchronization metadata and local files.
+// Directory layout:
+//   <dataDir>/Shops/<ShopName>/files/<TemplateId>/<Mode>/<file/path>
+//   <dataDir>/Shops/<ShopName>/meta/<TemplateId>.json   (localts / remotets)
 //   <dataDir>/config.json
 
 import fs from 'node:fs';
@@ -9,8 +9,8 @@ import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
 
-// Katalog danych — wieloplatformowy. W aplikacji Electron nadpisywany przez
-// LIQUID_FLOW_HOME (= app.getPath('userData')). Domyślne wartości per-OS:
+// Data directory — cross-platform. In the Electron app it is overridden by
+// LIQUID_FLOW_HOME (= app.getPath('userData')). Per-OS defaults:
 export function defaultAppDir() {
   const home = os.homedir();
   if (process.platform === 'win32') {
@@ -32,8 +32,8 @@ function ensureDir(d) {
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 }
 
-// Leniwa inicjalizacja — katalogi tworzone przy pierwszym użyciu, nie przy imporcie.
-// Dzięki temu sam import store.js nie ma efektów ubocznych (łatwiejsze testowanie).
+// Lazy initialization — directories are created on first use, not on import.
+// This keeps importing store.js side-effect-free (easier to test).
 let _appDirEnsured = false;
 function ensureAppDirs() {
   if (_appDirEnsured) return;
@@ -42,7 +42,7 @@ function ensureAppDirs() {
   ensureDir(SHOPS_DIR);
 }
 
-// ---- szyfrowanie haseł (lokalny klucz na maszynie) ----
+// ---- password encryption (local per-machine key) ----
 function getKey() {
   ensureAppDirs();
   if (!fs.existsSync(KEY_PATH)) {
@@ -62,7 +62,7 @@ export function encrypt(plain) {
 
 export function decrypt(stored) {
   if (stored == null || stored === '') return '';
-  if (!String(stored).startsWith('enc:')) return stored; // zgodność wstecz
+  if (!String(stored).startsWith('enc:')) return stored; // backward compatibility
   try {
     const [, ivB64, dataB64] = String(stored).split(':');
     const d = crypto.createDecipheriv('aes-256-cbc', getKey(), Buffer.from(ivB64, 'base64'));
@@ -72,7 +72,7 @@ export function decrypt(stored) {
   }
 }
 
-// ---- konfiguracja ----
+// ---- configuration ----
 const DEFAULT_CONFIG = { StartBrowser: true, Port: 45678, Language: 'pl', LogWrap: false, HeaderMode: 'auto', Shops: [] };
 
 export function loadConfig() {
@@ -91,7 +91,7 @@ export function saveConfig(cfg) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
 }
 
-// ---- ścieżki ----
+// ---- paths ----
 export function shopDir(shopName) {
   return path.join(SHOPS_DIR, shopName);
 }
@@ -101,7 +101,7 @@ export function filesRoot(shopName) {
 export function templateDir(shopName, templateId) {
   return path.join(filesRoot(shopName), String(templateId));
 }
-// Folder konkretnego trybu szablonu (np. roboczy '0').
+// Folder of a specific template mode (e.g. working mode '0').
 export function templateModeDir(shopName, templateId, mode) {
   return path.join(templateDir(shopName, templateId), String(mode));
 }
@@ -109,8 +109,8 @@ export function metaDir(shopName) {
   return path.join(shopDir(shopName), 'meta');
 }
 
-// Ścieżka gniazda demona (Unix socket / named pipe). Podąża za LIQUID_FLOW_HOME
-// przez APP_DIR, więc testy z tmp-home dostają własne gniazdo.
+// Daemon socket path (Unix socket / named pipe). Follows LIQUID_FLOW_HOME via
+// APP_DIR, so tests with a tmp-home get their own socket.
 export function daemonSocketPath() {
   if (process.platform === 'win32') {
     return '\\\\.\\pipe\\liquidflow-' + crypto.createHash('sha1').update(APP_DIR).digest('hex').slice(0, 16);
@@ -119,19 +119,19 @@ export function daemonSocketPath() {
   return path.join(APP_DIR, 'daemon.sock');
 }
 
-// Bezwzględna ścieżka pliku lokalnego dla danego (template, mode, name).
+// Absolute path of the local file for a given (template, mode, name).
 export function localFilePath(shopName, templateId, mode, name) {
   const parts = String(name).split('/').filter((p) => p.length);
   return path.join(templateDir(shopName, templateId), String(mode), ...parts);
 }
 
-// Z bezwzględnej ścieżki (wewnątrz templateDir) wyznacz {mode, name}.
+// Derive {mode, name} from an absolute path (inside templateDir).
 export function parseLocalPath(shopName, templateId, absPath) {
   const root = templateDir(shopName, templateId);
   const rel = path.relative(root, absPath).split(path.sep);
   if (rel.length < 2 || rel[0].startsWith('..')) return null;
-  // Pomiń pliki/foldery zaczynające się od kropki (np. .git, .DS_Store) —
-  // nie są synchronizowane z e-Sklep. Dzięki temu repo git może żyć w trybie '0'.
+  // Skip files/folders starting with a dot (e.g. .git, .DS_Store) — they are not
+  // synchronized to e-Sklep. This lets the git repo live inside mode '0'.
   if (rel.some((seg) => seg.startsWith('.'))) return null;
   const mode = parseInt(rel[0], 10);
   if (Number.isNaN(mode)) return null;
@@ -140,11 +140,11 @@ export function parseLocalPath(shopName, templateId, absPath) {
   return { mode, name };
 }
 
-// Czy nazwa pliku (pochodzi z odpowiedzi SOAP sklepu — NIEZAUFANA) trzyma się
-// wewnątrz katalogu trybu szablonu? Odrzuca puste nazwy, NUL, separatory
-// Windows ('\\') oraz segmenty '.'/'..', czyli wszystko, czym path.join mógłby
-// uciec poza katalog danych (path traversal). Strona zapisu nie miała takiej
-// bramki (czytająca parseLocalPath miała) — to jest ta bramka.
+// Does a file name (coming from the shop's SOAP response — UNTRUSTED) stay inside
+// the template mode directory? Rejects empty names, NUL, Windows separators ('\\')
+// and '.'/'..' segments — anything that path.join could use to escape the data
+// directory (path traversal). The write side had no such gate (the reading
+// parseLocalPath did) — this is that gate.
 export function isSafeRelName(name) {
   const s = String(name);
   if (!s || s.includes('\0') || s.includes('\\')) return false;
@@ -175,7 +175,7 @@ export function mtimeUtc(absPath) {
   }
 }
 
-// Wszystkie lokalne pliki danego template jako [{mode, name, fileTs, path}]
+// All local files of a given template as [{mode, name, fileTs, path}]
 export function listLocalFiles(shopName, templateId) {
   const root = templateDir(shopName, templateId);
   const out = [];
@@ -195,7 +195,7 @@ export function listLocalFiles(shopName, templateId) {
   return out;
 }
 
-// ---- metadane synchronizacji (localts / remotets) ----
+// ---- synchronization metadata (localts / remotets) ----
 function metaPath(shopName, templateId) {
   return path.join(metaDir(shopName), `${templateId}.json`);
 }
@@ -220,10 +220,10 @@ export function setMetaEntry(shopName, templateId, mode, name, localts, remotets
   saveMeta(shopName, templateId, meta);
 }
 
-// Ustaw wpis w PRZEKAZANYM obiekcie meta (bez odczytu/zapisu dysku). Do
-// masowego pobierania: akumuluj w pamięci i flushuj przez saveMeta co paczkę,
-// zamiast read+write na każdy plik (O(n²) synchronicznych operacji I/O, które
-// blokują pętlę zdarzeń — zauważalne np. na Windows z aktywnym antywirusem).
+// Set an entry in the PASSED meta object (no disk read/write). For bulk downloads:
+// accumulate in memory and flush via saveMeta per batch, instead of a read+write
+// per file (O(n²) synchronous I/O operations that block the event loop — noticeable
+// e.g. on Windows with active antivirus).
 export function setMetaEntryOn(meta, mode, name, localts, remotets) {
   meta[metaKey(mode, name)] = { localts, remotets };
   return meta;
@@ -239,11 +239,11 @@ export function removeMetaEntry(shopName, templateId, mode, name) {
   saveMeta(shopName, templateId, meta);
 }
 
-// ---- trwała historia logu per-szablon ----
-// Każdy szablon ma własny plik historii (JSON-per-linia), dzięki czemu po
-// powrocie do szablonu wczytujemy „poprzednią sesję". Plik żyje poza
-// `files/<id>/` (w `Shops/<Nazwa>/logs/`), więc nie trafia do synchronizacji
-// ani do repo git szablonu.
+// ---- persistent per-template log history ----
+// Each template has its own history file (JSON-per-line), so returning to a
+// template loads the "previous session". The file lives outside `files/<id>/`
+// (in `Shops/<Name>/logs/`), so it is not synchronized nor added to the template's
+// git repo.
 export function logsDir(shopName) {
   return path.join(shopDir(shopName), 'logs');
 }
@@ -252,13 +252,13 @@ function logPath(shopName, templateId) {
 }
 const LOG_MAX_LINES = 1000;
 
-// Dopisz jeden wpis logu do pliku historii szablonu.
+// Append a single log entry to the template's history file.
 export function appendLogEntry(shopName, templateId, entry) {
   try {
     ensureDir(logsDir(shopName));
-    // Zapisujemy też deskryptor i18n (msg/params lub sepKey/sepTs), żeby po
-    // ponownym wczytaniu historię dało się wyrenderować w bieżącym języku.
-    // `Text` zostaje jako wartość zapasowa (literały, stare pliki).
+    // Also store the i18n descriptor (msg/params or sepKey/sepTs) so that, once
+    // reloaded, the history can be rendered in the current language.
+    // `Text` remains as a fallback value (literals, older files).
     const line = JSON.stringify({
       TS: entry.TS, Text: entry.Text, Color: entry.Color, kind: entry.kind,
       msg: entry.msg, params: entry.params, sepKey: entry.sepKey, sepTs: entry.sepTs,
@@ -267,8 +267,8 @@ export function appendLogEntry(shopName, templateId, entry) {
   } catch {}
 }
 
-// Wczytaj końcówkę historii (ostatnie `n` wpisów) jako [{TS,Text,Color,kind}].
-// Przy okazji przycina plik, gdy urósł ponad LOG_MAX_LINES.
+// Load the tail of the history (the last `n` entries) as [{TS,Text,Color,kind}].
+// It also trims the file when it has grown past LOG_MAX_LINES.
 export function readLogTail(shopName, templateId, n = 300) {
   const p = logPath(shopName, templateId);
   let raw;
@@ -285,8 +285,8 @@ export function readLogTail(shopName, templateId, n = 300) {
   return out;
 }
 
-// Usuń cały katalog sklepu z dysku (pliki, meta, logi, repo git).
-// Wywoływane przy removeShop — zapobiega osierocaniu danych.
+// Remove the entire shop directory from disk (files, meta, logs, git repo).
+// Called on removeShop — prevents orphaning data.
 export function deleteShopDir(shopName) {
   const d = shopDir(shopName);
   try { fs.rmSync(d, { recursive: true, force: true }); } catch {}

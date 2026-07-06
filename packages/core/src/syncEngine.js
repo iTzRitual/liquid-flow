@@ -1,9 +1,9 @@
-// Silnik synchronizacji jednego szablonu (template) wybranego sklepu.
+// Synchronization engine for a single template of the selected shop.
 //
-//  - obserwuje katalog lokalny (fs.watch, rekurencyjnie) z debounce 333 ms
-//  - przy zapisie pliku natychmiast wysyła go do sklepu (hot-reload)
-//  - wykrywa konflikty (lokalny vs zdalny timestamp) i wystawia je do UI
-//  - obsługuje komendy: download / upload / removeLocal / removeRemote /
+//  - watches the local directory (fs.watch, recursively) with a 333 ms debounce
+//  - on a file save, immediately uploads it to the shop (hot-reload)
+//  - detects conflicts (local vs remote timestamp) and surfaces them to the UI
+//  - handles commands: download / upload / removeLocal / removeRemote /
 //    downloadAll / uploadAll / refresh
 
 import fs from 'node:fs';
@@ -18,8 +18,8 @@ import { lineDiff } from './diff.js';
 const MAX_NAME_LEN = 64;
 const MAX_FILE_SIZE = 519168;
 const DEBOUNCE_MS = 333;
-// Cykliczne przeliczanie konfliktów w tle — wykrywa zmiany po stronie sklepu
-// (panel admina, inny użytkownik), o których watcher plików lokalnych nie wie.
+// Periodic background recomputation of conflicts — detects changes on the shop
+// side (admin panel, another user) that the local file watcher is unaware of.
 const POLL_MS = 20000;
 const IMAGE_EXT = new Set(['.gif', '.jpg', '.jpeg', '.png', '.ico', '.svg']);
 
@@ -36,7 +36,7 @@ function isImage(name) {
 function eq(a, b) {
   return String(a) === String(b);
 }
-// porównanie znaczników czasu (różne formaty ISO/strefy)
+// timestamp comparison (across differing ISO formats/time zones)
 function tsEqual(a, b) {
   if (a == null || b == null) return a == b;
   const da = new Date(a).getTime();
@@ -58,17 +58,17 @@ export class SyncSession {
     this.mismatches = [];
     this.watcher = null;
     this.watcherActive = false;
-    this._pollTimer = null; // cykliczne przeliczanie konfliktów (zmiany zdalne)
+    this._pollTimer = null; // periodic conflict recomputation (remote changes)
     this._debounce = new Map(); // path -> timer
-    // cache „potwierdzone różne" dla auto-uzgadniania pozornych konfliktów Timestamp:
-    // klucz `mode/name` -> podpis `fileTs|remoteTs`. Gdy podpis się zgadza, wiemy że
-    // treść była już sprawdzona i FAKTYCZNIE się różni — nie pobieramy jej znów co
-    // POLL_MS. Zmiana znacznika (nowy podpis) wymusza ponowne sprawdzenie.
+    // "confirmed different" cache for auto-reconciling apparent Timestamp conflicts:
+    // key `mode/name` -> signature `fileTs|remoteTs`. When the signature matches, we
+    // know the content was already checked and ACTUALLY differs — so we do not fetch
+    // it again every POLL_MS. A changed timestamp (new signature) forces a re-check.
     this._diffConfirmed = new Map();
-    this._queue = Promise.resolve(); // serializacja operacji SOAP
-    this.onSynced = opts.onSynced || null; // hook po każdej udanej operacji (np. git)
-    this.onMismatchChange = opts.onMismatchChange || null; // hook po przeliczeniu konfliktów
-    this.onProgress = opts.onProgress || null; // hook etapów startu (loader w UI)
+    this._queue = Promise.resolve(); // serialization of SOAP operations
+    this.onSynced = opts.onSynced || null; // hook after each successful operation (e.g. git)
+    this.onMismatchChange = opts.onMismatchChange || null; // hook after conflicts are recomputed
+    this.onProgress = opts.onProgress || null; // hook for startup phases (loader in the UI)
   }
 
   get shopName() { return this.shop.Name; }
@@ -78,15 +78,15 @@ export class SyncSession {
     if (this.onProgress) { try { this.onProgress(p); } catch {} }
   }
 
-  // ---- cykl życia ----
-  // Sekwencja startu prezentowana użytkownikowi jako kolejne, jasne kroki:
-  //   pobieranie plików (z paskiem postępu) LUB folder już gotowy
-  //   → sprawdzanie niezgodności (loader) → synchronizacja aktywna (hot-reload).
+  // ---- lifecycle ----
+  // The startup sequence is presented to the user as clear, successive steps:
+  //   downloading files (with a progress bar) OR the folder is already ready
+  //   → checking for mismatches (loader) → synchronization active (hot-reload).
   async start() {
     const dir = store.templateDir(this.shopName, this.templateId);
-    // Katalog z samym .git (brak plików szablonu) traktujemy jak fresh — repo jest
-    // inicjalizowane przed plikami; git.isRepo chroni przed nadpisaniem danych
-    // w zainicjowanym, niepustym repo (nie ma tu takiego przypadku).
+    // A directory with only .git (no template files) is treated as fresh — the repo
+    // is initialized before the files; git.isRepo guards against overwriting data in
+    // an initialized, non-empty repo (there is no such case here).
     const localFiles = store.listLocalFiles(this.shopName, this.templateId);
     const fresh = !fs.existsSync(dir) || (localFiles.length === 0 && !git.isRepo(dir));
     if (fresh) {
@@ -114,10 +114,10 @@ export class SyncSession {
     logInfo(tmsg('SyncStopped'));
   }
 
-  // ---- cykliczne przeliczanie konfliktów (zmiany zdalne) ----
-  // Watcher reaguje tylko na zmiany lokalne (wysyła je od razu). Zmian po stronie
-  // sklepu nie widzi — dlatego co POLL_MS przeliczamy niezgodności w tle i (gdy
-  // konfliktów przybyło) ostrzegamy w logu; wskaźnik w nagłówku i tak się odświeży.
+  // ---- periodic conflict recomputation (remote changes) ----
+  // The watcher only reacts to local changes (uploading them immediately). It does
+  // not see shop-side changes — so every POLL_MS we recompute mismatches in the
+  // background and (when conflicts increased) warn in the log; the header indicator refreshes anyway.
   _startPoll() {
     if (this._pollTimer) return;
     this._pollTimer = setInterval(() => {
@@ -138,20 +138,20 @@ export class SyncSession {
     }
   }
 
-  // Pierwsze pobranie wszystkich plików szablonu do katalogu lokalnego.
-  // Emituje postęp (start → kolejne pliki → koniec), by UI pokazało pasek 0-100%.
+  // Initial download of all template files into the local directory.
+  // Emits progress (start → each file → end) so the UI can show a 0-100% bar.
   async _initialDownload() {
     this._progress({ phase: 'download', state: 'start' });
     const files = await this.client.liquidFilesGet({ TemplateId: this.templateId });
     const total = files.length;
     let done = 0;
-    // Akumuluj metadane w pamięci i flushuj paczkami. `setMetaEntry` per plik
-    // czytał i przepisywał CAŁY plik meta za każdym razem (O(n²) synchronicznego
-    // I/O) — przy szablonie z setkami plików blokowało to pętlę zdarzeń i UI
-    // zamierało (szczególnie na Windows: synchroniczny zapis skanowany przez
-    // antywirus). Flush na tej samej cadencji co pasek postępu zachowuje
-    // przyrostowe bezpieczeństwo (przerwanie gubi najwyżej ostatnią paczkę,
-    // nie cały zestaw), a nie przepisuje pliku dla każdego pliku z osobna.
+    // Accumulate metadata in memory and flush in batches. `setMetaEntry` per file
+    // read and rewrote the ENTIRE meta file every time (O(n²) synchronous I/O) —
+    // for a template with hundreds of files this blocked the event loop and the UI
+    // froze (especially on Windows: synchronous writes scanned by antivirus). A
+    // flush on the same cadence as the progress bar preserves incremental safety
+    // (an interruption loses at most the last batch, not the whole set) while not
+    // rewriting the file for every single file.
     const meta = store.loadMeta(this.shopName, this.templateId);
     try {
       for (const f of files) {
@@ -165,13 +165,13 @@ export class SyncSession {
         if (done === total || done % 5 === 0) {
           store.saveMeta(this.shopName, this.templateId, meta);
           this._progress({ phase: 'download', state: 'progress', done, total });
-          // ustąp pętli, by UI zdążyło przerysować pasek postępu (inaczej skok 0→100%)
+          // yield to the loop so the UI can redraw the progress bar (otherwise a 0→100% jump)
           await new Promise((r) => setImmediate(r));
         }
       }
     } finally {
-      // Flush także przy przerwaniu (np. writeLocalFile rzuci): już zapisane pliki
-      // zachowują metadane, więc po restarcie nie są pokazane jako konflikty.
+      // Flush on interruption too (e.g. writeLocalFile throws): already-written
+      // files keep their metadata, so after a restart they are not shown as conflicts.
       store.saveMeta(this.shopName, this.templateId, meta);
     }
     this._progress({ phase: 'download', state: 'done', count: total });
@@ -190,7 +190,7 @@ export class SyncSession {
       });
       this.watcherActive = true;
     } catch (e) {
-      // Rekurencyjny fs.watch na Linuksie wymaga Node >=20; na starszych wersjach rzuca.
+      // Recursive fs.watch on Linux requires Node >=20; older versions throw.
       const isOldNode = process.platform === 'linux' && Number(process.versions.node.split('.')[0]) < 20;
       logErr(isOldNode
         ? 'Watcher error: recursive watch requires Node 20+ on Linux (current: ' + process.versions.node + ')'
@@ -217,13 +217,13 @@ export class SyncSession {
     );
   }
 
-  // serializuj operacje SOAP, by uniknąć wyścigów
+  // serialize SOAP operations to avoid races
   _enqueue(fn) {
     this._queue = this._queue.then(fn, fn);
     return this._queue;
   }
 
-  // Reakcja na zmianę pliku lokalnego (hot-reload).
+  // React to a local file change (hot-reload).
   async _processChange(abs) {
     const parsed = store.parseLocalPath(this.shopName, this.templateId, abs);
     if (!parsed) return;
@@ -233,7 +233,7 @@ export class SyncSession {
     const known = !!store.getMetaEntry(meta, mode, name);
 
     if (!exists) {
-      // usunięcie
+      // deletion
       if (known) {
         await this.client.liquidFileDelete({ TemplateId: this.templateId, Mode: mode, Name: name });
         store.removeMetaEntry(this.shopName, this.templateId, mode, name);
@@ -255,7 +255,7 @@ export class SyncSession {
       await this.client.liquidFileAdd(tpl);
       logOk(tmsg('LogFileCreated', { label: this._label(mode, name) }));
     }
-    // pobierz nowy zdalny timestamp i zapisz meta
+    // fetch the new remote timestamp and store meta
     const metaList = await this.client.liquidFilesMetaGet({ TemplateId: this.templateId, Mode: mode, Name: name });
     const remote = metaList[0];
     const localts = store.mtimeUtc(abs);
@@ -268,10 +268,10 @@ export class SyncSession {
     const buffer = fs.readFileSync(abs);
     if (buffer.length > MAX_FILE_SIZE) throw new Error(this.t.InvalidFileSize + ' — ' + name);
     if (!isImage(name)) {
-      // walidacja: plik tekstowy nie może zawierać bajtów 0–8 (NUL…BS).
-      // Bajty 9 (TAB), 10 (LF), 11 (VT), 12 (FF), 13 (CR) są przepuszczane
-      // — kontrakt API Comarch nie zabrania VT/FF; jeśli okaże się inaczej,
-      // warunek należy rozszerzyć o: || buffer[i] === 11 || buffer[i] === 12.
+      // validation: a text file must not contain bytes 0–8 (NUL…BS).
+      // Bytes 9 (TAB), 10 (LF), 11 (VT), 12 (FF), 13 (CR) are allowed through
+      // — the Comarch API contract does not forbid VT/FF; should that prove
+      // otherwise, extend the condition with: || buffer[i] === 11 || buffer[i] === 12.
       for (let i = 0; i < buffer.length; i++) {
         if (buffer[i] < 9) throw new Error(this.t.IncorrectFileType + ' — ' + name);
       }
@@ -289,7 +289,7 @@ export class SyncSession {
     }
   }
 
-  // ---- wykrywanie konfliktów ----
+  // ---- conflict detection ----
   async refreshMismatches(opts = {}) {
     if (!opts.silent) logInfo(tmsg('CheckingMismatch'));
     const remote = await this.client.liquidFilesMetaGet({ TemplateId: this.templateId });
@@ -300,7 +300,7 @@ export class SyncSession {
     const localByKey = new Map(local.map((l) => [`${l.mode}/${l.name}`, l]));
     const result = [];
 
-    // LocalMissing: jest zdalnie, brak lokalnie
+    // LocalMissing: present remotely, absent locally
     for (const r of remote) {
       if (!localByKey.has(`${r.Mode}/${r.Name}`)) {
         result.push({
@@ -313,7 +313,7 @@ export class SyncSession {
       }
     }
 
-    // RemoteMissing: jest lokalnie, brak zdalnie
+    // RemoteMissing: present locally, absent remotely
     for (const l of local) {
       if (!remoteByKey.has(`${l.mode}/${l.name}`)) {
         const m = store.getMetaEntry(meta, l.mode, l.name);
@@ -327,7 +327,7 @@ export class SyncSession {
       }
     }
 
-    // Timestamp: po obu stronach, ale lokalny zmieniony LUB zdalny zmieniony
+    // Timestamp: present on both sides, but the local OR the remote side changed
     for (const l of local) {
       const r = remoteByKey.get(`${l.mode}/${l.name}`);
       if (!r) continue;
@@ -338,29 +338,29 @@ export class SyncSession {
         result.push({
           File: { TemplateId: this.templateId, Mode: l.mode, Name: l.name },
           Type: MismatchType.Timestamp,
-          FileTs: l.fileTs,         // aktualny czas pliku na dysku
-          LocalTs: m ? m.localts : null,   // ostatni zsynchronizowany lokalny
-          RemoteTs: r.Date,         // aktualny czas po stronie sklepu
+          FileTs: l.fileTs,         // current on-disk file time
+          LocalTs: m ? m.localts : null,   // last synchronized local time
+          RemoteTs: r.Date,         // current time on the shop side
         });
       }
     }
 
-    // Auto-uzgodnienie pozornych konfliktów Timestamp: gdy znaczniki się rozjechały
-    // (np. po synchronizacji z innej maszyny — te same bajty wgrane ponownie), ale
-    // ZAWARTOŚĆ jest identyczna, to nie jest realny konflikt — nie pokazujemy go.
-    // Nadpisujemy meta bieżącymi znacznikami, żeby zniknął na stałe. Treść pobieramy
-    // tylko dla kandydatów Timestamp i tylko gdy podpis znaczników jest nowy (cache
-    // `_diffConfirmed` chroni przed pobieraniem realnych różnic w kółko co POLL_MS).
+    // Auto-reconcile apparent Timestamp conflicts: when the timestamps diverged
+    // (e.g. after syncing from another machine — the same bytes uploaded again) but
+    // the CONTENT is identical, it is not a real conflict — so we do not show it.
+    // We overwrite meta with the current timestamps so it disappears for good. Content
+    // is fetched only for Timestamp candidates and only when the timestamp signature
+    // is new (the `_diffConfirmed` cache prevents refetching real differences every POLL_MS).
     const kept = [];
     let reconciled = 0;
     for (const mm of result) {
       if (mm.Type !== MismatchType.Timestamp) { kept.push(mm); continue; }
       const key = `${mm.File.Mode}/${mm.File.Name}`;
       const sig = `${mm.FileTs}|${mm.RemoteTs}`;
-      if (this._diffConfirmed.get(key) === sig) { kept.push(mm); continue; } // znane różne
+      if (this._diffConfirmed.get(key) === sig) { kept.push(mm); continue; } // known-different
       let identical = false;
       try { identical = await this._contentIdentical(mm.File); }
-      catch { identical = false; } // błąd sieci/odczytu → zostaw jako konflikt (bezpiecznie)
+      catch { identical = false; } // network/read error → keep as a conflict (fail safe)
       if (identical) {
         store.setMetaEntry(this.shopName, this.templateId, mm.File.Mode, mm.File.Name, mm.FileTs, mm.RemoteTs);
         this._diffConfirmed.delete(key);
@@ -378,10 +378,10 @@ export class SyncSession {
     return kept;
   }
 
-  // Czy lokalny i zdalny plik mają IDENTYCZNĄ zawartość (do auto-uzgadniania).
-  // Pliki tekstowe: porównanie po normalizacji końców linii (ten sam model co diff
-  // — różnica tylko w CRLF/LF nie jest realnym konfliktem). Pliki binarne (obrazy):
-  // porównanie bajtowe. Brak pliku lokalnie / zdalnie → traktuj jako różne.
+  // Whether the local and remote files have IDENTICAL content (for auto-reconciling).
+  // Text files: compared after normalizing line endings (the same model as the diff
+  // — a CRLF/LF-only difference is not a real conflict). Binary files (images):
+  // compared byte for byte. A file missing locally / remotely → treated as different.
   async _contentIdentical(file) {
     const abs = store.localFilePath(this.shopName, this.templateId, file.Mode, file.Name);
     if (!fs.existsSync(abs)) return false;
@@ -395,19 +395,19 @@ export class SyncSession {
     return !diff.tooLarge && !diff.some((d) => d.type !== 'ctx');
   }
 
-  // Serializuj `fn` na tej samej kolejce co command()/_processChange — BEZ
-  // zatrzymywania watchera i BEZ refreshMismatches. Dla operacji gita, które mutują
-  // indeks repo (.git/index) ale NIE zapisują working tree (auto-commit, restore):
-  // muszą być wzajemnie wykluczone z innymi operacjami gita, a watcher ma działać
-  // dalej (restore liczy na hot-reload przywróconych plików do sklepu).
+  // Serialize `fn` on the same queue as command()/_processChange — WITHOUT stopping
+  // the watcher and WITHOUT refreshMismatches. For git operations that mutate the
+  // repo index (.git/index) but do NOT write the working tree (auto-commit, restore):
+  // they must be mutually exclusive with other git operations while the watcher keeps
+  // running (restore relies on hot-reloading the restored files to the shop).
   async runExclusive(fn) {
     return this._enqueue(fn);
   }
 
-  // Uruchom `fn` z wyłączonym watcherem (operacje gita zapisujące working tree —
-  // pull/checkout/merge — nie mogą wyzwolić hot-reloadu). Serializowane przez tę
-  // samą kolejkę co command(), z gwarantowanym wznowieniem watchera i przeliczeniem
-  // konfliktów po zakończeniu.
+  // Run `fn` with the watcher disabled (git operations that write the working tree —
+  // pull/checkout/merge — must not trigger a hot-reload). Serialized on the same
+  // queue as command(), with the watcher guaranteed to resume and conflicts
+  // recomputed on completion.
   async withWatcherPaused(fn) {
     return this.runExclusive(async () => {
       this._stopWatcher();
@@ -424,7 +424,7 @@ export class SyncSession {
     });
   }
 
-  // ---- komendy z UI ----
+  // ---- commands from the UI ----
   async command(comm, fileArg, typeArg) {
     return this._enqueue(async () => {
       this._stopWatcher();
@@ -467,8 +467,8 @@ export class SyncSession {
     });
   }
 
-  // Operacje wywoływane są z command(), które zatrzymuje watcher na czas zapisów,
-  // więc nasze własne zapisy lokalne nie wywołają zdarzeń (brak pętli zwrotnej).
+  // These operations are invoked from command(), which stops the watcher during
+  // writes, so our own local writes do not trigger events (no feedback loop).
   async _download(file) {
     const list = await this.client.liquidFilesGet({ TemplateId: this.templateId, Mode: file.Mode, Name: file.Name });
     const f = list[0];
@@ -512,12 +512,12 @@ export class SyncSession {
     this._notify('removeRemote', file.Mode, file.Name);
   }
 
-  // Podgląd różnic przed rozwiązaniem konfliktu — wyłącznie do odczytu.
-  // file: { Mode, Name }, type: MismatchType (opcjonalny, pomija zbędne wywołania).
-  // Zwraca jedno z:
+  // Preview of the differences before resolving a conflict — read-only.
+  // file: { Mode, Name }, type: MismatchType (optional, skips unnecessary calls).
+  // Returns one of:
   //   { kind: 'binary', side: 'both'|'localOnly'|'remoteOnly' }
   //   { kind: 'tooLarge' }
-  //   { kind: 'text', local, remote, diff }   (local/remote mogą być null przy brakach)
+  //   { kind: 'text', local, remote, diff }   (local/remote may be null when missing)
   async previewConflict(file, type) {
     if (isImage(file.Name)) return { kind: 'binary', side: 'both' };
 
@@ -544,9 +544,9 @@ export class SyncSession {
     const local = localBuf ? localBuf.toString('utf8') : null;
     const remote = remoteBuf ? remoteBuf.toString('utf8') : null;
     const diff = lineDiff(local ?? '', remote ?? '');
-    // Za duży do rysowania w terminalu (koszt LCS rośnie kwadratowo z liczbą
-    // linii) — ale `local`/`remote` i tak trzymamy, żeby dało się otworzyć
-    // diff w zewnętrznym IDE (tam liczy go edytor, nie nasz proces).
+    // Too large to render in the terminal (the LCS cost grows quadratically with
+    // the number of lines) — but we keep `local`/`remote` anyway so the diff can be
+    // opened in an external IDE (where the editor computes it, not our process).
     if (diff.tooLarge) return { kind: 'tooLarge', local, remote };
 
     return { kind: 'text', local, remote, diff };

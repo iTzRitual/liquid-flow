@@ -26,7 +26,7 @@ describe('Header — anty-przepełnienie i nierozpadające się logo', () => {
 
   it.each(WIDTHS)('logo ASCII pozostaje w jednym kawałku (cols=%i)', async (cols) => {
     const f = (await renderFrame(<Header state={state} git={git} mismatches={[]} cols={cols} t={t} />, cols)).join('\n');
-    // Spójne ciągi glifów z góry i dołu logo — gdyby zawinęło, pękłyby.
+    // Contiguous glyph runs from the top and bottom of the logo — if it wrapped, these would break.
     expect(f).toContain('▄████████▄');
     expect(f).toContain('▀███████▀');
   });
@@ -34,13 +34,13 @@ describe('Header — anty-przepełnienie i nierozpadające się logo', () => {
   it('pokazuje nazwę sklepu i wskaźnik konfliktów, gdy są konflikty', async () => {
     const f = (await renderFrame(<Header state={state} git={git} mismatches={[1, 2, 3, 4]} cols={90} t={t} />, 90)).join('\n');
     expect(f).toContain('walter');
-    expect(f).toContain('Konflikty: 4'); // wskaźnik konfliktów z liczbą
+    expect(f).toContain('Konflikty: 4'); // the conflicts indicator with a count
     expect(f).toContain('/conflicts');
   });
 
   it('bez konfliktów nie renderuje wskaźnika', async () => {
     const f = (await renderFrame(<Header state={state} git={git} mismatches={[]} cols={90} t={t} />, 90)).join('\n');
-    // wskaźnik konfliktów (czerwony) nie powinien się pojawić
+    // the conflicts indicator (red) should not appear
     expect(f).not.toMatch(/[Kk]onflikt/);
   });
 
@@ -49,13 +49,13 @@ describe('Header — anty-przepełnienie i nierozpadające się logo', () => {
       <Header state={state} git={git} mismatches={[1, 2, 3]} cols={80} t={t} compact />, 80
     );
     const nonEmpty = lines.filter((l) => l.trim() !== '');
-    expect(nonEmpty.length).toBe(1); // jeden wiersz treści
+    expect(nonEmpty.length).toBe(1); // one content row
     const f = nonEmpty[0];
     expect(f).toContain('Liquid Flow');
     expect(f).toContain('walter');
     expect(f).toContain('new');
-    expect(f).toContain('3'); // licznik konfliktów
-    expect(f).not.toContain('████'); // brak logo ASCII
+    expect(f).toContain('3'); // the conflicts counter
+    expect(f).not.toContain('████'); // no ASCII logo
   });
 
   it('compact: przycina się do szerokości okna', async () => {

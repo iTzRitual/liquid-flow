@@ -1,4 +1,4 @@
-// Klient SOAP web-service'u Comarch e-Sklep (iSklep24Service.asmx).
+// SOAP client for the Comarch e-Sklep web service (iSklep24Service.asmx).
 //
 //   Namespace        : http://www.icomarch24.pl/iSklep24
 //   Endpoint         : <urlSklepu>/iSklep24Service.asmx
@@ -14,7 +14,7 @@ import { translationsFor, tfmt } from './translations.js';
 const NS = 'http://www.icomarch24.pl/iSklep24';
 const SOAP_ENV = 'http://schemas.xmlsoap.org/soap/envelope/';
 
-// Endpoint usługi: <url sklepu> bez końcowych '/' + '/iSklep24Service.asmx'
+// Service endpoint: <shop url> without trailing '/' + '/iSklep24Service.asmx'
 export function endpointFor(shopUrl) {
   return shopUrl.trim().replace(/\/+$/, '') + '/iSklep24Service.asmx';
 }
@@ -31,9 +31,9 @@ function buildEnvelope(method, innerXml) {
   );
 }
 
-// Serializacja LiquidTemplate zgodnie z kolejnością pól klasy .NET:
+// Serialize LiquidTemplate following the .NET class field order:
 // TemplateId, Mode, Name, Template(base64Binary), Date.
-// Name/Template pomijamy gdy puste (tak robi XmlSerializer dla null).
+// Name/Template are omitted when empty (as XmlSerializer does for null).
 function templateXml(tpl, tag = 'tpl') {
   let x = '';
   x += `<TemplateId>${tpl.TemplateId | 0}</TemplateId>`;
@@ -50,7 +50,7 @@ function templateXml(tpl, tag = 'tpl') {
   return `<${tag}>${x}</${tag}>`;
 }
 
-// Prosty „cookie jar” — przechowuje sesję uwierzytelnienia między żądaniami.
+// Simple cookie jar — keeps the authentication session across requests.
 class CookieJar {
   constructor() { this.cookies = new Map(); }
   store(setCookieHeaders) {
@@ -133,7 +133,7 @@ function parseFault(root) {
   return new SoapError(detailMsg || faultstring, { code: faultcode, faultCodeName: codeName });
 }
 
-const REAUTH_MS = 8 * 60 * 60 * 1000; // ponowne logowanie co 8h
+const REAUTH_MS = 8 * 60 * 60 * 1000; // re-authenticate every 8h
 
 export class ISklep24Client {
   constructor(shopUrl, opts = {}) {
@@ -149,10 +149,10 @@ export class ISklep24Client {
 
   setCredentials(login, password) {
     this.credentials = { login, password };
-    this.lastAuth = 0; // wymuś ponowne logowanie
+    this.lastAuth = 0; // force re-authentication
   }
 
-  // Niskopoziomowe wywołanie (bez auto-logowania) — używane przez signIn.
+  // Low-level call (without auto sign-in) — used by signIn.
   async _raw(method, innerXml) {
     const env = buildEnvelope(method, innerXml);
     const action = `${NS}/${method}`;
@@ -165,7 +165,7 @@ export class ISklep24Client {
     return { root, result };
   }
 
-  // Upewnij się, że sesja jest uwierzytelniona (cookie sesji aktualne).
+  // Ensure the session is authenticated (session cookie is current).
   async _ensureAuth() {
     if (!this.credentials) return;
     if (this.jar.header() && Date.now() - this.lastAuth < REAUTH_MS) return;
@@ -174,13 +174,13 @@ export class ISklep24Client {
     this.lastAuth = Date.now();
   }
 
-  // Wywołanie z gwarancją uwierzytelnienia.
+  // Call with guaranteed authentication.
   async call(method, innerXml) {
     await this._ensureAuth();
     return this._raw(method, innerXml);
   }
 
-  // SignIn(login, password) -> bool. Ustawia cookie sesji w jar.
+  // SignIn(login, password) -> bool. Sets the session cookie in the jar.
   async signIn(login, password) {
     const inner = `<login>${escapeXml(login)}</login><password>${escapeXml(password)}</password>`;
     const { result } = await this._raw('SignIn', inner);
@@ -222,19 +222,19 @@ export class ISklep24Client {
     });
   }
 
-  // Liquid_FilesGet(tpl) -> LiquidTemplate[] (z zawartością)
+  // Liquid_FilesGet(tpl) -> LiquidTemplate[] (with content)
   async liquidFilesGet(tpl) {
     const { result } = await this.call('Liquid_FilesGet', templateXml(tpl));
     return this._parseTemplates(result);
   }
 
-  // Liquid_FilesMetaGet(tpl) -> LiquidTemplate[] (tylko meta, bez zawartości)
+  // Liquid_FilesMetaGet(tpl) -> LiquidTemplate[] (metadata only, no content)
   async liquidFilesMetaGet(tpl) {
     const { result } = await this.call('Liquid_FilesMetaGet', templateXml(tpl));
     return this._parseTemplates(result);
   }
 
-  // Liquid_FileSet(tpl) -> void  (nadpisz istniejący plik)
+  // Liquid_FileSet(tpl) -> void  (overwrite an existing file)
   async liquidFileSet(tpl) {
     await this.call('Liquid_FileSet', templateXml(tpl));
   }
@@ -245,7 +245,7 @@ export class ISklep24Client {
     return text(result).trim().toLowerCase() === 'true';
   }
 
-  // Liquid_FileAdd(tpl) -> void  (dodaj nowy plik)
+  // Liquid_FileAdd(tpl) -> void  (add a new file)
   async liquidFileAdd(tpl) {
     await this.call('Liquid_FileAdd', templateXml(tpl));
   }

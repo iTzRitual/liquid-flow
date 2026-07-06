@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../App.jsx';
 import { Loader2 } from 'lucide-react';
 
-// Loader startu synchronizacji. `progress` to surowy payload z rdzenia:
+// A sync-startup loader. `progress` is the raw payload from the core:
 // { phase:'download'|'check'|'ready', state:'start'|'progress'|'done', done?, total? }.
 export default function ProgressBar({ progress }) {
   const { t } = useApp();

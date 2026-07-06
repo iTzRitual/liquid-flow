@@ -1,7 +1,7 @@
-// Centralny kontroler aplikacji — cała logika stanu (sklepy, szablony, sesja
-// synchronizacji, git) niezależna od warstwy prezentacji. Używany zarówno przez
-// aplikację desktopową (Electron/IPC), jak i CLI; emituje zdarzenia 'log',
-// 'mismatches', 'state', 'git'.
+// Central application controller — holds all state logic (shops, templates,
+// sync session, git) independently of the presentation layer. Used by both the
+// desktop application (Electron/IPC) and the CLI; emits the 'log', 'mismatches',
+// 'state' and 'git' events.
 
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
@@ -15,15 +15,15 @@ import { buildShopRecords, buildEnvelope, readEnvelope } from './shareConfig.js'
 
 const COMMIT_DEBOUNCE_MS = 3000;
 
-// Ukryta gałąź robocza („bufor na żywo"): wszystkie auto-commity lądują tutaj.
-// Użytkownik jej nie widzi ani nie wybiera — jest implementacyjnym szczegółem
-// modelu „checkpoint". Strumień docelowy (gałąź, na którą zatwierdza się wersję)
-// trzymamy w activeGit.targetBranch (domyślnie poniżej).
+// Hidden working branch (the "live buffer"): every auto-commit lands here. It is
+// neither visible to nor selectable by the user — it is an implementation detail
+// of the "checkpoint" model. The target stream (the branch a version is committed
+// to) is held in activeGit.targetBranch (default below).
 const WIP_BRANCH = 'liquidflow/wip';
 const DEFAULT_TARGET = 'main';
 
-// Wersja aplikacji — czytana z package.json rdzenia (jedyne źródło prawdy; trzy
-// package.json są zawsze zsynchronizowane), żeby nie dryfowała przy bumpie.
+// Application version — read from the core package.json (single source of truth;
+// the three package.json files are always kept in sync) so it never drifts on bump.
 const APP_VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
 export class Controller extends EventEmitter {
@@ -43,17 +43,17 @@ export class Controller extends EventEmitter {
     this._commitTimer = null;
     this._pendingCommitFiles = new Set();
 
-    // Trzymamy referencje do handlerów, żeby dispose() mógł je odpiąć od
-    // GLOBALNEGO emitera logbuf.events (inaczej każdy Controller zostawia
-    // nasłuchy na zawsze — wyciek + przekroczenie limitu listenerów).
+    // Keep references to the handlers so dispose() can detach them from the
+    // GLOBAL logbuf.events emitter (otherwise every Controller leaves listeners
+    // attached forever — a leak that eventually exceeds the listener limit).
     this._onLogEntry = (e) => this.emit('log', e);
     this._onLogReset = (entries) => this.emit('log:reset', entries);
     logbuf.events.on('entry', this._onLogEntry);
     logbuf.events.on('reset', this._onLogReset);
   }
 
-  // ---------- pomocnicze ----------
-  // Tłumaczenia dla bieżącego języka (logi/błędy widoczne dla użytkownika).
+  // ---------- helpers ----------
+  // Translations for the current language (user-facing logs/errors).
   get t() { return translationsFor(this.config.Language); }
 
   shopById(id) { return this.config.Shops.find((s) => s.Id === Number(id)); }
@@ -89,7 +89,7 @@ export class Controller extends EventEmitter {
       currentTemplate: s ? { Id: s.templateId, Name: s.template.Name } : null,
       language: this.config.Language || 'pl',
       insecureTLS: this.insecureTLS,
-      // Preferencje UI (CLI) trzymane w configu, by przeżyć restart.
+      // UI preferences (CLI) stored in the config so they survive a restart.
       logWrap: !!this.config.LogWrap,
       headerMode: this.config.HeaderMode || 'auto',
     };
@@ -104,8 +104,8 @@ export class Controller extends EventEmitter {
     };
   }
 
-  // Preferencje UI CLI (zawijanie logów, tryb nagłówka). Zapisywane w configu,
-  // więc pamiętane między uruchomieniami. Whitelist kluczy; po zapisie 'state'.
+  // CLI UI preferences (log wrapping, header mode). Stored in the config so they
+  // persist across runs. Keys are whitelisted; emits 'state' after saving.
   setUiPref(key, value) {
     if (key === 'logWrap') this.config.LogWrap = !!value;
     else if (key === 'headerMode') this.config.HeaderMode = value;
@@ -118,14 +118,14 @@ export class Controller extends EventEmitter {
   setLanguage(id) {
     this.config.Language = id;
     store.saveConfig(this.config);
-    // Przerysuj bieżący log na nowy język (wpisy z deskryptorem i18n) — emituje
-    // 'reset' → 'log:reset', więc UI podmienia cały widoczny strumień.
+    // Re-render the current log in the new language (entries carrying an i18n
+    // descriptor) — emits 'reset' → 'log:reset', so the UI swaps the whole stream.
     logbuf.setLanguage(id);
     this.emitState();
     return this.getTranslations();
   }
 
-  // ---------- sklepy ----------
+  // ---------- shops ----------
   listShops() { return this.config.Shops.map((s) => this.shopPublic(s)); }
   getCurrentShop() { return this.shopPublic(this.currentShop()); }
 
@@ -168,8 +168,8 @@ export class Controller extends EventEmitter {
     return this.shopPublic(shop);
   }
 
-  // Logowanie do istniejącego sklepu przy użyciu zapisanego (zaszyfrowanego)
-  // hasła — bez ponownego wpisywania. Wymaga shop.SavePassword + shop.Password.
+  // Sign in to an existing shop using the saved (encrypted) password — without
+  // re-entering it. Requires shop.SavePassword + shop.Password.
   async signInSaved(id) {
     const t = translationsFor(this.config.Language);
     const shop = this.shopById(Number(id));
@@ -198,9 +198,9 @@ export class Controller extends EventEmitter {
     return this.shopPublic(shop);
   }
 
-  // Rozłączenie (wylogowanie) bez usuwania sklepu z konfiguracji: zatrzymuje
-  // synchronizację i czyści bieżącą sesję/klienta. Sklep i zapisane hasło
-  // zostają — można połączyć się ponownie.
+  // Disconnect (sign out) without removing the shop from the config: stops
+  // synchronization and clears the current session/client. The shop and its saved
+  // password remain, so it can be connected to again.
   logout() {
     if (!this.state.currentShopId) return this.getState();
     const name = this.currentShop() ? this.currentShop().Name : '';
@@ -236,10 +236,10 @@ export class Controller extends EventEmitter {
     this.emitState();
   }
 
-  // ---------- udostępnianie konfiguracji (export / import sklepów) ----------
-  // Buduje przenośny pakiet z WYBRANYCH sklepów. `ids` puste/brak = wszystkie.
-  // Pusta `passphrase` → pakiet bez haseł (kolega wpisze je ręcznie). Zwraca
-  // { json, count, encrypted } — warstwa aplikacji zapisuje `json` do pliku.
+  // ---------- config sharing (export / import of shops) ----------
+  // Builds a portable bundle from the SELECTED shops. Empty/missing `ids` = all.
+  // An empty `passphrase` → a bundle without passwords (the recipient enters them
+  // manually). Returns { json, count, encrypted } — the app layer writes `json` to a file.
   exportShops({ ids, passphrase } = {}) {
     const idSet = Array.isArray(ids) && ids.length ? new Set(ids.map(Number)) : null;
     const shops = this.config.Shops.filter((s) => !idSet || idSet.has(Number(s.Id)));
@@ -250,8 +250,8 @@ export class Controller extends EventEmitter {
     return { json: JSON.stringify(envelope, null, 2), count: records.length, encrypted: !!envelope.encrypted };
   }
 
-  // Podgląd pakietu — NIE zwraca haseł do UI. Lista sklepów + flagi
-  // exists/hasPassword + `encrypted`. Rzuca przetłumaczony błąd (zła fraza itd.).
+  // Bundle preview — does NOT return passwords to the UI. A list of shops plus the
+  // exists/hasPassword flags and `encrypted`. Throws a translated error (bad passphrase, etc.).
   importPreview({ json, passphrase } = {}) {
     const envelope = this._parseShareJson(json);
     let records;
@@ -268,9 +268,9 @@ export class Controller extends EventEmitter {
     return { encrypted: !!envelope.encrypted, shops };
   }
 
-  // Import wybranych sklepów. `selections` = [{ Name, action, saveAs? }],
-  //   action: 'add' | 'update' | 'skip'. Brak `selections` → dodaj wszystkie.
-  // Zwraca { added, updated, skipped }.
+  // Import selected shops. `selections` = [{ Name, action, saveAs? }],
+  //   action: 'add' | 'update' | 'skip'. Missing `selections` → add all.
+  // Returns { added, updated, skipped }.
   importShops({ json, passphrase, selections } = {}) {
     const envelope = this._parseShareJson(json);
     let records;
@@ -286,7 +286,7 @@ export class Controller extends EventEmitter {
         const existing = this.config.Shops.find((s) => s.Name === rec.Name);
         if (existing) { this._applyImportedShop(existing, rec); updated++; }
         else { this._addImportedShop(rec, rec.Name); added++; }
-      } else { // 'add' (i „rename": add zawsze unika kolizji przez sufiks)
+      } else { // 'add' (and "rename": add always avoids collisions via a suffix)
         this._addImportedShop(rec, this._uniqueShopName(d.saveAs || rec.Name)); added++;
       }
     }
@@ -296,7 +296,7 @@ export class Controller extends EventEmitter {
     return { added, updated, skipped };
   }
 
-  // --- helpery importu/exportu ---
+  // --- import/export helpers ---
   _validShopName(name) { return typeof name === 'string' && /^[A-Za-z0-9]+$/.test(name); }
   _parseShareJson(json) {
     try { return JSON.parse(json); } catch { throw new Error(this.t.ShareBadFile); }
@@ -318,8 +318,8 @@ export class Controller extends EventEmitter {
     do { cand = name + i++; } while (names.has(cand));
     return cand;
   }
-  // Nadpisz pola połączenia istniejącego sklepu z rekordu (re-szyfrowanie
-  // KLUCZEM LOKALNYM tej maszyny). Nie rusza Id ani plików na dysku.
+  // Overwrite the connection fields of an existing shop from a record (re-encrypting
+  // with THIS machine's LOCAL key). Leaves the Id and on-disk files untouched.
   _applyImportedShop(shop, rec) {
     shop.Url = rec.Url;
     shop.Login = rec.Login || 'webmaster';
@@ -337,7 +337,7 @@ export class Controller extends EventEmitter {
     this.config.Shops.push(shop);
   }
 
-  // ---------- szablony ----------
+  // ---------- templates ----------
   async listTemplates() {
     const shop = this.currentShop();
     if (!shop) return [];
@@ -391,9 +391,9 @@ export class Controller extends EventEmitter {
       Id: shop.Id, Name: shop.Name, Url: shop.Url,
       Login: shop.Login || 'webmaster', Password: this.shopPassword(shop),
     };
-    // Przełącz log na kanał tego szablonu: wczytaj zapisaną historię (poprzednie
-    // sesje, renderowane jako wyszarzone) i oddziel ją separatorem od nowej
-    // sesji. Live-wpisy są dopisywane do pliku, więc historia przeżywa restart.
+    // Switch the log to this template's channel: load the saved history (previous
+    // sessions, rendered dimmed) and separate it from the new session with a
+    // separator. Live entries are appended to the file, so the history survives a restart.
     const history = store.readLogTail(shop.Name, template.Id, 300);
     logbuf.setActiveChannel('tpl:' + shop.Id + ':' + template.Id, {
       persist: (e) => store.appendLogEntry(shop.Name, template.Id, e),
@@ -413,16 +413,16 @@ export class Controller extends EventEmitter {
     });
     this.state.session = session;
 
-    // git: ustaw konfigurację dla aktywnego szablonu. Repo trzymamy w folderze
-    // roboczym '0' (tam edytujemy pliki), a nie na poziomie szablonu — dzięki
-    // temu struktura repo to czyste pliki szablonu. Wnętrze .git nie jest
-    // synchronizowane do e-Sklep (pomijane jako ścieżka z kropką).
+    // git: set up the configuration for the active template. The repo lives in the
+    // working folder '0' (where files are edited), not at the template level — so
+    // the repo structure is the pure template files. The .git contents are not
+    // synchronized to e-Sklep (skipped as a dot-prefixed path).
     const tCfg = this._templateConfig(shop.Id, template.Id);
     this.activeGit = {
       dir: store.templateModeDir(shop.Name, template.Id, 0),
       autoCommit: tCfg.git ? !!tCfg.git.autoCommit : false,
       autoPush: tCfg.git ? !!tCfg.git.autoPush : false,
-      // strumień docelowy checkpointów (gałąź widoczna dla użytkownika); wip jest ukryty
+      // checkpoint target stream (the branch visible to the user); wip is hidden
       targetBranch: (tCfg.git && tCfg.git.targetBranch) || DEFAULT_TARGET,
     };
 
@@ -433,7 +433,7 @@ export class Controller extends EventEmitter {
     await session.start();
     this.emitState();
     this.emit('mismatches', session.mismatches);
-    this.emitGit(); // od razu po starcie sesji odśwież status gita w UI (wiersz „Git" w nagłówku) — inaczej pojawia się dopiero przy pierwszym późniejszym emitGit (toggle/commit)
+    this.emitGit(); // refresh the git status in the UI right after the session starts (the "Git" row in the header) — otherwise it appears only on the first later emitGit (toggle/commit)
     return session;
   }
 
@@ -445,13 +445,13 @@ export class Controller extends EventEmitter {
     return tCfg;
   }
 
-  // ---------- konflikty / komendy ----------
+  // ---------- conflicts / commands ----------
   getMismatches() { return this.state.session ? this.state.session.mismatches : []; }
 
-  // Natychmiastowe przeliczenie konfliktów na żądanie (np. przy wejściu w
-  // /conflicts) — to samo zapytanie o metadane co cykliczny poll, żeby decyzje
-  // o pobraniu/wysłaniu opierały się na świeżym stanie sklepu. refreshMismatches
-  // emituje 'mismatches' przez onMismatchChange, więc wskaźnik też się odświeży.
+  // Recompute conflicts on demand (e.g. when entering /conflicts) — the same
+  // metadata request as the periodic poll, so download/upload decisions are based
+  // on a fresh shop state. refreshMismatches emits 'mismatches' via onMismatchChange,
+  // so the indicator also refreshes.
   async recheckMismatches() {
     if (!this.state.session) return [];
     return this.state.session.refreshMismatches({ silent: true });
@@ -494,14 +494,14 @@ export class Controller extends EventEmitter {
     await git.switchBranch(dir, WIP_BRANCH);
   }
 
-  // Ile niezatwierdzonych „wersji" wisi na wip względem strumienia docelowego
-  // (commity z wip, których nie ma na targetBranch). 0 = wszystko zacheckpointowane.
+  // How many uncommitted "versions" are pending on wip relative to the target
+  // stream (commits on wip that are not on targetBranch). 0 = everything checkpointed.
   async _uncommittedCount() {
     if (!this.activeGit || !git.isRepo(this.activeGit.dir)) return 0;
     return git.countCommits(this.activeGit.dir, `${this.activeGit.targetBranch}..${WIP_BRANCH}`);
   }
 
-  // Publiczne (CLI guard przed przełączeniem strumienia).
+  // Public (CLI guard before switching the stream).
   async gitUncommittedCount() {
     return this._uncommittedCount();
   }
@@ -543,9 +543,9 @@ export class Controller extends EventEmitter {
       autoCommit: this.activeGit.autoCommit,
       autoPush: this.activeGit.autoPush,
       ...st,
-      // wip jest ukryty — w UI pokazujemy strumień docelowy, nigdy liquidflow/wip.
+      // wip is hidden — the UI shows the target stream, never liquidflow/wip.
       branch: this.activeGit.targetBranch,
-      // liczba niezatwierdzonych wersji (commity na wip poza strumieniem)
+      // number of uncommitted versions (commits on wip outside the stream)
       ahead,
       _tcfg: tCfg ? !!tCfg.git : false,
     };
@@ -607,7 +607,7 @@ export class Controller extends EventEmitter {
     const restoreFn = () => git.restore(dir, hash, tfmt(this.t.GitRestoreCommit, { hash }));
     const r = this.state.session ? await this.state.session.runExclusive(restoreFn) : await restoreFn();
     logbuf.logOk(logbuf.tmsg('GitVersionRestored', { hash }));
-    // odśwież konflikty po przywróceniu
+    // refresh conflicts after the restore
     if (this.state.session) await this.state.session.refreshMismatches();
     this.emitGit();
     return r;
@@ -632,9 +632,9 @@ export class Controller extends EventEmitter {
     return r;
   }
 
-  // Zatwierdź wersję: zgnieć pracę z wip w jeden czysty commit na strumieniu
-  // docelowym. `target` (opcjonalny) pozwala skierować checkpoint na inną gałąź
-  // niż bieżąca — wtedy ta gałąź staje się nowym strumieniem (zapisywana w configu).
+  // Commit a version: squash the work from wip into a single clean commit on the
+  // target stream. The optional `target` lets the checkpoint go to a branch other
+  // than the current one — that branch then becomes the new stream (saved in the config).
   async gitCheckpoint(message, target) {
     if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
     const dir = this.activeGit.dir;
@@ -647,15 +647,15 @@ export class Controller extends EventEmitter {
     // Flush pending auto-commit first (self-queues via runExclusive).
     await this._doAutoCommit();
 
-    const prevTarget = this.activeGit.targetBranch;       // strumień, na którym stoi wip
-    const into = target || prevTarget;                    // dokąd zatwierdzamy
+    const prevTarget = this.activeGit.targetBranch;       // the stream wip sits on
+    const into = target || prevTarget;                    // where we commit to
 
-    // countCommits jest read-only (git rev-list, nie blokuje indeksu) — bezpieczne poza kolejką.
-    // „ahead" liczymy względem bieżącego strumienia (tam zdywergował wip).
+    // countCommits is read-only (git rev-list, does not lock the index) — safe outside the queue.
+    // "ahead" is counted relative to the current stream (where wip diverged).
     const ahead = await git.countCommits(dir, `${prevTarget}..${WIP_BRANCH}`);
 
     const checkpointFn = async () => {
-      // git.status może odświeżyć indeks — uruchamiamy wewnątrz kolejki.
+      // git.status may refresh the index — run it inside the queue.
       const st = await git.status(dir);
       if (ahead === 0 && !st.dirty) {
         return { nothing: true };
@@ -668,8 +668,8 @@ export class Controller extends EventEmitter {
         }
       }
 
-      // Checkpoint na nową gałąź: utwórz ją od bieżącego strumienia (albo wip,
-      // gdy strumień jeszcze nie istnieje — świeże repo), by squash dał czysty commit.
+      // Checkpoint onto a new branch: create it from the current stream (or wip,
+      // when the stream does not exist yet — a fresh repo) so the squash yields a clean commit.
       const branches = await git.listBranches(dir);
       if (!branches.includes(into)) {
         const base = branches.includes(prevTarget) ? prevTarget : WIP_BRANCH;
@@ -707,7 +707,7 @@ export class Controller extends EventEmitter {
       return this.gitStatus();
     }
 
-    // Utrwal nowy strumień docelowy (gdy checkpoint poszedł na inną gałąź).
+    // Persist the new target stream (when the checkpoint went to a different branch).
     if (into !== prevTarget) this._persistTargetBranch(into);
 
     logbuf.logOk(logbuf.tmsg('GitCheckpointDone', { msg: message || 'Checkpoint' }));
@@ -715,7 +715,7 @@ export class Controller extends EventEmitter {
     return this.gitStatus();
   }
 
-  // Zapisz wybrany strumień docelowy w stanie i configu szablonu.
+  // Save the chosen target stream in the state and the template config.
   _persistTargetBranch(branch) {
     this.activeGit.targetBranch = branch;
     const tCfg = this._currentTemplateConfig();
@@ -772,10 +772,10 @@ export class Controller extends EventEmitter {
     return this.gitStatus();
   }
 
-  // Przełącz STRUMIEŃ docelowy (nie surowy checkout). Ustawia targetBranch=name
-  // i przepina ukryty wip na tę gałąź, więc kolejne auto-commity i checkpointy
-  // budują na nowym strumieniu. Gdy na bieżącym strumieniu wiszą niezatwierdzone
-  // wersje (wip ahead), wymaga `discard` (inaczej rzuca) — by nie zgubić ich po cichu.
+  // Switch the target STREAM (not a raw checkout). Sets targetBranch=name and
+  // re-points the hidden wip to that branch, so subsequent auto-commits and
+  // checkpoints build on the new stream. When the current stream has uncommitted
+  // versions pending (wip ahead), it requires `discard` (otherwise throws) — so they are not lost silently.
   async gitSwitchBranch(name, { discard = false } = {}) {
     if (!this.activeGit) throw new Error(this.t.NoActiveTemplate);
     const dir = this.activeGit.dir;
@@ -786,8 +786,8 @@ export class Controller extends EventEmitter {
     }
 
     const switchFn = async () => {
-      // przepnij wip na nowy strumień (porzuca niezatwierdzone wersje, jeśli były).
-      // Najpierw zejdź z wip — gita nie da się force-update na aktualnie wybranej gałęzi.
+      // re-point wip to the new stream (discards uncommitted versions, if any).
+      // First leave wip — git cannot force-update the currently checked-out branch.
       await git.switchBranch(dir, name);
       await git.forceBranch(dir, WIP_BRANCH, name);
       await git.switchBranch(dir, WIP_BRANCH);
@@ -804,7 +804,7 @@ export class Controller extends EventEmitter {
 
   async gitListBranches() {
     if (!this.activeGit) return [];
-    // wip jest ukryty — nigdy nie pokazujemy go w wyborze gałęzi
+    // wip is hidden — never show it in the branch picker
     return (await git.listBranches(this.activeGit.dir)).filter((b) => b !== WIP_BRANCH);
   }
 
@@ -863,8 +863,8 @@ export class Controller extends EventEmitter {
     const s = this.state.session;
     return s ? store.templateDir(s.shopName, s.templateId) : null;
   }
-  // Ścieżka lokalna pliku (do otwarcia w edytorze/IDE) — plik może nie istnieć
-  // na dysku (np. konflikt LocalMissing), wtedy IDE otworzy ją jako nowy plik.
+  // Local path of a file (to open in an editor/IDE) — the file may not exist on
+  // disk (e.g. a LocalMissing conflict), in which case the IDE opens it as a new file.
   localFilePath(file) {
     const s = this.state.session;
     return s ? store.localFilePath(s.shopName, s.templateId, file.Mode, file.Name) : null;

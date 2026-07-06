@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import { ART } from '../banner.js';
 
-// HSL -> hex (algorytm referencyjny). h: 0-360, s/l: 0-100.
+// HSL -> hex (reference algorithm). h: 0-360, s/l: 0-100.
 function hslToHex(h, s, l) {
   s /= 100; l /= 100;
   const k = (n) => (n + h / 30) % 12;
@@ -12,23 +12,23 @@ function hslToHex(h, s, l) {
   return '#' + toHex(f(0)) + toHex(f(8)) + toHex(f(4));
 }
 
-// Barwa znaku z jego kąta wokół środka — gradient płynie wzdłuż spirali:
-// start na dole-środku (czerwień), obrót przez lewą, górę, prawą i koniec
-// po prawej-dole (fiolet). Znaki w terminalu są ~2x wyższe niż szersze,
-// więc oś Y skalujemy, żeby kąt był geometrycznie poprawny.
+// A character's hue from its angle around the center — the gradient flows along a
+// spiral: starting at the bottom-center (red), rotating through left, top, right and
+// ending at the bottom-right (violet). Terminal characters are ~2x taller than wide,
+// so we scale the Y axis to keep the angle geometrically correct.
 function hueFor(x, y, cx, cy) {
   const dx = x - cx;
   const dy = (y - cy) * 2;
-  let a = Math.atan2(dy, dx) * 180 / Math.PI; // -180..180, dół = +90°
+  let a = Math.atan2(dy, dx) * 180 / Math.PI; // -180..180, bottom = +90°
   a = (a + 360) % 360;                          // 0..360
-  // Szew (t=0) przesunięty z pionu w prawo do przerwy między ogonami spirali,
-  // żeby czubek startu był w całości granatowy (a nie pół granat/pół magenta).
-  const t = (a - 55 + 360) % 360;               // 0 = przerwa, rośnie przez lewą/górę/prawą
-  // Start = granat ~245°, dalej przez błękit/zieleń/żółć do czerwieni na końcu.
+  // The seam (t=0) is shifted from vertical to the right, into the gap between the
+  // spiral's tails, so the starting tip is entirely navy (not half navy/half magenta).
+  const t = (a - 55 + 360) % 360;               // 0 = the gap, increases through left/top/right
+  // Start = navy ~245°, then through cyan/green/yellow to red at the end.
   return ((245 - (t / 360) * 300) % 360 + 360) % 360;
 }
 
-// Banner: blokowy art z proceduralnym gradientem tęczowym (kolor per znak).
+// Banner: block art with a procedural rainbow gradient (per-character color).
 export default function Banner() {
   const width = Math.max(...ART.map((l) => l.length));
   const height = ART.length;

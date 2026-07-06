@@ -28,7 +28,7 @@ export default function ShopForm({ editing }) {
       await refreshShops();
       setCurrentTemplate(null);
       navigate('templates');
-    } catch { /* toast już pokazany */ }
+    } catch { /* the toast is already shown */ }
     finally { setBusy(false); }
   };
 

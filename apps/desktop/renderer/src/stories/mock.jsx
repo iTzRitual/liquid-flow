@@ -1,10 +1,10 @@
-// Mockowy kontekst apki dla Storybooka (design gallery).
+// A mock app context for Storybook (the design gallery).
 //
-// Komponenty desktopu biorą WSZYSTKO (t, api, dane, handlery) przez `useApp()`
-// z `AppCtx`. Tu wstrzykujemy atrapę tego kontekstu, dzięki czemu można
-// wyrenderować pojedynczy ekran w izolacji, bez Electrona i bez łączenia ze
-// sklepem. `t` bierzemy z prawdziwego źródła (deep-import czystego pliku
-// translations.js — bez modułów `node:`), żeby teksty PL/EN były realne.
+// Desktop components get EVERYTHING (t, api, data, handlers) via `useApp()` from
+// `AppCtx`. Here we inject a stub of that context, so a single screen can be
+// rendered in isolation, without Electron and without connecting to a shop. We
+// take `t` from a real source (a deep-import of the pure translations.js file —
+// without `node:` modules), so the PL/EN texts are genuine.
 import React from 'react';
 import { toast } from 'sonner';
 import { AppCtx } from '../App.jsx';
@@ -12,7 +12,7 @@ import { translationsFor, LANGUAGES } from '@liquidflow/core/translations.js';
 
 const t = translationsFor('pl');
 
-// Atrapa mostka IPC — każda metoda to async no-op (loguje wywołanie do konsoli).
+// A stub of the IPC bridge — every method is an async no-op (logs the call to the console).
 const api = new Proxy(
   {},
   {
@@ -26,7 +26,7 @@ const api = new Proxy(
   },
 );
 
-// ————— Fixtures (przykładowe dane do ekranów) —————
+// ————— Fixtures (sample data for screens) —————
 
 export const shops = [
   { Id: 'demo-1', Name: 'Sklep Demo', Url: 'https://demo.comarch.pl/sklep', SavePassword: true },
@@ -36,8 +36,8 @@ export const shops = [
 export const currentShop = shops[0];
 export const currentTemplate = { Id: '42', Name: 'Topaz — Główny' };
 
-// Uwaga: `File` to OBIEKT { Mode, Name } (nie string) — komponenty kluczują i
-// wyświetlają wiersze jako `Mode/Name`.
+// Note: `File` is an OBJECT { Mode, Name } (not a string) — components key and
+// display rows as `Mode/Name`.
 export const mismatches = [
   { File: { Mode: '0', Name: 'templates/index.liquid' }, Type: 'Timestamp', FileTs: 1751000000000, LocalTs: 1751700000000, RemoteTs: 1751600000000 },
   { File: { Mode: '0', Name: 'snippets/header.liquid' }, Type: 'LocalMissing', FileTs: 0, LocalTs: 0, RemoteTs: 1751500000000 },
@@ -69,7 +69,7 @@ export const log = [
 
 export const languages = LANGUAGES;
 
-// Bazowy kontekst; `overrides` nadpisuje pojedyncze pola per-story.
+// The base context; `overrides` overrides individual fields per story.
 export function mockCtx(overrides = {}) {
   return {
     t,
@@ -100,7 +100,7 @@ export function mockCtx(overrides = {}) {
   };
 }
 
-// Owija dowolny ekran w mockowy kontekst. `ctx` = nadpisania fixtures.
+// Wraps any screen in the mock context. `ctx` = fixture overrides.
 export function MockApp({ ctx = {}, children }) {
   return <AppCtx.Provider value={mockCtx(ctx)}>{children}</AppCtx.Provider>;
 }

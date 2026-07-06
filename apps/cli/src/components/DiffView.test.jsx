@@ -98,20 +98,20 @@ describe('DiffView — nawigacja', () => {
   });
 
   it('↑/↓ przewija widoczne linie', async () => {
-    // 20 ZMIENIONych linii (add) — wszystkie zachowane (bez zwijania), maxRows=5
+    // 20 CHANGED lines (add) — all preserved (no folding), maxRows=5
     const diff = Array.from({ length: 20 }, (_, i) => ({ type: 'add', line: `linia ${i + 1}` }));
     const api = render(
       <DiffView title="long.liquid" preview={textPreview(diff)} onCancel={vi.fn()} maxRows={5} t={t} />
     );
-    // przy scroll=0 powinny być widoczne pierwsze linie
+    // at scroll=0 the first lines should be visible
     expect(frame(api)).toContain('linia 1');
-    // przewiń w dół — pojawią się kolejne linie
+    // scroll down — further lines appear
     await press(api.stdin, keys.down);
     expect(frame(api)).toContain('linia 2');
   });
 
   it('numer linii w rynnie + zwijanie długiego kontekstu', () => {
-    // 1 zmiana, potem dużo kontekstu → fold „N niezmienionych wierszy"
+    // 1 change, then a lot of context → fold "N unchanged rows"
     const diff = [{ type: 'add', line: 'zmieniona' }];
     for (let i = 0; i < 10; i++) diff.push({ type: 'ctx', line: `ctx ${i}` });
     const api = render(
@@ -119,14 +119,14 @@ describe('DiffView — nawigacja', () => {
     );
     const f = frame(api);
     expect(f).toContain('+ zmieniona');
-    expect(f).toMatch(/1 \+ zmieniona/); // numer linii w rynnie
-    expect(f).toContain('niezmienionych wierszy'); // fold widoczny
+    expect(f).toMatch(/1 \+ zmieniona/); // the line number in the gutter
+    expect(f).toContain('niezmienionych wierszy'); // fold visible
   });
 
   it('Tab rozwija zwinięty kontekst i pokazuje ukryte linie', async () => {
-    // 1 zmiana, potem 10 linii kontekstu → domyślnie fold; Tab pokazuje wszystkie.
-    // `expanded` jest sterowane przez rodzica — harness odwzorowuje App.jsx (Tab
-    // przełącza stan i re-renderuje z nowym `expanded`).
+    // 1 change, then 10 context lines → folded by default; Tab shows everything.
+    // `expanded` is driven by the parent — the harness mirrors App.jsx (Tab
+    // toggles the state and re-renders with the new `expanded`).
     const diff = [{ type: 'add', line: 'zmieniona' }];
     for (let i = 0; i < 10; i++) diff.push({ type: 'ctx', line: `ctx ${i}` });
     function Harness() {
@@ -137,12 +137,12 @@ describe('DiffView — nawigacja', () => {
       );
     }
     const api = render(<Harness />);
-    // domyślnie: podpowiedź Tab + fold widoczny, ukryte linie schowane
+    // by default: the Tab hint + fold visible, hidden lines are hidden
     let f = frame(api);
     expect(f).toContain(t.DiffShowContext);
     expect(f).toContain('niezmienionych wierszy');
     expect(f).not.toContain('ctx 5');
-    // Tab → pełny kontekst: ukryta linia odsłonięta, brak fold, podpowiedź zwinięcia
+    // Tab → full context: the hidden line is revealed, no fold, the collapse hint
     await press(api.stdin, keys.tab);
     f = frame(api);
     expect(f).toContain('ctx 5');
@@ -159,15 +159,15 @@ describe('DiffView — nawigacja', () => {
       <DiffView title="nested.liquid" preview={textPreview(diff)} onCancel={vi.fn()} maxRows={8} t={t} />
     );
     const f = frame(api);
-    expect(f).not.toContain('\t'); // żadnych surowych tabów
-    // wspólne wcięcie odcięte → treść lgnie do prefixu (bez 6 spacji wiodących)
+    expect(f).not.toContain('\t'); // no raw tabs
+    // common indent stripped → content sits right after the prefix (no 6 leading spaces)
     expect(f).toContain('- <div>old</div>');
     expect(f).toContain('+ <div>new</div>');
   });
 
   it('usuwa znaki sterujące (CR z plików CRLF) — render się nie rozsypuje', () => {
-    // linie z końcowym \r — w terminalu \r przesuwa kursor na początek wiersza i
-    // rozbija kadr (był to główny bug). Sanityzacja musi je usunąć.
+    // lines with a trailing \r — in the terminal \r moves the cursor to the start
+    // of the row and breaks the frame (this was the main bug). Sanitization must remove them.
     const diff = [
       { type: 'del', line: 'stara\r' },
       { type: 'add', line: 'nowa\r' },
@@ -175,8 +175,8 @@ describe('DiffView — nawigacja', () => {
     const raw = render(
       <DiffView title="crlf.html" preview={textPreview(diff)} onCancel={vi.fn()} maxRows={8} t={t} />
     ).lastFrame();
-    expect(raw).not.toContain('\r'); // żaden carriage return nie przeciekł do renderu
-    expect(raw).not.toContain('\x07'); // ani inny znak sterujący z treści
+    expect(raw).not.toContain('\r'); // no carriage return leaked into the render
+    expect(raw).not.toContain('\x07'); // nor any other control character from the content
     const f = frame({ lastFrame: () => raw });
     expect(f).toContain('- stara');
     expect(f).toContain('+ nowa');

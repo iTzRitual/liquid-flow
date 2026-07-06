@@ -5,8 +5,8 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
-// Interpolacja tokenów {key} w stringu tłumaczenia (odpowiednik tfmt z core, ale
-// w rendererze bez importu core).
+// Interpolates {key} tokens in a translation string (the equivalent of core's
+// tfmt, but without importing core in the renderer).
 export function fmt(str, params) {
   if (!str || !params) return str || '';
   return str.replace(/\{(\w+)\}/g, (_, k) => (params[k] !== undefined ? params[k] : `{${k}}`));

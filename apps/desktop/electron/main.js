@@ -1,5 +1,5 @@
-// Proces główny Electrona. Ustawia katalog danych, tworzy okno + ikonę w tray,
-// mostkuje IPC do kontrolera i przekazuje zdarzenia do interfejsu.
+// The Electron main process. Sets up the data directory, creates the window +
+// tray icon, bridges IPC to the controller, and forwards events to the UI.
 
 import { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, session, dialog } from 'electron';
 import fsPromises from 'node:fs/promises';
@@ -10,12 +10,12 @@ import { defaultAppDir } from '@liquidflow/core';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 
-// Katalog danych aplikacji (zanim załadujemy backend, który go odczytuje).
-// Wszystkie trzy apki muszą wskazywać ten sam katalog danych, żeby dzielić
-// jednego demona. app.getPath('userData') zależy od nazwy aplikacji (inne w dev
-// i w buildzie) i NIGDY nie pokrywa się z domyślnym katalogiem CLI/MCP — dlatego
-// przypinamy kanoniczny defaultAppDir() z rdzenia. Jawny LIQUID_FLOW_HOME wciąż
-// ma pierwszeństwo (testy/override).
+// The application's data directory (before loading the backend, which reads it).
+// All three apps must point at the same data directory to share a single daemon.
+// app.getPath('userData') depends on the application name (different in dev vs.
+// a build) and NEVER matches the CLI/MCP default directory — so we pin the
+// canonical defaultAppDir() from the core. An explicit LIQUID_FLOW_HOME still
+// takes precedence (tests/override).
 process.env.LIQUID_FLOW_HOME = process.env.LIQUID_FLOW_HOME || defaultAppDir();
 
 const DEV = process.env.LIQUID_DEV === '1';
@@ -29,7 +29,7 @@ async function getController() {
   if (!controller) {
     const { connectController } = await import('@liquidflow/core');
     controller = await connectController({ insecureTLS: process.env.LIQUID_FLOW_INSECURE === '1' });
-    // przekaż zdarzenia kontrolera do renderera
+    // forward controller events to the renderer
     for (const type of ['log', 'log:reset', 'mismatches', 'state', 'git', 'progress']) {
       controller.on(type, (payload) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
@@ -66,7 +66,7 @@ function createWindow() {
     mainWindow.loadFile(path.join(ROOT, 'dist', 'renderer', 'index.html'));
   }
 
-  // linki zewnętrzne otwieraj w przeglądarce systemowej — tylko http/https
+  // open external links in the system browser — http/https only
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//.test(url)) shell.openExternal(url);
     return { action: 'deny' };
@@ -89,7 +89,7 @@ function createTray(t = {}) {
     tray.setContextMenu(menu);
     tray.on('click', () => { if (!mainWindow) createWindow(); else mainWindow.show(); });
   } catch {
-    /* tray opcjonalny */
+    /* the tray is optional */
   }
 }
 
@@ -174,7 +174,7 @@ function registerIpc(ctrl) {
 }
 
 app.whenReady().then(async () => {
-  // Ścisła polityka CSP w wersji produkcyjnej (renderer rozmawia tylko przez IPC).
+  // A strict CSP policy in production (the renderer only talks over IPC).
   if (!DEV) {
     session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
       cb({
@@ -199,9 +199,9 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-  // zostań w tray; pełne zamknięcie przez menu tray lub Cmd+Q
+  // stay in the tray; a full quit happens via the tray menu or Cmd+Q
   if (process.platform !== 'darwin') {
-    // na Windows/Linux zamykamy razem z oknem
+    // on Windows/Linux we quit together with the window
   }
 });
 

@@ -6,6 +6,14 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.155] — 2026-07-06
+
+### Changed
+- Translated every source code comment across the monorepo (core, CLI, desktop, MCP, tests) from Polish to professional, descriptive English. User-facing UI text and translation tables (`translations.js`) are unaffected — only `//`/`/* */` comments changed.
+- Added a mandatory code-comment rule to CLAUDE.md: comments must always be in English, professional and descriptive (explaining why, not what), with no traces of the editing process or chat conversation.
+
+---
+
 ## [0.9.154] — 2026-07-05
 
 ### Changed

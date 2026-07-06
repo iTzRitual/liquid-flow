@@ -2,8 +2,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import fs from 'node:fs';
 import { startCli, makeHome, keys, delay } from '../../../../test/helpers/cliPty.js';
 
-// Czarna skrzynka: odpalamy PRAWDZIWY bin/liquidflow.js pod pseudo‑TTY. Bez
-// żadnego sklepu — przy starcie CLI auto‑otwiera ekran „Połącz ze sklepem".
+// Black box: we launch the REAL bin/liquidflow.js under a pseudo-TTY. Without any
+// shop configured — on startup the CLI auto-opens the "Connect to shop" screen.
 let cli, home;
 afterEach(async () => {
   if (cli) { cli.kill(); cli = null; }
@@ -14,7 +14,7 @@ describe('CLI e2e — boot i wyjście', () => {
   it('startuje i pokazuje ekran połączenia (auto‑otwarty gdy niepołączony)', async () => {
     home = makeHome();
     cli = await startCli({ home });
-    // tytuł ekranu ConnectList po polsku (domyślny język)
+    // the ConnectList screen title in Polish (the default language)
     await cli.waitFor('Połącz ze sklepem');
     expect(cli.output).toContain('Połącz ze sklepem');
   });
@@ -31,10 +31,10 @@ describe('CLI e2e — boot i wyjście', () => {
     home = makeHome();
     cli = await startCli({ home });
     await cli.waitFor('Połącz ze sklepem');
-    // '/' z ekranu ConnectList → onSlash → wejście do inputu z otwartą paletą
+    // '/' from the ConnectList screen → onSlash → enter the input with the palette open
     cli.write(keys.slash);
     await delay(150);
-    cli.write('set'); // zawęź do /settings
+    cli.write('set'); // narrow down to /settings
     await cli.waitFor('/settings');
     expect(cli.output).toContain('/settings');
     cli.kill();

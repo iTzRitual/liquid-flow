@@ -66,7 +66,7 @@ describe('ConflictList — operacje seryjne (bulk)', () => {
     const api = render(
       <ConflictList title="K" files={files()} bulk={bulk} onAction={onAction} onBulk={onBulk} maxRows={20} t={t} />
     );
-    // 2 karty → trzeci ↓ ląduje na wierszu bulk
+    // 2 cards → the third ↓ lands on the bulk row
     await press(api.stdin, keys.down, keys.down, keys.enter);
     expect(onBulk).toHaveBeenCalledWith('downloadAll');
     expect(onAction).not.toHaveBeenCalled();
@@ -74,10 +74,9 @@ describe('ConflictList — operacje seryjne (bulk)', () => {
 });
 
 describe('ConflictList — stała wysokość przy nawigacji', () => {
-  // Regresja: ekran konfliktów (przyklejony do dołu, log nad nim) nie może
-  // zmieniać wysokości przy ↑/↓ — inaczej log „skacze". Lista dłuższa niż budżet
-  // (8 plików, maxRows=10 → okienkowanie); wysokość MUSI być identyczna na każdej
-  // pozycji kursora.
+  // Regression: the conflicts screen (stuck to the bottom, log above it) must not
+  // change height on ↑/↓ — otherwise the log "jumps". A list longer than the budget
+  // (8 files, maxRows=10 → windowing); the height MUST be identical at every cursor position.
   it('renderuje identyczną liczbę wierszy na każdej pozycji kursora', async () => {
     const many = Array.from({ length: 8 }, (_, i) => ({
       name: `file${i}.liquid`, meta: 'lokalny nowszy', note: 'lokalny nowszy', initial: 0,
@@ -97,8 +96,8 @@ describe('ConflictList — stała wysokość przy nawigacji', () => {
 });
 
 describe('ConflictList — niskie okno (degradacja kart)', () => {
-  // Regresja: przy niskim oknie karta degraduje wysokość, ale wiersz
-  // nazwy+przycisków MUSI zostać widoczny (kiedyś znikał — kadr się przepełniał).
+  // Regression: on a low window the card degrades in height, but the
+  // name+buttons row MUST remain visible (it used to disappear — the frame overflowed).
   const many = (n) => Array.from({ length: n }, (_, i) => ({
     name: `file${i}.liquid`, meta: 'lokalny nowszy', note: 'lokalny nowszy', initial: 0,
     options: [{ label: 'Pobierz', value: 'download' }, { label: 'Wyślij', value: 'upload' }],
@@ -111,18 +110,18 @@ describe('ConflictList — niskie okno (degradacja kart)', () => {
         <ConflictList title="K" files={many(8)} bulk={bulk} onAction={() => {}} onBulk={() => {}} maxRows={maxRows} t={t} />
       );
       const f = frame(api);
-      // Nazwa pliku pod kursorem (pierwszy, file0) jest widoczna.
+      // The file name under the cursor (the first, file0) is visible.
       expect(f).toContain('file0.liquid');
-      // Brak przepełnienia: budżet boxa = maxRows + 4 (chrome: ramka 2 + tytuł 1 +
-      // pomoc 1) + stopka bulk (1). Kadr nie może go przekroczyć.
+      // No overflow: the box budget = maxRows + 4 (chrome: frame 2 + title 1 +
+      // help 1) + bulk footer (1). The frame must not exceed it.
       expect(f.split('\n').length).toBeLessThanOrEqual(maxRows + 4 + 1);
     });
   }
 });
 
 describe('ConflictList — symetria wskaźników „więcej"', () => {
-  // Regresja: górny i dolny wskaźnik „↑/↓ więcej" muszą lgnąć do treści tak samo
-  // (kiedyś końcowa pusta linia karty dawała dolnemu wskaźnikowi dodatkowy odstęp).
+  // Regression: the top and bottom "↑/↓ more" indicators must sit against the
+  // content the same way (a trailing blank card line used to give the bottom indicator extra spacing).
   it('dolny wskaźnik nie ma pustej linii nad sobą (odstęp jest MIĘDZY kartami)', () => {
     const many = Array.from({ length: 8 }, (_, i) => ({
       name: `file${i}.liquid`, meta: 'meta', note: 'note', initial: 0,
@@ -134,7 +133,7 @@ describe('ConflictList — symetria wskaźników „więcej"', () => {
     const lines = frame(api).split('\n');
     const belowIdx = lines.findIndex((l) => /↓\s*\d+/.test(l));
     expect(belowIdx).toBeGreaterThan(0);
-    // Wiersz tuż nad dolnym wskaźnikiem to treść karty (note/meta), NIE pusta linia.
+    // The row right above the bottom indicator is card content (note/meta), NOT a blank line.
     expect(lines[belowIdx - 1].trim()).not.toBe('');
   });
 });

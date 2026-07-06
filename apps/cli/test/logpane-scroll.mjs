@@ -1,5 +1,5 @@
-// Test panelu logu ekranu głównego: zawijanie (/wrap), przewijanie (scroll) i
-// pilnowanie budżetu wierszy. Uruchom: node apps/cli/test/logpane-scroll.mjs
+// Tests the main screen's log panel: wrapping (/wrap), scrolling and the row
+// budget. Run: node apps/cli/test/logpane-scroll.mjs
 import { register } from 'tsx/esm/api';
 register();
 const React = (await import('react')).default;
@@ -18,7 +18,7 @@ function fakeStdout(columns, rows = 40) {
 }
 
 const now = Date.now();
-// Mieszanka: 2 wpisy historyczne (poprzednia sesja) + separator + 9 live.
+// A mix: 2 historic entries (previous session) + a separator + 9 live.
 const log = [
   { Id: 1, TS: now, Color: '#666', Text: 'Stary wpis z poprzedniej sesji', historic: true },
   { Id: 2, TS: now, Color: '#2A2', Text: 'Wysłano plik (historia)', historic: true },
@@ -49,7 +49,7 @@ async function show(title, cols, wrap, scroll) {
   if (lines.length > ROWS) console.log(`!!! PRZEKROCZONO BUDŻET (${lines.length} > ${ROWS})`);
 }
 
-// maxScroll jak w App.jsx (+1 na wskaźnik „↓")
+// maxScroll matching App.jsx (+1 for the "↓" indicator)
 const maxScroll = (wrap, cols) => {
   const n = buildVlines(log, wrap, cols).length;
   return n > ROWS ? n - ROWS + 1 : 0;

@@ -1,17 +1,17 @@
-// Cienka warstwa nad window.api (mostek IPC z preload).
+// A thin layer over window.api (the IPC bridge from preload).
 import { toast } from 'sonner';
 
 const api = window.api;
 
-// Podstawienie tokenów {nazwa} — lokalny odpowiednik core.tfmt. Renderer NIE
-// importuje @liquidflow/core (ten ciągnie moduły `node:` → w przeglądarce graf
-// modułów się wywala i okno jest czarne). Dlatego mała kopia formattera tutaj.
+// Substitutes {name} tokens — a local equivalent of core.tfmt. The renderer does
+// NOT import @liquidflow/core (it pulls in `node:` modules → the module graph
+// blows up in the browser and the window goes black). Hence this small formatter copy.
 export function fmt(str, params = {}) {
   return String(str == null ? '' : str).replace(/\{(\w+)\}/g, (m, k) =>
     Object.prototype.hasOwnProperty.call(params, k) ? String(params[k]) : m);
 }
 
-// Wywołanie z automatycznym toastem błędu.
+// A call with an automatic error toast.
 export async function call(fn, { errorToast = true } = {}) {
   try {
     return await fn();

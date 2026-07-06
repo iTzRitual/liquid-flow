@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Nagłówek: proces-demon trzymający JEDEN Controller współdzielony przez CLI/desktop/MCP.
+// Daemon process holding a SINGLE Controller shared by the CLI/desktop/MCP.
 import { Controller } from "../src/controller.js";
 import { serve } from "../src/daemon/server.js";
 import * as store from "../src/store.js";

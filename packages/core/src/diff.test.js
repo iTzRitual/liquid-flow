@@ -50,14 +50,14 @@ describe('lineDiff', () => {
   });
 
   it('normalizuje końce linii CRLF/CR (bez końcowego \\r w liniach)', () => {
-    // Pliki szablonów Comarch bywają z zakończeniami Windows (\r\n) — \r nie może
-    // przeciekać do treści linii (w terminalu przesuwa kursor i rozbija render).
+    // Comarch template files sometimes have Windows endings (\r\n) — \r must not
+    // leak into the line content (in the terminal it moves the cursor and breaks rendering).
     const crlf = lineDiff('a\r\nb\r\nc', 'a\r\nB\r\nc');
     expect(crlf.every((l) => !l.line.includes('\r'))).toBe(true);
     expect(crlf.find((l) => l.type === 'del')?.line).toBe('b');
     expect(crlf.find((l) => l.type === 'add')?.line).toBe('B');
 
-    // identyczna treść różniąca się TYLKO zakończeniami → brak zmian
+    // identical content differing ONLY in line endings → no changes
     const sameContent = lineDiff('x\r\ny\r\nz', 'x\ny\nz');
     expect(sameContent.every((l) => l.type === 'ctx')).toBe(true);
   });
@@ -104,11 +104,11 @@ describe('buildDiffRows', () => {
   });
 
   it('zwija długie ciągi niezmienionych linii poza kontekstem w fold', () => {
-    // 1 zmiana na początku, potem 10 linii kontekstu → ogon zwinięty
+    // 1 change at the start, then 10 context lines → the tail is folded
     const diff = [{ type: 'add', line: 'new' }];
     for (let i = 0; i < 10; i++) diff.push({ type: 'ctx', line: `c${i}` });
     const rows = buildDiffRows(diff, { context: 3 });
-    // add + 3 linie kontekstu + 1 fold (pozostałe 7)
+    // add + 3 context lines + 1 fold (the remaining 7)
     expect(rows.filter((r) => r.type === 'add')).toHaveLength(1);
     expect(rows.filter((r) => r.type === 'ctx')).toHaveLength(3);
     const fold = rows.find((r) => r.type === 'fold');
@@ -133,7 +133,7 @@ describe('buildDiffRows', () => {
   });
 
   it('pojedyncza luka (1 linia) nie jest zwijana', () => {
-    // dwie zmiany odległe o dokładnie 1 linię kontekstu poza zasięgiem context=0
+    // two changes exactly 1 context line apart, outside the reach of context=0
     const diff = [
       { type: 'add', line: 'a' },
       { type: 'ctx', line: 'gap' },
@@ -151,13 +151,13 @@ describe('buildDiffRows', () => {
   });
 
   it('fold:false → wszystkie wiersze z numerami, bez zwijania', () => {
-    // zmiana + długi ogon kontekstu, który przy domyślnym fold zwinąłby się
+    // a change + a long context tail that would fold under the default fold mode
     const diff = [{ type: 'add', line: 'new' }];
     for (let i = 0; i < 5; i++) diff.push({ type: 'ctx', line: `c${i}` });
     const rows = buildDiffRows(diff, { fold: false });
     expect(rows.filter((r) => r.type === 'fold')).toHaveLength(0);
-    expect(rows).toHaveLength(diff.length); // jeden wiersz na linię wejścia
-    // numery linii nadal przypisane
+    expect(rows).toHaveLength(diff.length); // one row per input line
+    // line numbers are still assigned
     expect(rows[0]).toEqual({ type: 'add', line: 'new', aLn: null, bLn: 1 });
     expect(rows.at(-1)).toEqual({ type: 'ctx', line: 'c4', aLn: 5, bLn: 6 });
   });

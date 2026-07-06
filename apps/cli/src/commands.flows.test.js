@@ -8,8 +8,8 @@ import { buildCommands } from './commands.js';
 const t = translationsFor('pl');
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
-// Elastyczny ctx: przechwytuje WSZYSTKIE otwarcia (pickery/formularze/connect/
-// conflicts) do tablic, a helpery wykonawcze (safe/withLoading) odpalają od razu.
+// A flexible ctx: captures ALL opens (pickers/forms/connect/conflicts) into
+// arrays, while the execution helpers (safe/withLoading) fire immediately.
 function makeCtx(overrides = {}) {
   const cap = { pickers: [], forms: [], connect: null, conflicts: null, diff: null, checklists: [] };
   const { ctrl: ctrlOverrides, ...otherOverrides } = overrides;
@@ -204,7 +204,7 @@ describe('/git — menu repo vs brak repo', () => {
     cap.pickers[0].onSelect({ value: 'checkpoint' });
     await tick();
 
-    // najpierw wybór strumienia docelowego (gałęzie + nowa gałąź)
+    // first choose the target stream (branches + new branch)
     const targetPicker = cap.pickers[cap.pickers.length - 1];
     expect(targetPicker.items.map(i => i.value)).toEqual(['main', 'release', '__new__']);
 
@@ -233,12 +233,12 @@ describe('/git — menu repo vs brak repo', () => {
     cap.pickers[cap.pickers.length - 1].onSelect({ value: '__new__' });
     await tick();
 
-    // form nazwy nowej gałęzi
+    // the new-branch-name form
     expect(cap.forms[cap.forms.length - 1].fields[0].name).toBe('name');
     cap.forms[cap.forms.length - 1].onSubmit({ name: 'feature-x' });
     await tick();
 
-    // form message
+    // the message form
     cap.forms[cap.forms.length - 1].onSubmit({ message: 'Z2' });
     await tick();
 
@@ -326,7 +326,7 @@ describe('/conflicts — akcja usuwająca wymaga potwierdzenia (bezpieczeństwo)
     const file = cap.conflicts.files[0];
 
     cap.conflicts.onAction('removeLocal', file);
-    // potwierdzenie otwarte, komenda jeszcze NIE wykonana
+    // confirmation open, the command has NOT run yet
     expect(cap.pickers.some((p) => p.items?.some((i) => i.value === true))).toBe(true);
     expect(ctx.ctrl.runCommand).not.toHaveBeenCalled();
   });
@@ -343,10 +343,10 @@ describe('/conflicts — akcja usuwająca wymaga potwierdzenia (bezpieczeństwo)
   });
 });
 
-// Regresja: `withLoading` NIE wraca sam do inputu przy sukcesie — trzyma kadr,
-// aż `fn` otworzy kolejny widok. Ścieżki export/import, które kończą się bez
-// otwarcia widoku (sukces zapisu, błąd odczytu, brak zaznaczenia) MUSZĄ jawnie
-// wołać backToInput(), inaczej loader kręci się w nieskończoność (był to bug).
+// Regression: `withLoading` does NOT return to the input on success by itself —
+// it holds the frame until `fn` opens the next view. Export/import paths that end
+// without opening a view (save success, read error, no selection) MUST explicitly
+// call backToInput(), otherwise the loader spins forever (this was a bug).
 describe('udostępnianie sklepów (export/import) — powrót do inputu', () => {
   it('export: po zapisie pliku wraca do inputu', async () => {
     const exportShops = vi.fn(async () => ({ json: '{"ok":1}', count: 1, encrypted: false }));
@@ -354,7 +354,7 @@ describe('udostępnianie sklepów (export/import) — powrót do inputu', () => 
     run(ctx, '/connect');
     cap.connect.onAction('export');
     expect(cap.checklists).toHaveLength(1);
-    cap.checklists[0].onConfirm([{ Name: '1', action: 'add' }]); // zaznaczony sklep Id=1
+    cap.checklists[0].onConfirm([{ Name: '1', action: 'add' }]); // the selected shop has Id=1
     const form = cap.forms.at(-1);
     const tmp = path.join(os.tmpdir(), `lf-export-test-${Date.now()}.lfshops`);
     await form.onSubmit({ Passphrase: '', Path: tmp });
@@ -369,7 +369,7 @@ describe('udostępnianie sklepów (export/import) — powrót do inputu', () => 
     const { ctx, cap } = makeCtx();
     run(ctx, '/connect');
     cap.connect.onAction('export');
-    cap.checklists[0].onConfirm([]); // nic nie zaznaczone
+    cap.checklists[0].onConfirm([]); // nothing selected
     expect(cap.forms).toHaveLength(0);
     expect(ctx.backToInput).toHaveBeenCalled();
   });
@@ -395,7 +395,7 @@ describe('udostępnianie sklepów (export/import) — powrót do inputu', () => 
     const form = cap.forms.at(-1);
     await form.onSubmit({ Path: tmp, Passphrase: '' });
     await tick();
-    expect(cap.checklists).toHaveLength(1); // preview otworzył listę wyboru
+    expect(cap.checklists).toHaveLength(1); // the preview opened the selection list
     cap.checklists.at(-1).onConfirm([{ Name: 'Nowy', action: 'add' }]);
     await tick();
     expect(importShops).toHaveBeenCalled();

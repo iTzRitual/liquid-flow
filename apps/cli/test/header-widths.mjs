@@ -1,7 +1,7 @@
-// Test renderu nagłówka na różnych szerokościach terminala.
-// Uruchom: node apps/cli/test/header-widths.mjs   (z katalogu repo)
-// Renderuje <Header/> do sztucznego stdout o zadanej liczbie kolumn i wypisuje
-// klatkę z usuniętymi kodami ANSI — pozwala sprawdzić zawijanie/wyrównanie bez TTY.
+// Renders the header at various terminal widths.
+// Run: node apps/cli/test/header-widths.mjs   (from the repo root)
+// Renders <Header/> to a fake stdout with a given column count and prints the
+// frame with ANSI codes stripped — lets you check wrapping/alignment without a TTY.
 import { register } from 'tsx/esm/api';
 register();
 const React = (await import('react')).default;
@@ -43,7 +43,7 @@ for (const w of [120, 90, 76, 60, 50, 40, 30]) {
   const ruler = '─'.repeat(w);
   console.log(`\n### szerokość = ${w} ###`);
   console.log(ruler);
-  // przytnij/pokaż linie z numerem, by widzieć ewentualne zawijanie i wyrównanie
+  // trim/show numbered lines, to spot any wrapping or misalignment
   frame.replace(/\s+$/g, '').split('\n').forEach((ln, i) => {
     console.log(String(i).padStart(2) + '|' + ln);
   });

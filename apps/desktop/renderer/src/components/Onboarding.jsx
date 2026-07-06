@@ -8,12 +8,6 @@ import SwitchField from "./SwitchField.jsx";
 import OrDivider from "./OrDivider.jsx";
 import { Loader2, Zap, Shuffle, PackageCheck } from "lucide-react";
 
-// Ekran startowy (pierwsze uruchomienie): lewa kolumna = branding/hero,
-// prawa = formularz „dodaj pierwszy sklep" + import konfiguracji.
-// Iteracja 0 redesignu — stylowana na tokenach, dopieszczana w Storybooku.
-// Kontrolki okna (WindowChrome) to overlay nad całą treścią — na Win/Linux
-// (prawy górny róg) lądują bezpośrednio na białym kontenerze formularza,
-// nad nagłówkiem `h1`; gutter górny jest taki sam jak reszta (bez zapasu).
 export default function Onboarding() {
     const {
         t,
@@ -50,7 +44,6 @@ export default function Onboarding() {
             setCurrentTemplate(null);
             navigate("templates");
         } catch {
-            /* toast już pokazany */
         } finally {
             setBusy(false);
         }
@@ -72,7 +65,6 @@ export default function Onboarding() {
 
     return (
         <div className="grid h-full grid-cols-1 overflow-hidden bg-background md:grid-cols-2">
-            {/* Lewa kolumna — hero / branding (bezpośrednio na szarym tle okna) */}
             <div className="hidden flex-col justify-center gap-8 overflow-hidden p-10 md:flex">
                 <div className="space-y-4">
                     <BrandMark version={version} />
@@ -81,7 +73,6 @@ export default function Onboarding() {
                     </p>
                 </div>
 
-                {/* Placeholder podglądu aplikacji — do podmiany na realny screenshot */}
                 <div
                     className=" overflow-hidden rounded-xl border bg-background/60 shadow-sm"
                     aria-hidden
@@ -105,8 +96,6 @@ export default function Onboarding() {
                 </ul>
             </div>
 
-            {/* Prawa kolumna — formularz w osobnym białym kontenerze (gutter dookoła;
-          na Win/Linux górny gutter mieści kontrolki okna, na macOS równy z bokami) */}
             <div className="overflow-hidden px-2 pb-2 pt-2">
                 <div className="flex h-full items-center justify-center overflow-y-auto rounded-2xl bg-card p-8 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_0_16px_rgba(0,0,0,0.08)]">
                     <div className="w-full max-w-sm space-y-6">

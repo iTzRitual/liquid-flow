@@ -1,10 +1,10 @@
-// Weryfikacja nowego layoutu: ekrany (picker/conflicts) i paleta przyklejone do
-// DOŁU, z logiem jako kontekstem nad nimi. Sprawdza: (1) nic nie wystaje poza
-// wysokość okna, (2) ostatni wiersz treści to ekran/paleta (jest nisko, nie pod
-// nagłówkiem), (3) log jest widoczny nad ekranem. Replikuje liczenie z App.jsx.
-// Uruchom: node apps/cli/test/action-bottom.mjs
-// FORCE_COLOR (przed importem ink/chalk) — bez kolorów `dimColor` nie emituje
-// kodu SGR, więc asercja wyszarzenia logu (dim) nie mogłaby go wykryć.
+// Verifies the new layout: screens (picker/conflicts) and the palette stuck to
+// the BOTTOM, with the log as context above them. Checks: (1) nothing overflows
+// the window height, (2) the last content row is the screen/palette (it sits low,
+// not under the header), (3) the log is visible above the screen. Mirrors the computation from App.jsx.
+// Run: node apps/cli/test/action-bottom.mjs
+// FORCE_COLOR (before importing ink/chalk) — without colors `dimColor` does not
+// emit an SGR code, so the log-dimming (dim) assertion could not detect it.
 process.env.FORCE_COLOR = process.env.FORCE_COLOR || '3';
 import { register } from 'tsx/esm/api';
 register();
@@ -28,16 +28,16 @@ const fakeStdin = () => { const s = new PassThrough(); s.isTTY = true; s.setRawM
 const state = { currentShop: { Name: 'walter', Url: 'https://walter.comarch-esklep.pl' }, currentTemplate: { Id: 3, Name: 'new' } };
 const git = { active: true, autoCommit: true, autoPush: false };
 
-// Liczenie 1:1 z App.jsx, ale przez layout.js (degradacja nagłówka z wysokością).
+// Computed 1:1 with App.jsx, but via layout.js (header degradation with height).
 function layoutOverlay(termRows, cols, nItems, nLogs) {
   const mode = { type: 'picker', items: Array.from({ length: nItems }) };
   const hl = headerLayout({ termRows, termCols: cols, mode });
   const HEADER = hl.height;
-  const overlayAvail = Math.max(1, termRows - HEADER); // root = termRows (pełna wysokość)
+  const overlayAvail = Math.max(1, termRows - HEADER); // root = termRows (full height)
   const natural = nItems + 4;
   const ovRows = Math.min(natural, overlayAvail);
   const ovMax = Math.max(1, ovRows - 4);
-  const ovLogRows = Math.max(0, overlayAvail - ovRows); // brak spacera nad ekranem
+  const ovLogRows = Math.max(0, overlayAvail - ovRows); // no spacer above the screen
   const ovShowLog = ovLogRows >= 2 && nLogs > 0;
   return { headerMode: hl.mode, HEADER, ovMax, ovLogRows, ovShowLog };
 }
@@ -64,23 +64,24 @@ async function runPicker(rows, cols, nItems, nLogs) {
   const overflow = lines.length > rows;
   const logIdx = lines.map((l, i) => (/log \d/.test(l) ? i : -1)).filter((i) => i >= 0);
   const hasLog = logIdx.length > 0;
-  const screenIdx = lines.findIndex((l) => /╭/.test(l)); // górna ramka ekranu
-  // ekran lgnie WPROST pod log — tuż nad górną ramką ma być treść logu, nie pusty
-  // wiersz (spacer został usunięty). `flush` = brak pustej linii między logiem a ramką.
+  const screenIdx = lines.findIndex((l) => /╭/.test(l)); // the screen's top frame
+  // the screen sits DIRECTLY under the log — right above the top frame there
+  // should be log content, not a blank row (the spacer was removed). `flush` =
+  // no blank line between the log and the frame.
   const flush = hasLog && screenIdx > 0 && (lines[screenIdx - 1] || '').trim() !== '';
-  const dimmed = raw.split("\n").some((l) => /log \d/.test(strip(l)) && /\x1b\[2m/.test(l)); // log renderowany z dimColor
+  const dimmed = raw.split("\n").some((l) => /log \d/.test(strip(l)) && /\x1b\[2m/.test(l)); // the log rendered with dimColor
   const last = lines[lines.length - 1] || '';
   const bottomIsScreen = /[╰─]/.test(last) || /wybór|Enter/.test(last);
-  // BRAK pustego wiersza tuż pod górnym dividerem nagłówka — log lgnie pod nagłówek
-  // jak na ekranie podstawowym (regresja „gap u góry”). Pierwszy pełnowymiarowy
-  // wiersz `─` to divider nagłówka; następny wiersz musi być treścią logu (wpis
-  // lub wskaźnik „↑ starszych”), a nie pusty.
+  // NO blank row right below the header's top divider — the log sits against the
+  // header, just like on the main screen (regression: "gap at the top"). The
+  // first full-width `─` row is the header divider; the next row must be log
+  // content (an entry or the "↑ older" indicator), not blank.
   const divIdx = lines.findIndex((l) => /^─+$/.test(l.trim()));
   const noTopGap = hasLog && divIdx >= 0 && (lines[divIdx + 1] || '').trim() !== '';
   console.log(`picker rows=${rows} items=${nItems} logi=${nLogs} header=${headerMode}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} topGap=${!noTopGap} flush=${flush} dim=${dimmed}; dół=ekran:${bottomIsScreen}`);
   if (overflow) lines.forEach((l, i) => console.log(String(i).padStart(2) + '|' + l));
-  // Zawsze: brak przepełnienia i ekran przyklejony do dołu. Log/flush/dim/noTopGap
-  // tylko, gdy log jest widoczny (przy niskim oknie jest wypełniaczem i znika).
+  // Always: no overflow and the screen stuck to the bottom. Log/flush/dim/noTopGap
+  // only when the log is visible (on a low window it is a filler and disappears).
   const base = !overflow && bottomIsScreen;
   return ovShowLog ? (base && hasLog && flush && dimmed && noTopGap) : base;
 }
@@ -88,7 +89,7 @@ async function runPicker(rows, cols, nItems, nLogs) {
 async function runPalette(rows, cols, nCmds, nLogs) {
   const fillHeight = rows >= 16;
   const HEADERc = 8;
-  const bottomSpacer = fillHeight; // headerMode=full gdy fillHeight
+  const bottomSpacer = fillHeight; // headerMode=full when fillHeight
   const logRows = Math.max(3, rows - HEADERc - (bottomSpacer ? 3 : 2)); // root = termRows
   const showLogWithPalette = fillHeight && nLogs > 0 && logRows >= 10;
   const paletteCap = Math.max(3, Math.min(nCmds, logRows - 4));
@@ -96,8 +97,8 @@ async function runPalette(rows, cols, nCmds, nLogs) {
   const items = Array.from({ length: nCmds }, (_, i) => ({ name: `/cmd${i + 1}`, desc: 'opis' }));
   const log = Array.from({ length: nLogs }, (_, i) => ({ Id: i + 1, TS: Date.now(), Color: '#2A2', Text: `log ${i + 1}` }));
   const vlines = buildVlines(log, false, cols);
-  // Nowy układ aktywny: log > divider > podpowiedzi > input (bez spacera, bez
-  // dolnego dividera). Divider tuż pod logiem jest siblingiem flex-boxa logu.
+  // New active layout: log > divider > hints > input (no spacer, no bottom
+  // divider). The divider right below the log is a sibling of the log's flex box.
   const tree = React.createElement(Box, { flexDirection: 'column', height: fillHeight ? rows : undefined },
     React.createElement(Header, { state, git, mismatches: [], cols, t }),
     React.createElement(Text, { color: 'blue' }, '─'.repeat(cols)),
@@ -116,10 +117,10 @@ async function runPalette(rows, cols, nCmds, nLogs) {
   const hasLog = lines.some((l) => /log \d/.test(l));
   const cmdIdx = lines.findIndex((l) => /\/cmd/.test(l));
   const hasCmd = cmdIdx >= 0;
-  // tuż nad pierwszą podpowiedzią ma być divider (──), nie pusty wiersz
+  // right above the first hint there should be a divider (──), not a blank row
   const dividerAbove = hasLog && cmdIdx > 0 && /^─+$/.test((lines[cmdIdx - 1] || '').trim());
   const dimmed = raw.split("\n").some((l) => /log \d/.test(strip(l)) && /\x1b\[2m/.test(l));
-  // ostatnia treść to input (podpowiedzi bezpośrednio nad nim, bez dolnego dividera)
+  // the last content is the input (hints directly above it, no bottom divider)
   const last = lines[lines.length - 1] || '';
   const inputLast = /›\s*\/$/.test(last.trim());
   console.log(`palette rows=${rows} cmds=${nCmds} logi=${nLogs}: ${lines.length}w ${overflow ? 'OVERFLOW!' : 'ok'}; log=${hasLog} div=${dividerAbove} dim=${dimmed} paleta=${hasCmd} input-na-dole=${inputLast}`);
@@ -129,12 +130,12 @@ async function runPalette(rows, cols, nCmds, nLogs) {
 }
 
 let ok = true;
-ok = await runPalette(30, 80, 8, 40) && ok;  // slash: log nad, paleta przy dole
-ok = await runPalette(24, 80, 8, 5) && ok;   // typowe okno + paleta + log
-ok = await runPicker(40, 80, 4, 30) && ok;   // krótki picker, dużo logów → duży log nad, picker na dole
-ok = await runPicker(40, 80, 60, 30) && ok;  // długi picker → windowuje, log minimalny
-ok = await runPicker(24, 80, 5, 10) && ok;   // typowe okno
-ok = await runPicker(14, 80, 5, 10) && ok;   // niskie okno → nagłówek compact, ekran na dole
-ok = await runPicker(9, 80, 5, 0) && ok;     // bardzo niskie → nagłówek ukryty, ekran wypełnia
+ok = await runPalette(30, 80, 8, 40) && ok;  // slash: log above, palette at the bottom
+ok = await runPalette(24, 80, 8, 5) && ok;   // a typical window + palette + log
+ok = await runPicker(40, 80, 4, 30) && ok;   // a short picker, many logs → a large log above, picker at the bottom
+ok = await runPicker(40, 80, 60, 30) && ok;  // a long picker → windows, minimal log
+ok = await runPicker(24, 80, 5, 10) && ok;   // a typical window
+ok = await runPicker(14, 80, 5, 10) && ok;   // a low window → compact header, screen at the bottom
+ok = await runPicker(9, 80, 5, 0) && ok;     // very low → header hidden, screen fills
 console.log(ok ? '\nWSZYSTKO OK' : '\nBŁĄD');
 process.exit(ok ? 0 : 1);

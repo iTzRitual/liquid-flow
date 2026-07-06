@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Punkt wejścia CLI `liquidflow`. Rejestruje transpilację JSX (tsx), a następnie
-// uruchamia interaktywny interfejs Ink. Dzięki temu nie jest potrzebny osobny
-// krok budowania — kod źródłowy (.jsx) działa bezpośrednio.
+// Entry point for the `liquidflow` CLI. Registers JSX transpilation (tsx), then
+// launches the interactive Ink interface. This means no separate build step is
+// needed — the source code (.jsx) runs directly.
 
 import { register } from 'tsx/esm/api';
 

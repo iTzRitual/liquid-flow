@@ -2,67 +2,67 @@ import { Box, Text, useInput } from 'ink';
 import React, { useEffect, useMemo, useState } from 'react';
 import { tfmt, buildDiffRows } from '@liquidflow/core';
 
-// Przewijany podgląd różnic (line diff) przed rozwiązaniem konfliktu.
-// Zajmuje dokładnie `maxRows + 4` wierszy (chrome: ramka 2 + tytuł 1 + stopka 1).
-// Nawigacja: ↑/↓ przewijanie linii, PgUp/PgDn szybki przewijanie, Esc wróć.
+// A scrollable diff preview (line diff) before resolving a conflict.
+// Occupies exactly `maxRows + 4` rows (chrome: frame 2 + title 1 + footer 1).
+// Navigation: ↑/↓ line scroll, PgUp/PgDn fast scroll, Esc to go back.
 //
-// Trzy zabiegi czytelności (ważne — bez nich szablony z głębokim zagnieżdżeniem
-// rozpadają się na ekranie):
-//  1. **Sanityzacja** każdej linii (`sanitize`): taby → 2 spacje + usunięcie
-//     znaków sterujących (\r, ANSI itp. — patrz niżej).
-//  2. **Wspólne wcięcie (dedent)** — odcinamy minimalne wcięcie widocznych linii
-//     treści, więc głęboko zagnieżdżony kod przesuwa się do lewej i widać tag,
-//     a nie same spacje (z `truncate-end`, który zostawia LEWĄ stronę linii).
-//  3. **Zwijanie kontekstu** (`buildDiffRows`) — pokazujemy tylko ±N linii wokół
-//     zmian, resztę jako „N niezmienionych" — zmiany nie giną w morzu kontekstu.
-const TAB = '  '; // tab → 2 spacje (zwięźle przy głębokim zagnieżdżeniu)
-// Sanityzacja wiersza do bezpiecznego renderu w terminalu:
-//  - taby → 2 spacje (Ink mierzy \t jako 1 kol., terminal rysuje do 8 → schodki),
-//  - znaki sterujące USUWAMY (po rozwinięciu tabów nie ma już 0x09): \r przesuwa
-//    kursor na początek wiersza i rozbija kadr (główny bug przy plikach CRLF),
-//    a sekwencje ANSI (0x1b) z treści mogłyby wstrzyknąć kolory/ruch kursora.
-//    Zostaje tylko tekst drukowalny.
+// Three readability measures (important — without them, deeply nested templates
+// fall apart on screen):
+//  1. **Sanitization** of each line (`sanitize`): tabs → 2 spaces + removal of
+//     control characters (\r, ANSI, etc. — see below).
+//  2. **Common indent (dedent)** — we strip the minimal indent of visible content
+//     lines, so deeply nested code shifts left and the tag is visible instead of
+//     just spaces (with `truncate-end`, which keeps the LEFT side of the line).
+//  3. **Context folding** (`buildDiffRows`) — we show only ±N lines around
+//     changes, the rest as "N unchanged" — changes do not get lost in a sea of context.
+const TAB = '  '; // tab → 2 spaces (compact for deep nesting)
+// Sanitizing a row for a safe terminal render:
+//  - tabs → 2 spaces (Ink measures \t as 1 column, the terminal renders up to 8 → staircasing),
+//  - control characters are REMOVED (after tab expansion there is no more 0x09): \r
+//    moves the cursor to the start of the row and breaks the frame (the main bug
+//    with CRLF files), and ANSI sequences (0x1b) in the content could inject
+//    colors/cursor movement. Only printable text remains.
 // eslint-disable-next-line no-control-regex
 const CONTROL = /[\x00-\x1f\x7f]/g;
 const sanitize = (s) => (s || '').replace(/\t/g, TAB).replace(CONTROL, '');
 const leadSpaces = (s) => { const m = /^ */.exec(s); return m ? m[0].length : 0; };
 
-// `expanded`/`onToggleExpand` są sterowane przez rodzica (App.jsx trzyma je w
-// `mode`), bo rozwinięcie MUSI powiększyć nakładkę (naturalBodyRows zależy od
-// `mode.expanded`). Gdyby stan siedział tu lokalnie, okno nie mogłoby urosnąć —
-// treść wciskałaby się w zwinięty budżet wierszy (1 wpis + „↓ więcej").
+// `expanded`/`onToggleExpand` are driven by the parent (App.jsx keeps them in
+// `mode`), because expanding MUST enlarge the overlay (naturalBodyRows depends on
+// `mode.expanded`). If the state lived here locally, the window could not grow —
+// the content would be squeezed into the collapsed row budget (1 entry + "↓ more").
 export default function DiffView({ title, preview, onCancel, maxRows = 8, expanded = false, onToggleExpand, onOpenIde, t }) {
-  const [scroll, setScroll] = useState(0); // wiersze od góry (0 = początek)
-  // po przełączeniu zwiń/rozwiń zestaw wierszy się zmienia — wróć na górę
+  const [scroll, setScroll] = useState(0); // rows from the top (0 = start)
+  // after toggling collapse/expand the row set changes — return to the top
   useEffect(() => { setScroll(0); }, [expanded]);
 
   const isText = preview?.kind === 'text';
 
-  // Wiersze do renderu: numery linii + (zwinięty | pełny) kontekst, po
-  // sanityzacji i dedencie. Liczone na preview + `expanded` (memo). `collapsible`
-  // liczone z wersji ZAWSZE zwiniętej, żeby podpowiedź Tab była stabilna przy
-  // przełączaniu (widoczna dokładnie gdy jest co rozwinąć).
+  // Rows to render: line numbers + (collapsed | full) context, after sanitizing
+  // and dedenting. Computed from preview + `expanded` (memo). `collapsible` is
+  // computed from the ALWAYS-collapsed version, so the Tab hint stays stable while
+  // toggling (visible exactly when there is something to expand).
   const { rows, gutterW, collapsible } = useMemo(() => {
     if (!isText) return { rows: [], gutterW: 1, collapsible: false };
     const built = buildDiffRows(preview.diff, { context: 3, fold: !expanded });
     const collapsible = buildDiffRows(preview.diff, { context: 3 }).some((r) => r.type === 'fold');
     const clean = built.map((r) => (r.type === 'fold' ? r : { ...r, text: sanitize(r.line) }));
-    // wspólne wcięcie liczone tylko z niepustych linii treści (puste/fold pomijamy)
+    // common indent computed only from non-blank content lines (blank/fold are skipped)
     const content = clean.filter((r) => r.type !== 'fold' && r.text.trim().length > 0);
     const minIndent = content.length ? Math.min(...content.map((r) => leadSpaces(r.text))) : 0;
     const dedented = clean.map((r) => (r.type === 'fold' ? r : { ...r, text: r.text.slice(minIndent) }));
-    // szerokość rynny numerów = liczba cyfr największego numeru linii
-    const totalA = preview.diff.filter((d) => d.type !== 'add').length; // lokalne (ctx+del)
-    const totalB = preview.diff.filter((d) => d.type !== 'del').length; // zdalne (ctx+add)
+    // gutter width = digit count of the largest line number
+    const totalA = preview.diff.filter((d) => d.type !== 'add').length; // local (ctx+del)
+    const totalB = preview.diff.filter((d) => d.type !== 'del').length; // remote (ctx+add)
     return { rows: dedented, gutterW: String(Math.max(1, totalA, totalB)).length, collapsible };
   }, [isText, preview, expanded]);
 
   const added = isText ? preview.diff.filter((l) => l.type === 'add').length : 0;
   const removed = isText ? preview.diff.filter((l) => l.type === 'del').length : 0;
 
-  // Nie używamy wskaźnika „↑ N więcej" — każde wciśnięcie dół odsłania dokładnie
-  // 1 nową linię. Wskaźnik nad treścią zabierał wiersz z budżetu i sprawiał, że
-  // pierwsze wciśnięcie dół jedynie pokazywało wskaźnik zamiast nowej linii.
+  // We do not use an "↑ N more" indicator — every downward press reveals exactly
+  // 1 new line. An indicator above the content took a row from the budget and made
+  // the first downward press show only the indicator instead of a new line.
   const maxScroll = Math.max(0, rows.length - maxRows);
   const scrollClamped = Math.min(scroll, maxScroll);
 
@@ -99,12 +99,12 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, expand
     );
   }
 
-  // Okno widocznych wierszy: tylko wskaźnik ↓ (dolny) zabiera 1 wiersz z budżetu.
-  // Brak górnego wskaźnika eliminuje „przyklejenie" — każde wciśnięcie dół
-  // odsłania dokładnie 1 nową linię (numery w rynnie mówią gdzie jesteś).
+  // Window of visible rows: only the ↓ (bottom) indicator takes 1 row from the
+  // budget. No top indicator eliminates "stickiness" — every downward press reveals
+  // exactly 1 new line (the gutter numbers show where you are).
   const hasBelow = scrollClamped + maxRows < rows.length;
   const avail = maxRows - (hasBelow ? 1 : 0);
-  // Na końcu treści: wypełnij od dołu, żeby uniknąć pustych wierszy.
+  // At the end of the content: fill from the bottom, to avoid blank rows.
   const start = Math.min(scrollClamped, Math.max(0, rows.length - avail));
   const end = Math.min(rows.length, start + avail);
   const visible = rows.slice(start, end);
@@ -114,9 +114,9 @@ export default function DiffView({ title, preview, onCancel, maxRows = 8, expand
   const prefixFor = (type) => (type === 'add' ? '+' : type === 'del' ? '-' : ' ');
   const blankGutter = ' '.repeat(gutterW);
 
-  // Renderuje jeden wiersz diff. Numer linii (rynna) wyszarzony; treść w kolorze
-  // typu. Cały <Text> ma `truncate-end` — po sanityzacji Ink mierzy szerokość
-  // poprawnie, więc tnie dokładnie na granicy kadru (bez zawijania/schodków).
+  // Renders a single diff row. The line number (gutter) is dimmed; the content in
+  // the type's color. The whole <Text> has `truncate-end` — after sanitizing, Ink
+  // measures the width correctly, so it cuts exactly at the frame boundary (no wrap/staircasing).
   const renderRow = (r, k) => {
     if (r.type === 'fold') {
       return (

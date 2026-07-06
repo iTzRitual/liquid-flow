@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useApp } from '../App.jsx';
 
-// Przycisk z potwierdzeniem (zastępuje natywny confirm()).
+// A button with a confirmation (replaces the native confirm()).
 export default function ConfirmButton({ children, onConfirm, message, title, variant = 'default', size = 'sm', confirmLabel, className }) {
   const { t } = useApp();
   const [open, setOpen] = useState(false);

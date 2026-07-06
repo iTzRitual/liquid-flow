@@ -1,6 +1,6 @@
 import React from "react";
 
-// Separator "lub" między dwiema akcjami formularza.
+// An "or" separator between two form actions.
 export default function OrDivider({ label }) {
     return (
         <div className="flex items-center gap-3 text-xs text-muted-foreground">

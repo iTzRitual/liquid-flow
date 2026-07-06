@@ -3,13 +3,13 @@ import { Box, Text } from 'ink';
 import wrapAnsi from 'wrap-ansi';
 import { tfmt } from '@liquidflow/core';
 
-// Mapowanie kolorów z rdzenia (hex) na nazwy kolorów Ink.
+// Maps core colors (hex) to Ink color names.
 function inkColor(hex) {
   switch ((hex || '').toUpperCase()) {
     case '#F00': return 'red';
     case '#2A2': return 'green';
-    // #FFF = wpis domyślny: bez koloru = foreground terminala (czytelny na
-    // ciemnym I jasnym tle; „white" znikał na białym terminalu).
+    // #FFF = the default entry: no color = the terminal's foreground (readable on
+    // both dark AND light backgrounds; "white" disappeared on a white terminal).
     case '#FFF': return undefined;
     default: return 'gray';
   }
@@ -20,16 +20,16 @@ function hhmmss(ts) {
   catch { return ''; }
 }
 
-// Buduje „wizualne wiersze" logu (jednostka przewijania).
-//  - wrap=false (domyślnie): każdy wpis = 1 wiersz (obcinany przy renderze),
-//  - wrap=true (/wrap): długie wpisy zawijają się na kilka wierszy — alternatywny
-//    tryb, w którym czytasz całość bez otwierania osobnego ekranu.
-// Liczone tą samą `wrap-ansi`+hard co Ink, więc render zgadza się co do wiersza.
+// Builds the log's "visual rows" (the unit of scrolling).
+//  - wrap=false (default): every entry = 1 row (truncated on render),
+//  - wrap=true (/wrap): long entries wrap onto several rows — an alternative mode
+//    where you can read the whole thing without opening a separate screen.
+// Computed with the same `wrap-ansi`+hard as Ink, so the render matches row for row.
 export function buildVlines(log, wrap, cols) {
-  const w = Math.max(8, (cols || 80) - 2); // Box ma paddingX={1} → -2 kolumny
+  const w = Math.max(8, (cols || 80) - 2); // the Box has paddingX={1} → -2 columns
   const out = [];
   for (const e of log) {
-    // Separator (np. granica sesji) — linia działowa „── tekst ─────".
+    // A separator (e.g. a session boundary) — a divider line "── text ─────".
     if (e.kind === 'separator') {
       const label = `── ${e.Text} `;
       const fill = Math.max(0, w - [...label].length);
@@ -37,7 +37,7 @@ export function buildVlines(log, wrap, cols) {
       continue;
     }
     const color = inkColor(e.Color);
-    const dim = !!e.historic; // wpisy z poprzedniej sesji — wyszarzone
+    const dim = !!e.historic; // entries from the previous session — dimmed
     const text = `${hhmmss(e.TS)} ${e.Text}`;
     if (wrap) {
       wrapAnsi(text, w, { trim: false, hard: true }).split('\n')
@@ -49,36 +49,36 @@ export function buildVlines(log, wrap, cols) {
   return out;
 }
 
-// Panel logu na ekranie głównym. Przewijany kółkiem/strzałkami: `scroll` to ile
-// wizualnych wierszy od dołu (0 = najnowsze na dole). Zawsze mieści się w
-// budżecie `rows` — wskaźniki „↑/↓ więcej" zabierają wiersz z okna treści.
-// `dim` wyszarza CAŁY log (gdy jest tłem dla otwartej palety/ekranu — kontekst,
-// nie aktywna treść; ten sam efekt co `historic` dla poprzedniej sesji).
+// The log panel on the main screen. Scrollable by wheel/arrows: `scroll` is the
+// number of visual rows from the bottom (0 = newest at the bottom). Always fits
+// within the `rows` budget — the "↑/↓ more" indicators take a row from the content
+// window. `dim` grays out the WHOLE log (when it is the backdrop for an open
+// palette/screen — context, not active content; the same effect as `historic` for the previous session).
 export default function LogPane({ vlines, rows = 10, scroll = 0, t, dim = false }) {
   const total = vlines.length;
-  // +1, bo na górze wskaźnik „↓ nowszych" zabiera wiersz z okna — inaczej
-  // najstarszych wpisów (tyle, ile zajmują wskaźniki) nie dałoby się odsłonić.
+  // +1, because the "↓ newer" indicator at the top takes a row from the window —
+  // otherwise the oldest entries (as many as the indicators occupy) could not be revealed.
   const maxScroll = total > rows ? total - rows + 1 : 0;
   const off = Math.min(Math.max(0, scroll), maxScroll);
   let end = total - off;
 
-  const hasBelow = end < total;                 // przewinięto w górę → są nowsze pod spodem
-  // Budżet na wpisy = rows minus wskaźniki, które faktycznie pokażemy. NIE
-  // podłogujemy `avail` do 1 — przy `rows===1` ze wskaźnikiem „↑" budżet wpisów
-  // musi spaść do 0, inaczej wskaźnik + wpis = 2 wiersze przekraczają `rows`
-  // (Ink przy przepełnieniu obcina/duplikuje kadr). Lepiej pokazać sam wskaźnik.
+  const hasBelow = end < total;                 // scrolled up → there are newer entries below
+  // Budget for entries = rows minus the indicators we actually show. We do NOT
+  // floor `avail` to 1 — at `rows===1` with an "↑" indicator the entry budget must
+  // drop to 0, otherwise indicator + entry = 2 rows exceeds `rows` (on overflow Ink
+  // truncates/duplicates the frame). Better to show just the indicator.
   let avail = rows - (hasBelow ? 1 : 0);
   let start = Math.max(0, end - Math.max(0, avail));
-  let hasAbove = start > 0;                      // są starsze nad
+  let hasAbove = start > 0;                      // there are older entries above
   if (hasAbove) {
     avail -= 1;
     if (hasBelow) {
-      // Scrollujemy w górę: kotwica na start (odsłaniamy starsze wpisy), przytnij end.
-      // Efekt uboczny: wskaźnik „↓ nowszych" może pokazać o 1 więcej niż wynika ze
-      // scroll-offsetu, bo obydwa wskaźniki razem zmniejszają budżet treści o 1.
+      // Scrolling up: anchor to start (revealing older entries), trim end.
+      // Side effect: the "↓ newer" indicator may show 1 more than the scroll offset
+      // implies, because both indicators together shrink the content budget by 1.
       end = Math.min(end, start + Math.max(0, avail));
     } else {
-      // Na dole (scroll=0): kotwica na end — pokazuj najnowsze wpisy.
+      // At the bottom (scroll=0): anchor to end — show the newest entries.
       start = Math.max(0, end - Math.max(0, avail));
     }
     hasAbove = start > 0;
@@ -86,10 +86,10 @@ export default function LogPane({ vlines, rows = 10, scroll = 0, t, dim = false 
 
   const slice = avail > 0 ? vlines.slice(start, end) : [];
 
-  // Złóż wszystkie wiersze i utnij twardo do `rows` (zostaw dolne — najnowsze,
-  // najbliżej akcji). Zabezpiecza skrajny przypadek `rows===1` z treścią i nad,
-  // i pod oknem (oba wskaźniki = 2 wiersze): cap przycina do budżetu zamiast
-  // przepełnić kadr (Ink przy przepełnieniu obcina/dubluje).
+  // Assemble all rows and hard-cap to `rows` (keep the bottom ones — newest,
+  // closest to the action). This guards the edge case of `rows===1` with content
+  // both above and below the window (both indicators = 2 rows): the cap trims to
+  // the budget instead of overflowing the frame (on overflow Ink truncates/duplicates).
   const pieces = [];
   if (hasAbove) pieces.push(<Text key="above" dimColor>{tfmt(t.OlderEntries, { count: start })}</Text>);
   if (total === 0) pieces.push(<Text key="empty" dimColor>{t.LogEmpty}</Text>);

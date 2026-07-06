@@ -4,13 +4,14 @@ import { render } from 'ink-testing-library';
 import { translationsFor, MismatchType } from '@liquidflow/core';
 import { keys, press, frame, flush } from '../../../test/helpers/ink.js';
 
-// Auto-nawigacja po zapisie w IDE: `/conflicts` → Podgląd otwiera ekran diff
-// (mode.type === 'diff') i zapamiętuje, KTÓRY plik ogląda (`watchMismatch`,
-// patrz commands.js). W realnej apce watcher wysyła plik po zapisie w IDE, a
-// kolejny cykl pollingu (`mismatches`, w useController) już go nie zawiera —
-// App.jsx wykrywa to i sam wraca: do odświeżonej listy konfliktów (gdy zostały
-// inne) albo na ekran główny (gdy to był ostatni). Tu symulujemy "poll" przez
-// mutację `hookValue.mismatches` + `rerender`, bez prawdziwej sieci/SOAP.
+// Auto-navigation after an IDE save: `/conflicts` → Preview opens the diff screen
+// (mode.type === 'diff') and remembers WHICH file it is viewing (`watchMismatch`,
+// see commands.js). In the real app the watcher uploads the file after an IDE save,
+// and the next polling cycle (`mismatches`, in useController) no longer contains
+// it — App.jsx detects this and navigates back on its own: to the refreshed
+// conflict list (when others remain) or to the main screen (when it was the last
+// one). Here we simulate a "poll" by mutating `hookValue.mismatches` + `rerender`,
+// without real network/SOAP.
 const conflictA = { File: { Name: 'a.liquid', Mode: 0 }, Type: MismatchType.Timestamp, FileTs: '2026-06-01', LocalTs: '2026-01-01', RemoteTs: '2026-01-01' };
 const conflictB = { File: { Name: 'b.liquid', Mode: 0 }, Type: MismatchType.Timestamp, FileTs: '2026-06-01', LocalTs: '2026-01-01', RemoteTs: '2026-01-01' };
 
@@ -48,14 +49,14 @@ beforeEach(() => {
   };
 });
 
-// Wchodzi do /conflicts i od razu w Podgląd pierwszego pliku (Timestamp ma
-// `initial: 2` = "preview", więc samo Enter po wejściu na listę wystarczy).
+// Enters /conflicts and immediately into the first file's Preview (Timestamp has
+// `initial: 2` = "preview", so a single Enter after entering the list is enough).
 async function openPreview(api) {
   api.stdin.write('/conflicts');
   await flush();
-  await press(api.stdin, keys.enter); // uruchamia komendę /conflicts
+  await press(api.stdin, keys.enter); // runs the /conflicts command
   await wait(60);
-  await press(api.stdin, keys.enter); // karta pliku, akcja domyślna = Podgląd
+  await press(api.stdin, keys.enter); // the file card, default action = Preview
   await wait(60);
 }
 
@@ -66,7 +67,7 @@ describe('App — auto-nawigacja po rozwiązaniu konfliktu w tle', () => {
     await openPreview(api);
     expect(frame(api)).toContain(t.DiffTitle.replace('{name}', 'a.liquid'));
 
-    hookValue = { ...hookValue, mismatches: [conflictB] }; // "a" rozwiązane, "b" zostaje
+    hookValue = { ...hookValue, mismatches: [conflictB] }; // "a" resolved, "b" remains
     api.rerender(<App />);
     await wait(60);
 

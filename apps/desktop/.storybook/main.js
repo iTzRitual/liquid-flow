@@ -11,14 +11,14 @@ export default {
   framework: { name: '@storybook/react-vite', options: {} },
   core: { disableTelemetry: true },
 
-  // Nie dziedziczymy vite.config.js apki (ustawia root=renderer, co koliduje
-  // z własnym rootem Storybooka) — konfigurujemy tylko to, czego potrzebują
-  // komponenty: alias '@' i dostęp do repo (deep-import translations.js z core).
+  // We do not inherit the app's vite.config.js (it sets root=renderer, which
+  // conflicts with Storybook's own root) — we configure only what the components
+  // need: the '@' alias and repo access (deep-import translations.js from core).
   async viteFinal(config) {
     const { mergeConfig } = await import('vite');
     return mergeConfig(config, {
-      // Apka ustawia root=renderer w swoim vite.config — przywracamy root na
-      // katalog desktopu, żeby Storybook zarządzał własnym drzewem.
+      // The app sets root=renderer in its vite.config — we restore root to the
+      // desktop directory, so Storybook manages its own tree.
       root: desktop,
       resolve: { alias: { '@': join(desktop, 'renderer', 'src') } },
       server: { fs: { allow: [repoRoot] } },

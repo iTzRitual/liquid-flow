@@ -2,37 +2,37 @@ import { Box, Text, useInput } from 'ink';
 import React, { useEffect, useState } from 'react';
 import { tfmt } from '@liquidflow/core';
 
-// Ekran konfliktów. Każdy plik to KARTA o ADAPTACYJNEJ wysokości `cardH`:
-//   cardH=3: nazwa+przyciski / meta (znaczniki czasu) / note (która strona nowsza)
-//   cardH=2: nazwa+przyciski / meta            (przy niskim oknie)
-//   cardH=1: sama nazwa+przyciski              (skrajnie niskie okno)
-// **Wiersz nazwy+przycisków renderuje się ZAWSZE** — to on niesie akcję, więc
-// nawet w bardzo niskim oknie nazwa pliku jest widoczna (degradują tylko meta/note).
-// Odstęp jest MIĘDZY kartami (`sep`), a NIE po ostatniej — dzięki temu górny i
-// dolny wskaźnik „↑/↓ więcej" lgną symetrycznie do treści (kiedyś końcowa pusta
-// linia karty dawała dolnemu wskaźnikowi dodatkowy odstęp → asymetria).
-// Na dole — stała stopka: jeden wiersz operacji seryjnych („Pobierz/Wyślij
-// wszystkie”).
-// Nawigacja: ↑/↓ między kartami i stopką, ←/→
-// wybór akcji w wierszu, Enter wykonuje, Esc anuluje.
+// The conflicts screen. Each file is a CARD with an ADAPTIVE height `cardH`:
+//   cardH=3: name+buttons / meta (timestamps) / note (which side is newer)
+//   cardH=2: name+buttons / meta               (on a low window)
+//   cardH=1: name+buttons only                 (extremely low window)
+// **The name+buttons row is ALWAYS rendered** — it carries the action, so even on a
+// very low window the file name stays visible (only meta/note degrade).
+// The spacing is BETWEEN cards (`sep`), NOT after the last one — this way the top
+// and bottom "↑/↓ more" indicators sit symmetrically against the content (formerly
+// a trailing blank card line gave the bottom indicator extra spacing → asymmetry).
+// At the bottom — a fixed footer: one row of bulk operations ("Download/Upload
+// all").
+// Navigation: ↑/↓ between cards and the footer, ←/→
+// selects an action in the row, Enter runs it, Esc cancels.
 //   files: [{ name, meta, note, options:[{label,value}], initial }]
-//   bulk:  [{ label, value }]  (opcjonalne)
+//   bulk:  [{ label, value }]  (optional)
 //
-// **Stała wysokość ekranu (NIE psuć!)**: region kart zajmuje ZAWSZE dokładnie
-// `regionTarget = maxRows − footer` wierszy, niezależnie od pozycji kursora —
-// inaczej ekran (przyklejony do dołu) zmienia wysokość przy każdym ↑/↓ i przesuwa
-// log nad nim („skakanie"). Stałość bierze się z czterech rzeczy: (1) liczba
-// widocznych kart `cap` ORAZ ich wysokość `cardH` zależą tylko od `regionTarget`,
-// NIE od kursora; (2) każda widoczna karta renderuje DOKŁADNIE `cardH` wierszy
-// (brakujący note → pusta linia); (3) oba wskaźniki „↑/↓ więcej" mają po 1
-// wierszu (pusty slot gdy brak); (4) region jest dopełniany pustymi liniami do
-// `regionTarget`. Test: `apps/cli/src/components/ConflictList.test.jsx`.
+// **Fixed screen height (do NOT break!)**: the card region ALWAYS occupies exactly
+// `regionTarget = maxRows − footer` rows, regardless of cursor position — otherwise
+// the screen (stuck to the bottom) would change height on every ↑/↓ and shift the
+// log above it ("jumping"). The fixed height comes from four things: (1) the number
+// of visible cards `cap` AND their height `cardH` depend only on `regionTarget`, NOT
+// on the cursor; (2) every visible card renders EXACTLY `cardH` rows (a missing note
+// → a blank line); (3) both "↑/↓ more" indicators occupy 1 row each (an empty slot
+// when absent); (4) the region is padded with blank lines up to `regionTarget`.
+// Test: `apps/cli/src/components/ConflictList.test.jsx`.
 //
-// Kursor ←/→ należy WYŁĄCZNIE do bieżącego wiersza i NIE jest pamiętany — przy
-// wejściu na kartę (↑/↓) startuje od bezpiecznego domyślnego wyboru (`initial`).
-// Liczy się dopiero Enter (działa natychmiast na bieżącej karcie), więc
-// zapamiętywanie pozycji na innych kartach nic nie wnosi. Wszystkie przyciski są
-// pełnokontrastowe; podświetlenie (cyan tło) ma tylko kursor bieżącego wiersza.
+// The ←/→ cursor belongs EXCLUSIVELY to the current row and is NOT remembered — on
+// entering a card (↑/↓) it starts from the safe default choice (`initial`). Only
+// Enter matters (it acts immediately on the current card), so remembering the
+// position on other cards would add nothing. All buttons are full-contrast;
+// highlighting (cyan background) is applied only to the current row's cursor.
 
 export default function ConflictList({ title, files, bulk, onAction, onBulk, onCancel, maxRows = 12, initialIndex = 0, onIndexChange, t }) {
   const hasBulk = Array.isArray(bulk) && bulk.length > 0;
@@ -41,22 +41,22 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
   const optsFor = (idx) => (idx < files.length ? files[idx].options : bulk) || [];
   const initFor = (idx) => (idx < files.length ? (files[idx].initial ?? 0) : 0);
 
-  // `initialIndex` przywraca podświetloną kartę po powrocie Esc z podglądu/
-  // potwierdzenia otwartego z tej listy (App trzyma indeks na trybie‑rodzicu).
-  // Kursor ←/→ nadal NIE jest pamiętany — startuje od bezpiecznego `initFor`.
+  // `initialIndex` restores the highlighted card after returning via Esc from a
+  // preview/confirmation opened from this list (App keeps the index on the parent mode).
+  // The ←/→ cursor is STILL NOT remembered — it starts from the safe `initFor`.
   const startRow = Math.min(Math.max(0, initialIndex), Math.max(0, rows - 1));
   const [i, setI] = useState(startRow);
-  const [cursor, setCursor] = useState(() => initFor(startRow)); // pozycja ←/→ tylko bieżącego wiersza
-  useEffect(() => { onIndexChange?.(i); }, [i]); // raportuj pozycję rodzicowi (pamięć karty)
+  const [cursor, setCursor] = useState(() => initFor(startRow)); // ←/→ position of the current row only
+  useEffect(() => { onIndexChange?.(i); }, [i]); // report the position to the parent (card memory)
 
-  // kursor przycięty do liczby opcji bieżącego wiersza (np. po odświeżeniu listy)
+  // cursor clamped to the current row's option count (e.g. after a list refresh)
   const curOpts = optsFor(i);
   const curCursor = Math.max(0, Math.min(cursor, curOpts.length - 1));
 
   const bulkFocused = hasBulk && i === files.length;
 
-  // ↑/↓ — w stopce przesuwa kursor między przyciskami (tak jak ←/→); na granicy
-  // listy plików ↔ stopka skok jak w ConnectList.
+  // ↑/↓ — in the footer, moves the cursor between buttons (just like ←/→); at the
+  // file list ↔ footer boundary, jumps as in ConnectList.
   const moveRow = (delta) => {
     if (bulkFocused) {
       const next = curCursor + delta;
@@ -96,8 +96,8 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
     }
   });
 
-  // Przyciski akcji jednej karty/stopki. Wszystkie pełnokontrastowe; kursor
-  // (tylko gdy wiersz `focused`) wyróżniony tłem cyan. `cv` = indeks kursora.
+  // Action buttons of a single card/footer. All full-contrast; the cursor
+  // (only when the row is `focused`) is highlighted with a cyan background. `cv` = the cursor index.
   const renderButtons = (options, cv, focused) =>
     options.map((o, oi) => {
       const active = focused && oi === cv;
@@ -108,8 +108,8 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
       );
     });
 
-  // Renderuje DOKŁADNIE `cardH` wierszy (1–3). Wiersz nazwy+przycisków zawsze;
-  // meta od cardH≥2; note (lub pusta linia gdy brak note) od cardH≥3.
+  // Renders EXACTLY `cardH` rows (1–3). The name+buttons row always; meta from
+  // cardH≥2; note (or a blank line when there is no note) from cardH≥3.
   const renderCard = (f, idx, cardH) => {
     const focused = idx === i;
     return (
@@ -130,16 +130,16 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
     );
   };
 
-  // Region kart o STAŁEJ wysokości `regionTarget` (= cała wysokość minus stopka),
-  // niezależnej od pozycji kursora. App budżetuje box na `maxRows + 4` (chrome =
-  // ramka 2 + tytuł 1 + stopka + pomoc 1), więc region kart = `maxRows − footer`.
-  const SEP = 1; // odstęp MIĘDZY kartami (nie po ostatniej → symetria wskaźników)
+  // The card region has a FIXED height `regionTarget` (= total height minus the
+  // footer), independent of cursor position. App budgets the box at `maxRows + 4`
+  // (chrome = frame 2 + title 1 + footer + help 1), so the card region = `maxRows − footer`.
+  const SEP = 1; // spacing BETWEEN cards (not after the last one → indicator symmetry)
   const footerLines = hasBulk ? 1 : 0;
   const regionTarget = Math.max(1, maxRows - footerLines);
   const fileFocus = files.length ? Math.min(i, files.length - 1) : 0;
 
-  // Pełny widok = wszystkie karty (cardH=3) z separatorami. Gdy się nie mieści,
-  // okienkujemy i degradujemy wysokość karty do dostępnego miejsca.
+  // Full view = all cards (cardH=3) with separators. When it does not fit, we
+  // window it and degrade the card height to the available space.
   const fullAll = files.length * 3 + Math.max(0, files.length - 1) * SEP;
   const overflow = files.length > 0 && fullAll > regionTarget;
 
@@ -150,18 +150,18 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
     const content = files.length * cardH + Math.max(0, files.length - 1) * sep;
     padLines = Math.max(0, regionTarget - content);
   } else {
-    // Sloty wskaźników (2 wiersze) tylko gdy region je pomieści obok ≥1 karty;
-    // przy skrajnie niskim oknie rezygnujemy z nich, by nie przepełnić kadru.
+    // Indicator slots (2 rows) only when the region can fit them alongside ≥1 card;
+    // on an extremely low window we drop them to avoid overflowing the frame.
     showIndicators = regionTarget >= 3;
     const reserve = showIndicators ? 2 : 0;
-    // `avail` = miejsce na karty po rezerwie na sloty wskaźników.
-    // `cardH`/`cap` liczone z `avail` (NIE z kursora) → stała wysokość regionu.
+    // `avail` = room for cards after reserving the indicator slots.
+    // `cardH`/`cap` are computed from `avail` (NOT from the cursor) → a fixed region height.
     const avail = Math.max(1, regionTarget - reserve);
     cardH = avail >= 3 ? 3 : avail >= 2 ? 2 : 1;
-    sep = cardH >= 2 ? SEP : 0; // przy 1‑wierszowych kartach bez odstępów (ciasno)
+    sep = cardH >= 2 ? SEP : 0; // no spacing for 1-row cards (tight fit)
     let cap = Math.max(1, Math.floor((avail + sep) / (cardH + sep)));
     cap = Math.min(cap, files.length);
-    while (cap > 1 && cap * cardH + (cap - 1) * sep > avail) cap--; // korekta zaokrągleń
+    while (cap > 1 && cap * cardH + (cap - 1) * sep > avail) cap--; // rounding correction
     const start = Math.max(0, Math.min(fileFocus - Math.floor(cap / 2), files.length - cap));
     above = start; below = files.length - (start + cap);
     slice = files.slice(start, start + cap); sliceStart = start;
@@ -178,10 +178,10 @@ export default function ConflictList({ title, files, bulk, onAction, onBulk, onC
         ? <Text dimColor>{t.NoConflicts}</Text>
         : (
           <>
-            {/* Oba wskaźniki to STAŁE 1‑wierszowe sloty (pusty gdy brak) —
-                symetria wysokości niezależnie od położenia kursora. Karty nie
-                mają końcowej pustej linii (odstęp jest MIĘDZY nimi), więc górny
-                i dolny wskaźnik lgną do treści symetrycznie. */}
+            {/* Both indicators are FIXED 1-row slots (empty when absent) —
+                height symmetry regardless of cursor position. Cards have no
+                trailing blank line (the spacing is BETWEEN them), so the top
+                and bottom indicators sit symmetrically against the content. */}
             {showIndicators && <Text dimColor>{above > 0 ? tfmt(t.MoreAbove, { count: above }) : ' '}</Text>}
             {slice.map((f, k) => (
               <React.Fragment key={sliceStart + k}>

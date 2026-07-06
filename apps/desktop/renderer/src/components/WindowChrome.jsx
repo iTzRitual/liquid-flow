@@ -1,10 +1,10 @@
 import React from "react";
 import { Minus, Square, X } from "lucide-react";
 
-// Bezramkowe okno aplikacji. Kontrolki NIE mają osobnego paska ani nazwy aplikacji
-// — leżą jako overlay w rogu, bezpośrednio na treści (macOS: światła top-left,
-// Windows/Linux: min/max/close top-right). Górna krawędź jest przeciągalna
-// (niewidoczny `drag-region`). W Electronie łączy się to z `frame:false` + IPC.
+// A frameless application window. The controls have NO separate bar or app name
+// — they sit as an overlay in the corner, directly on the content (macOS: traffic
+// lights top-left, Windows/Linux: min/max/close top-right). The top edge is
+// draggable (an invisible `drag-region`). In Electron this pairs with `frame:false` + IPC.
 
 function MacControls({ onMinimize, onMaximize, onClose }) {
     const dots = [
@@ -64,13 +64,13 @@ export default function WindowChrome({
 
     return (
         <div className="relative h-full w-full overflow-hidden rounded-3xl shadow-2xl">
-            {/* Treść na całą powierzchnię okna */}
+            {/* Content spanning the whole window surface */}
             <div className="h-full w-full">{children}</div>
 
-            {/* Niewidoczny pasek do przeciągania okna */}
+            {/* An invisible bar for dragging the window */}
             <div className="drag-region pointer-events-auto absolute inset-x-0 top-0 z-10 h-9" />
 
-            {/* Kontrolki jako overlay w rogu — bez paska, bez nazwy aplikacji */}
+            {/* Controls as an overlay in the corner — no bar, no app name */}
             <div
                 className={`no-drag absolute top-0 z-20 flex items-center ${mac ? "left-0 p-4" : "right-0 p-3"}`}
             >

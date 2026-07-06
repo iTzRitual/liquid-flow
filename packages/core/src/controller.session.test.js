@@ -6,9 +6,9 @@ import * as logbuf from './log.js';
 import * as git from './git.js';
 import { startMockSoap, liquidTemplateXml } from '../../../test/helpers/mockSoapServer.js';
 
-// Pełny przepływ przez Controller: wybór szablonu → start sesji (pobranie +
-// watcher) → konflikty → git. Mock SOAP zwraca szablon i pliki, więc sesja
-// realnie pobiera do tmp home i odpala SyncSession.
+// Full flow through the Controller: template select → session start (download +
+// watcher) → conflicts → git. The mock SOAP returns a template and files, so the
+// session really downloads into the tmp home and starts a SyncSession.
 let ctrl, srv, shopName, n = 0;
 beforeEach(() => {
   try { fs.rmSync(store.paths.CONFIG_PATH); } catch {}
@@ -47,11 +47,11 @@ describe('Controller — start sesji szablonu', () => {
     const r = await connectAndSelect();
     expect(r).toMatchObject({ Id: 5, Name: 'Topaz', Locked: false });
 
-    // plik pobrany do tmp home
+    // file downloaded into the tmp home
     const abs = store.localFilePath(shopName, 5, 0, 'index.liquid');
     expect(fs.readFileSync(abs, 'utf8')).toBe('WITAJ');
 
-    // stan kontrolera odzwierciedla aktywny szablon
+    // the controller state reflects the active template
     expect(ctrl.getState().currentTemplate).toMatchObject({ Id: 5, Name: 'Topaz' });
     expect(ctrl.currentFolder()).toBe(store.templateDir(shopName, 5));
   });
@@ -68,8 +68,8 @@ describe('Controller — start sesji szablonu', () => {
   });
 });
 
-// Testy git uruchamiają wiele podprocesów `git` — pod obciążeniem (pełna suita
-// w równoległych workerach) mogą przekroczyć domyślne 5 s. Timeout = 20 s.
+// The git tests spawn many `git` subprocesses — under load (the full suite in
+// parallel workers) they can exceed the default 5 s. Timeout = 20 s.
 describe('Controller — git dla aktywnego szablonu', { timeout: 20000 }, () => {
   it('gitStatus przed włączeniem: aktywny, ale nie repo', async () => {
     await connectAndSelect();
@@ -85,7 +85,7 @@ describe('Controller — git dla aktywnego szablonu', { timeout: 20000 }, () => 
     expect(st.isRepo).toBe(true);
     expect(st.autoCommit).toBe(true);
     expect(st.commitCount).toBeGreaterThanOrEqual(1);
-    // zapis do config szablonu
+    // written to the template config
     const tcfg = store.loadConfig().Shops[0].Templates.find((x) => x.Id === 5);
     expect(tcfg.git.autoCommit).toBe(true);
   });
@@ -175,16 +175,16 @@ describe('Controller — git dla aktywnego szablonu', { timeout: 20000 }, () => 
 
     await ctrl.gitCheckpoint('Feature start', 'feature-x');
 
-    // nowy strumień docelowy utrwalony
+    // the new target stream is persisted
     expect(ctrl.activeGit.targetBranch).toBe('feature-x');
-    // pracujemy dalej na ukrytym wip
+    // we keep working on the hidden wip
     expect(await git.currentBranch(dir)).toBe('liquidflow/wip');
-    // checkpoint trafił na feature-x
+    // the checkpoint landed on feature-x
     await git.switchBranch(dir, 'feature-x');
     expect((await git.history(dir))[0].message).toBe('Feature start');
-    // wip jest ukryty w liście gałęzi
+    // wip is hidden from the branch list
     expect(await ctrl.gitListBranches()).not.toContain('liquidflow/wip');
-    // status raportuje strumień, nie wip
+    // status reports the stream, not wip
     expect((await ctrl.gitStatus()).branch).toBe('feature-x');
   });
 
@@ -194,22 +194,22 @@ describe('Controller — git dla aktywnego szablonu', { timeout: 20000 }, () => 
     const dir = ctrl.activeGit.dir;
     ctrl.state.session._stopWatcher();
 
-    // utwórz drugi strumień (czysty checkpoint), wróć pracą do main
+    // create a second stream (a clean checkpoint), then work back onto main
     fs.writeFileSync(store.localFilePath(shopName, 5, 0, 'index.liquid'), 'A');
     ctrl._pendingCommitFiles.add('index.liquid');
     await ctrl._doAutoCommit();
-    await ctrl.gitCheckpoint('cp', 'release'); // target = release teraz
-    ctrl._persistTargetBranch('main');         // wróć strumieniem na main do testu
+    await ctrl.gitCheckpoint('cp', 'release'); // target = release now
+    ctrl._persistTargetBranch('main');         // move the stream back to main for the test
 
-    // nowa niezatwierdzona wersja na wip (względem main)
+    // a new uncommitted version on wip (relative to main)
     fs.writeFileSync(store.localFilePath(shopName, 5, 0, 'index.liquid'), 'B');
     ctrl._pendingCommitFiles.add('index.liquid');
     await ctrl._doAutoCommit();
     expect(await ctrl.gitUncommittedCount()).toBeGreaterThan(0);
 
-    // bez discard → guard
+    // without discard → guard
     await expect(ctrl.gitSwitchBranch('release')).rejects.toThrow();
-    // z discard → przełącza strumień i porzuca wip
+    // with discard → switches the stream and drops wip
     await ctrl.gitSwitchBranch('release', { discard: true });
     expect(ctrl.activeGit.targetBranch).toBe('release');
     expect(await ctrl.gitUncommittedCount()).toBe(0);
@@ -296,33 +296,33 @@ describe('Controller — git dla aktywnego szablonu', { timeout: 20000 }, () => 
     const dir = ctrl.activeGit.dir;
     fs.writeFileSync(store.localFilePath(shopName, 5, 0, 'index.liquid'), 'A');
     ctrl._pendingCommitFiles.add('index.liquid');
-    // Dwa równoległe wywołania — muszą zakończyć się bez błędu index.lock.
+    // Two concurrent calls — must finish without an index.lock error.
     await Promise.all([ctrl._doAutoCommit(), ctrl._doAutoCommit()]);
     expect(await git.currentBranch(dir)).toBe('liquidflow/wip');
   });
 
   it('gitPull bez skonfigurowanego remote loguje GitNoRemoteConfigured i nie rzuca błędu', async () => {
     await connectAndSelect();
-    await ctrl.gitEnable(); // inicjalizuje repo BEZ remote
+    await ctrl.gitEnable(); // initializes the repo WITHOUT a remote
     const dir = ctrl.activeGit.dir;
 
-    // Upewniamy się, że remote naprawdę nie jest ustawiony.
+    // Make sure the remote is really not set.
     expect(await git.getRemote(dir)).toBeNull();
 
-    // Zatrzymaj watcher, by uniknąć race conditions.
+    // Stop the watcher to avoid race conditions.
     ctrl.state.session._stopWatcher();
 
     const loggedErrors = [];
     logbuf.events.on('entry', (e) => { if (e.Color === logbuf.COLORS.red) loggedErrors.push(e); });
 
-    // gitPull nie powinien rzucać błędu — ma zalogować i zwrócić gitStatus.
+    // gitPull should not throw — it should log and return gitStatus.
     let result;
     await expect((async () => { result = await ctrl.gitPull(); })()).resolves.not.toThrow();
 
-    // Powinien zalogować komunikat o braku remote.
+    // It should log the "no remote" message.
     expect(loggedErrors.some((e) => e.msg === 'GitNoRemoteConfigured')).toBe(true);
 
-    // Wciąż na gałęzi wip (pull nie nastąpił).
+    // Still on the wip branch (no pull happened).
     expect(await git.currentBranch(dir)).toBe('liquidflow/wip');
   });
 
@@ -340,7 +340,7 @@ describe('Controller — git dla aktywnego szablonu', { timeout: 20000 }, () => 
     await expect((async () => { result = await ctrl.gitPush(); })()).resolves.not.toThrow();
 
     expect(loggedErrors.some((e) => e.msg === 'GitNoRemoteConfigured')).toBe(true);
-    // Gałąź wip niezmieniona.
+    // The wip branch is unchanged.
     expect(await git.currentBranch(dir)).toBe('liquidflow/wip');
   });
 });

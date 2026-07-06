@@ -1,66 +1,66 @@
-// Czysta logika layoutu wysokości — degradacja nagłówka przy niskim oknie.
+// Pure height-layout logic — header degradation on a low window.
 //
-// Zasada: nagłówek ustępuje miejsca treści, gdy okno robi się niskie. Schodzimy
-// po piętrach: pełny (logo) → compact (1 wiersz) → ukryty (modal „nachodzi" na
-// nagłówek, jak position:absolute w webie — w terminalu nie ma z‑indexu, więc po
-// prostu go nie renderujemy). Gdy nawet bez nagłówka nie mieści się minimum
-// trybu — zwracamy `guard` (ekran „okno za małe").
+// Rule: the header gives way to content as the window gets low. We step down the
+// tiers: full (logo) → compact (1 row) → hidden (the modal "takes over" the header,
+// like position:absolute on the web — the terminal has no z-index, so we simply do
+// not render it). When even without the header the mode's minimum does not fit — we
+// return `guard` (the "window too small" screen).
 import { HEADER_STACK_COLS } from './components/Header.jsx';
 
-// Realne wysokości nagłówka (wraz z górnym dividerem pod nim):
-//  - pełny 2‑kolumnowy: marginTop(1)+logo(6)+divider(1) = 8,
-//  - pełny pionowy (wąskie okno): logo+informacje pod sobą = 14,
-//  - compact: 1 wiersz nagłówka + divider = 2.
+// Actual header heights (including the top divider below it):
+//  - full 2-column: marginTop(1)+logo(6)+divider(1) = 8,
+//  - full vertical (narrow window): logo+info stacked = 14,
+//  - compact: 1 header row + divider = 2.
 export const FULL_HEADER_ROWS = 8;
 export const FULL_HEADER_STACKED_ROWS = 14;
 export const COMPACT_HEADER_ROWS = 2;
 
-// Próg, od którego w ogóle dopuszczamy pełny nagłówek (spójny z dawnym fillHeight).
+// Threshold above which we allow a full header at all (consistent with the former fillHeight).
 export const FULL_HEADER_MIN_TERM_ROWS = 16;
 
-// Ile wierszy treści POD nagłówkiem potrzebuje dany tryb, by był użyteczny.
-// (chrome nakładek = ramka 2 + tytuł 1 + pomoc/stopka 1 = 4)
-// To MINIMUM (1 pozycja / 1 karta) — używane do globalnej podłogi i guardu, NIE
-// do wyboru wariantu nagłówka (tym steruje `naturalBodyRows`).
+// How many content rows BELOW the header a given mode needs to be usable.
+// (overlay chrome = frame 2 + title 1 + help/footer 1 = 4)
+// This is the MINIMUM (1 item / 1 card) — used for the global floor and the guard,
+// NOT for choosing the header variant (that is driven by `naturalBodyRows`).
 export function minBodyRows(mode) {
   switch (mode?.type) {
-    case 'conflicts': return 4 + 3 + (mode.bulk?.length ? 1 : 0); // chrome + 1 karta (3) + stopka
+    case 'conflicts': return 4 + 3 + (mode.bulk?.length ? 1 : 0); // chrome + 1 card (3) + footer
     case 'picker':
     case 'connect':
     case 'form':
-    case 'diff': return 5; // chrome + 1 pozycja/linia
-    case 'loading': return 4; // ramka + tytuł + spinner
-    case 'info': return 4; // ramka + tytuł + komunikat + odliczenie
-    default: return 2; // input: minimalnie log/divider + pole
+    case 'diff': return 5; // chrome + 1 item/line
+    case 'loading': return 4; // frame + title + spinner
+    case 'info': return 4; // frame + title + message + countdown
+    default: return 2; // input: minimally log/divider + field
   }
 }
 
-// Ile wierszy treści tryb chce pokazać W CAŁOŚCI (cała lista / wszystkie karty,
-// bez okienkowania) — „naturalna" wysokość nakładki. To jej steruje degradacją
-// nagłówka: wolimy zmniejszyć/ukryć nagłówek niż okienkować pozycje (patrz
-// `headerLayout`). MUSI być spójne z `overlayNatural` w App.jsx — ta sama liczba
-// decyduje, kiedy nakładka zaczyna się okienkować, więc liczby chrome (+4/+6,
-// karta = 4 wiersze) muszą się zgadzać. Dla `input`/`loading` natural = minimum:
-// log jest przewijanym wypełniaczem, a loader ma stałą, drobną treść — nie
-// wymuszają degradacji nagłówka.
+// How many content rows a mode wants to show IN FULL (the whole list / all cards,
+// without windowing) — the "natural" overlay height. This drives header degradation:
+// we prefer to shrink/hide the header rather than window the items (see
+// `headerLayout`). It MUST be consistent with `overlayNatural` in App.jsx — the same
+// number decides when the overlay starts windowing, so the chrome figures (+4/+6,
+// card = 4 rows) must match. For `input`/`loading` natural = minimum: the log is a
+// scrollable filler and the loader has fixed, small content — they do not force
+// header degradation.
 export function naturalBodyRows(mode) {
   switch (mode?.type) {
     case 'picker': return (mode.items?.length || 0) + 4;
     case 'connect': return (mode.shops?.length || 0) + 6;
     case 'conflicts': return (mode.files?.length || 0) * 4 + (mode.bulk?.length ? 1 : 0) + 4;
     case 'form': return (mode.fields?.length || 0) + 4;
-    // podgląd diff: zwinięty → `lines`, rozwinięty (Tab) → `fullLines`. Nakładka
-    // rośnie po rozwinięciu, więc Tab powiększa okno (a nie wciska treść w 1 wiersz).
+    // diff preview: collapsed → `lines`, expanded (Tab) → `fullLines`. The overlay
+    // grows once expanded, so Tab enlarges the window (rather than squeezing content into 1 row).
     case 'diff': return (mode.expanded ? (mode.fullLines ?? mode.lines ?? 0) : (mode.lines || 0)) + 4;
-    // ramka (2) + tytuł opcjonalny (1) + komunikat (1) + odliczenie (1)
+    // frame (2) + optional title (1) + message (1) + countdown (1)
     case 'info': return 2 + (mode.title ? 1 : 0) + 2;
     default: return minBodyRows(mode); // loading/input
   }
 }
 
-// Wszystkie tryby, które mogą się pojawić w trakcie pracy — do policzenia
-// globalnej podłogi (najcięższy ekran). `conflicts` z operacjami seryjnymi to
-// najwyższy wymóg. Bierzemy najgorszy przypadek każdego trybu.
+// All modes that can appear during work — for computing the global floor (the
+// heaviest screen). `conflicts` with bulk operations is the highest requirement.
+// We take the worst case of each mode.
 const ALL_MODES = [
   { type: 'conflicts', bulk: [0] },
   { type: 'picker' },
@@ -70,44 +70,44 @@ const ALL_MODES = [
   { type: 'input' },
 ];
 
-// Globalna minimalna wysokość okna dla CAŁEJ aplikacji: tyle, ile potrzebuje
-// najcięższy ekran (root = termRows, więc bez „+1"). Dzięki temu komunikat „za
-// małe okno" pojawia się od razu (przy każdym ekranie), a nie dopiero po wejściu
-// w cięższy ekran w środku pracy — minimum jest spójne dla wszystkich trybów.
+// Global minimum window height for the WHOLE application: as much as the heaviest
+// screen needs (root = termRows, so no "+1"). This way the "window too small"
+// message appears immediately (on every screen), not only after entering a heavier
+// screen mid-work — the minimum is consistent across all modes.
 export function appMinRows() {
   return Math.max(...ALL_MODES.map(minBodyRows));
 }
 
-// Wybór wariantu nagłówka wg wysokości okna i bieżącego trybu.
-// Zwraca { mode: 'full'|'compact'|'none'|'guard', height, minRows }.
-// `height` to liczba wierszy zajętych przez nagłówek (z górnym dividerem);
-// `minRows` to GLOBALNE minimum aplikacji (do komunikatu guard, spójne wszędzie).
+// Choose the header variant by window height and the current mode.
+// Returns { mode: 'full'|'compact'|'none'|'guard', height, minRows }.
+// `height` is the number of rows the header occupies (with the top divider);
+// `minRows` is the GLOBAL application minimum (for the guard message, consistent everywhere).
 //
-// Zasada doboru: bierzemy NAJWIĘKSZY wariant nagłówka, przy którym CAŁA treść
-// trybu (`naturalBodyRows`) jeszcze się mieści POD nagłówkiem — bez okienkowania.
-// Gdy treści jest dużo (np. wiele plików w /conflicts albo długa lista), pełny
-// nagłówek by ją okienkował (mniej widocznych pozycji), więc schodzimy do compact,
-// a potem chowamy nagłówek (none) — treść dostaje całą wysokość zamiast tracić
-// pozycje. Gdy nawet bez nagłówka treść się nie mieści, i tak `none` (max miejsca;
-// nakładka sama się wtedy okienkuje). Lekkie tryby (input — log przewija się;
-// loader) mają `naturalBodyRows = minimum`, więc trzymają pełny nagłówek, gdy okno
-// na to pozwala.
+// Selection rule: we take the LARGEST header variant at which the mode's ENTIRE
+// content (`naturalBodyRows`) still fits BELOW the header — without windowing. When
+// there is a lot of content (e.g. many files in /conflicts or a long list), a full
+// header would window it (fewer visible items), so we drop to compact and then hide
+// the header (none) — the content gets the whole height instead of losing items.
+// When even without the header the content does not fit, we still use `none` (max
+// space; the overlay then windows itself). Light modes (input — the log scrolls;
+// loader) have `naturalBodyRows = minimum`, so they keep the full header when the
+// window allows.
 //
-// Guard używa globalnej podłogi (`appMinRows`, liczonej z `minBodyRows`), a NIE
-// naturalnej wysokości — inaczej info o za małym oknie wyskakiwałoby przy każdej
-// dłuższej liście. Po przejściu podłogi `under(0) >= minBodyRows` zachodzi dla
-// każdego trybu, więc 'none' zawsze zmieści przynajmniej minimum bieżącego trybu.
-// `pref` — preferencja użytkownika z ustawień: 'auto' (domyślnie, degradacja jak
-// wyżej) albo 'compact' (nagłówek ZAWSZE zwinięty do 1 wiersza, gdy się mieści —
-// nigdy pełne logo). Niezależnie od `pref` schodzimy do 'none'/'guard', gdy okno
-// jest za niskie nawet na compact.
+// Guard uses the global floor (`appMinRows`, computed from `minBodyRows`), NOT the
+// natural height — otherwise the "window too small" notice would pop up on every
+// longer list. Above the floor `under(0) >= minBodyRows` holds for every mode, so
+// 'none' always fits at least the current mode's minimum.
+// `pref` — the user's preference from settings: 'auto' (default, degradation as
+// above) or 'compact' (the header is ALWAYS collapsed to 1 row when it fits — never
+// the full logo). Regardless of `pref` we drop to 'none'/'guard' when the window is
+// too low even for compact.
 export function headerLayout({ termRows, termCols, mode, pref = 'auto' }) {
   const minRows = appMinRows();
   if (termRows < minRows) return { mode: 'guard', height: 0, minRows };
 
   const want = naturalBodyRows(mode);
   const fullH = termCols < HEADER_STACK_COLS ? FULL_HEADER_STACKED_ROWS : FULL_HEADER_ROWS;
-  const under = (h) => termRows - h; // root rośnie do pełnej wysokości (termRows)
+  const under = (h) => termRows - h; // root grows to full height (termRows)
   if (pref !== 'compact' && termRows >= FULL_HEADER_MIN_TERM_ROWS && under(fullH) >= want)
     return { mode: 'full', height: fullH, minRows };
   if (under(COMPACT_HEADER_ROWS) >= want)

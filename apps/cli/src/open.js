@@ -1,5 +1,5 @@
-// Otwieranie ścieżki/URL w domyślnej aplikacji systemowej (odpowiednik
-// shell.openPath/openExternal z wersji desktopowej).
+// Opens a path/URL in the default system application (the equivalent of
+// shell.openPath/openExternal from the desktop version).
 
 import { spawn } from 'node:child_process';
 
@@ -12,6 +12,6 @@ export function openExternal(target) {
   try {
     spawn(cmd, args, { detached: true, stdio: 'ignore' }).unref();
   } catch {
-    /* brak systemowego openera — ignoruj */
+    /* no system opener available — ignore */
   }
 }

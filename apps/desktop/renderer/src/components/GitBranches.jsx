@@ -7,8 +7,8 @@ import ConfirmButton from './ConfirmButton.jsx';
 import { fmt } from '@/lib/utils';
 import { GitBranch, Check, Plus } from 'lucide-react';
 
-// Zarządzanie gałęziami (strumieniami) — lista + przełącz + utwórz. „Strumień
-// docelowy" to git.branch; ukryta gałąź wip nigdy się nie pojawia (rdzeń ją filtruje).
+// Branch (stream) management — list + switch + create. The "target stream" is
+// git.branch; the hidden wip branch never appears (the core filters it out).
 export default function GitBranches() {
   const { t, api, call, git, setGit } = useApp();
   const [branches, setBranches] = useState([]);

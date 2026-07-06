@@ -1,8 +1,8 @@
 import React from 'react';
 import { Box, Text, useStdout } from 'ink';
 
-// Pozioma linia na całą szerokość terminala — znak '─' (U+2500), jak divider
-// w Antigravity CLI. Kolor: jaśniejszy odcień niebieskiego tytułu.
+// A horizontal line spanning the full terminal width — the '─' character (U+2500),
+// like the divider in the Antigravity CLI. Color: a lighter shade of the title blue.
 export default function Divider({ color = '#82bbff' }) {
   const { stdout } = useStdout();
   const width = Math.max(1, stdout?.columns || 80);

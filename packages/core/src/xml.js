@@ -1,5 +1,5 @@
-// Minimalny parser i serializator XML wystarczający dla SOAP iSklep24.
-// Bez zależności zewnętrznych.
+// Minimal XML parser and serializer sufficient for the iSklep24 SOAP contract.
+// No external dependencies.
 
 export function escapeXml(s) {
   if (s == null) return '';
@@ -22,13 +22,13 @@ function unescapeXml(s) {
     .replace(/&amp;/g, '&');
 }
 
-// Parsuje XML do drzewa obiektów: { name, attrs, children:[], text }
+// Parses XML into a tree of objects: { name, attrs, children:[], text }
 export function parseXml(xml) {
-  // usuń deklarację XML i komentarze; sekcje CDATA nie są obsługiwane —
-  // Comarch ich nie wysyła, ale trafiłyby do tekstu bez dekodowania.
+  // strip the XML declaration and comments; CDATA sections are not supported —
+  // Comarch does not send them, but they would land in text without decoding.
   xml = xml.replace(/<\?xml[^>]*\?>/g, '').replace(/<!--[\s\S]*?-->/g, '');
-  // Atrybuty tylko z cudzysłowem podwójnym ("..."); apostrofy ('...') nie są obsługiwane
-  // — kontrakt ASMX zawsze używa ", więc nie stanowi to problemu w praktyce.
+  // Attributes only with double quotes ("..."); single quotes ('...') are not supported
+  // — the ASMX contract always uses ", so this is not a problem in practice.
   const tokenRe = /<(\/?)([A-Za-z_][\w.:-]*)((?:\s+[\w.:-]+\s*=\s*"[^"]*")*)\s*(\/?)>|([^<]+)/g;
   const root = { name: '#root', attrs: {}, children: [], text: '' };
   const stack = [root];
@@ -57,7 +57,7 @@ export function parseXml(xml) {
   return root;
 }
 
-// Pomijając przestrzenie nazw – dopasowanie po lokalnej części nazwy.
+// Ignoring namespaces — matching on the local part of the name.
 export function localName(n) {
   const i = n.indexOf(':');
   return i === -1 ? n : n.slice(i + 1);
@@ -74,7 +74,7 @@ export function find(node, name) {
   return null;
 }
 
-// Znajdź pierwszy węzeł o danej lokalnej nazwie w całym poddrzewie.
+// Find the first node with the given local name anywhere in the subtree.
 export function findDeep(node, name) {
   if (localName(node.name) === name) return node;
   for (const c of node.children) {

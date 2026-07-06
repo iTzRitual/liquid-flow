@@ -10,8 +10,8 @@ const ctx = {
     version: "0.9.151",
 };
 
-// Renderuje całe okno aplikacji jako „pływające" okno OS na tle pulpitu,
-// z ekranem onboardingu w środku.
+// Renders the whole application window as a "floating" OS window over a desktop
+// background, with the onboarding screen inside.
 function AppWindow({ platform }) {
     return (
         <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-300 to-slate-500 p-10 dark:from-slate-800 dark:to-slate-950">

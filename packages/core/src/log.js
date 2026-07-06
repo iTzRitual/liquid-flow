@@ -1,57 +1,57 @@
-// Bufor logu zdarzeń synchronizacji — z podziałem na kanały (scope).
+// Buffer of synchronization event log entries — split into channels (scope).
 //
-// W danym momencie aktywny jest dokładnie jeden kanał (bo aktywna jest tylko
-// jedna sesja synchronizacji naraz). Producenci nadal wołają logInfo/logOk/
-// logErr bez wiedzy o kanale — wpis trafia do bieżącego kanału. Controller
-// przełącza kanał przy połączeniu sklepu / wyborze szablonu / rozłączeniu:
-//   'app'                 — przed połączeniem (efemeryczny)
-//   'shop:<id>'           — połączony sklep, brak szablonu (efemeryczny)
-//   'tpl:<shopId>:<tplId>' — aktywny szablon (TRWAŁY: persist do pliku)
+// At any moment exactly one channel is active (because only one synchronization
+// session is active at a time). Producers still call logInfo/logOk/logErr without
+// knowing about channels — the entry goes to the current channel. The Controller
+// switches the channel on shop connect / template select / disconnect:
+//   'app'                  — before connecting (ephemeral)
+//   'shop:<id>'            — connected shop, no template (ephemeral)
+//   'tpl:<shopId>:<tplId>' — active template (PERSISTENT: persisted to a file)
 //
-// Wpis: { Id, TS, Text, Color, kind?, historic?, msg?, params?, sepKey?, sepTs? }.
-//  - kind:'separator'  — linia działowa (np. granica sesji),
-//  - historic:true     — wpis wczytany z poprzedniej sesji (renderowany wyszarzony),
-//  - msg + params      — DESKRYPTOR i18n: klucz tłumaczenia + parametry do `tfmt`.
-//    `Text` jest renderowany z deskryptora dla BIEŻĄCEGO języka. Dzięki temu
-//    `setLanguage` przerysowuje cały widoczny log (i wczytaną historię) na nowy
-//    język. Wpisy bez `msg` (literały: surowe błędy/stderr) zostają jak są.
-//  - sepKey + sepTs    — wariant deskryptora dla separatora (klucz + znacznik czasu).
+// Entry: { Id, TS, Text, Color, kind?, historic?, msg?, params?, sepKey?, sepTs? }.
+//  - kind:'separator'  — a divider line (e.g. a session boundary),
+//  - historic:true     — an entry loaded from a previous session (rendered dimmed),
+//  - msg + params      — i18n DESCRIPTOR: translation key + parameters for `tfmt`.
+//    `Text` is rendered from the descriptor for the CURRENT language. This lets
+//    `setLanguage` re-render the whole visible log (and loaded history) in the new
+//    language. Entries without `msg` (literals: raw errors/stderr) are left as-is.
+//  - sepKey + sepTs    — descriptor variant for a separator (key + timestamp).
 
 import { EventEmitter } from 'node:events';
 import { translationsFor, tfmt, localeFor } from './translations.js';
 
 export const COLORS = {
-  red: '#F00',    // błąd
+  red: '#F00',    // error
   gray: '#666',   // info
-  green: '#2A2',  // sukces
-  white: '#FFF',  // domyślny
-  sep: '#82bbff', // separator (jak Divider)
+  green: '#2A2',  // success
+  white: '#FFF',  // default
+  sep: '#82bbff', // separator (matches Divider)
 };
 
 const MAX = 1000;
 const waiters = new Set(); // long-poll: { lastId, resolve }
 
-// Bieżący język renderowania logu. Zmieniany przez Controller.setLanguage.
+// Current log rendering language. Changed by Controller.setLanguage.
 let lang = 'pl';
 
-// Emiter zdarzeń: 'entry' przy każdym nowym wpisie (push dla UI),
-// 'reset' przy przełączeniu kanału / zmianie języka (pełna podmiana bufora).
+// Event emitter: 'entry' on every new entry (a push for the UI),
+// 'reset' on channel switch / language change (full buffer replacement).
 export const events = new EventEmitter();
 events.setMaxListeners(50);
 
-// Pomocnik dla producentów: zbuduj deskryptor i18n `{ msg, params }`.
-// Użycie: logOk(tmsg('ConnectedToShop', { name })).
+// Helper for producers: build an i18n descriptor `{ msg, params }`.
+// Usage: logOk(tmsg('ConnectedToShop', { name })).
 export function tmsg(key, params = {}) {
   return { msg: key, params };
 }
 
-// Spłaszcz tekst wpisu do JEDNEGO wiersza — surowy stderr gita bywa wielolinijkowy,
-// a LogPane liczy 1 wpis = 1 wiersz; osadzony \n rozsadza budżet (duplikacja kadru).
+// Flatten an entry's text to a SINGLE line — raw git stderr is sometimes multi-line,
+// and LogPane counts 1 entry = 1 row; an embedded \n blows the budget (frame duplication).
 function oneLine(s) {
   return String(s).replace(/[\t\f\v]+/g, ' ').replace(/\s*[\r\n]+\s*/g, ' ⏎ ').trim();
 }
 
-// Wyrenderuj `Text` wpisu dla bieżącego języka.
+// Render an entry's `Text` for the current language.
 function renderText(e) {
   if (e.kind === 'separator') {
     if (!e.sepKey) return e.Text || '';
@@ -67,12 +67,12 @@ function newChannel(key, persist) {
   return { key, entries: [], nextId: 1, persist };
 }
 
-// Aktywny kanał. Domyślnie 'app' (efemeryczny) — zanim pojawi się sklep/szablon.
+// The active channel. Defaults to 'app' (ephemeral) — before any shop/template appears.
 let active = newChannel('app', null);
 
-// Zmień język renderowania: przelicz `Text` dla wpisów z deskryptorem i18n
-// (oraz separatorów) w aktywnym kanale i wyemituj 'reset' z odświeżonym buforem.
-// Wpisy-literały (bez `msg`/`sepKey`) pozostają nietknięte.
+// Change the rendering language: recompute `Text` for entries carrying an i18n
+// descriptor (and separators) in the active channel and emit 'reset' with the
+// refreshed buffer. Literal entries (without `msg`/`sepKey`) are left untouched.
 export function setLanguage(newLang) {
   lang = newLang || 'pl';
   for (const e of active.entries) {
@@ -81,12 +81,12 @@ export function setLanguage(newLang) {
   events.emit('reset', active.entries.slice());
 }
 
-// Przełącz aktywny kanał. `opts.persist(entry)` zapisuje live-wpisy na dysk.
-// `opts.history` to wcześniej zapisane wpisy ({TS,Text,Color,kind,msg,params,…})
-// — ładowane jako historyczne (wyszarzone), z `Text` przeliczonym na bieżący
-// język (gdy niosą deskryptor i18n), bez ponownego zapisu.
+// Switch the active channel. `opts.persist(entry)` writes live entries to disk.
+// `opts.history` is previously saved entries ({TS,Text,Color,kind,msg,params,…})
+// — loaded as historic (dimmed), with `Text` recomputed for the current language
+// (when they carry an i18n descriptor), without re-saving.
 export function setActiveChannel(key, opts = {}) {
-  // odepnij oczekujących long-pollerów ze starego kanału
+  // detach long-pollers waiting on the old channel
   for (const w of [...waiters]) { waiters.delete(w); w.resolve([]); }
   const ch = newChannel(key, opts.persist || null);
   for (const h of opts.history || []) {
@@ -108,7 +108,7 @@ function push(entry) {
   active.entries.push(entry);
   if (active.entries.length > MAX) active.entries.shift();
   if (active.persist) { try { active.persist(entry); } catch {} }
-  // obudź oczekujących long-pollerów
+  // wake up waiting long-pollers
   for (const w of [...waiters]) {
     const fresh = since(w.lastId);
     if (fresh.length) { waiters.delete(w); w.resolve(fresh); }
@@ -117,7 +117,7 @@ function push(entry) {
   return entry;
 }
 
-// `spec` to literał (string) ALBO deskryptor i18n `{ msg, params }` (z tmsg()).
+// `spec` is a literal (string) OR an i18n descriptor `{ msg, params }` (from tmsg()).
 export function log(spec, color = COLORS.gray) {
   const e = { Id: active.nextId++, TS: new Date().toISOString(), Color: color };
   if (spec && typeof spec === 'object') { e.msg = spec.msg; e.params = spec.params || {}; }
@@ -126,8 +126,8 @@ export function log(spec, color = COLORS.gray) {
   return push(e);
 }
 
-// Wpis-separator (np. granica sesji) — renderowany jako linia działowa. `spec`
-// to literał (string) ALBO deskryptor `{ key, ts }` (klucz tłumaczenia + czas).
+// Separator entry (e.g. a session boundary) — rendered as a divider line. `spec`
+// is a literal (string) OR a descriptor `{ key, ts }` (translation key + time).
 export function separator(spec) {
   const e = { Id: active.nextId++, TS: new Date().toISOString(), Color: COLORS.sep, kind: 'separator' };
   if (spec && typeof spec === 'object') { e.sepKey = spec.key; e.sepTs = spec.ts; }
@@ -140,14 +140,14 @@ export const logInfo = (s) => log(s, COLORS.gray);
 export const logOk = (s) => log(s, COLORS.green);
 export const logErr = (s) => log(s, COLORS.red);
 
-// Zwróć wpisy aktywnego kanału o Id > lastId.
+// Return entries of the active channel with Id > lastId.
 export function since(lastId) {
   const n = Number(lastId) || 0;
   return active.entries.filter((e) => e.Id > n);
 }
 
-// Long-poll: czekaj na nowe wpisy (Id > lastId) lub do timeoutu.
-// `registerCancel(fn)` pozwala anulować oczekiwanie gdy klient się rozłączy.
+// Long-poll: wait for new entries (Id > lastId) or until the timeout.
+// `registerCancel(fn)` allows canceling the wait when the client disconnects.
 export function waitFor(lastId, timeoutMs, registerCancel) {
   const fresh = since(lastId);
   if (fresh.length) return Promise.resolve(fresh);

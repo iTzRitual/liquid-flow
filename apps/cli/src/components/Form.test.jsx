@@ -15,9 +15,9 @@ describe('Form — pola tekstowe', () => {
       { name: 'url', label: 'URL', initial: 'https://x.pl' },
     ];
     const api = render(<Form title="Połącz" fields={fields} onSubmit={onSubmit} t={t} />);
-    await press(api.stdin, keys.enter); // zatwierdź login (initial)
+    await press(api.stdin, keys.enter); // confirm login (initial)
     expect(onSubmit).not.toHaveBeenCalled();
-    await press(api.stdin, keys.enter); // zatwierdź url → submit
+    await press(api.stdin, keys.enter); // confirm url → submit
     expect(onSubmit).toHaveBeenCalledWith({ login: 'webmaster', url: 'https://x.pl' });
   });
 
@@ -36,7 +36,7 @@ describe('Form — pola tekstowe', () => {
       { name: 'b', label: 'B', initial: 'ok' },
     ];
     const api = render(<Form title="F" fields={fields} onSubmit={onSubmit} t={t} />);
-    await press(api.stdin, keys.enter); // próba przejścia z pustego wymaganego
+    await press(api.stdin, keys.enter); // an attempt to advance from an empty required field
     await press(api.stdin, keys.enter);
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -50,7 +50,7 @@ describe('Form — pole wyboru (choice)', () => {
         options: [{ label: 'Tak', value: true }, { label: 'Nie', value: false }] },
     ];
     const api = render(<Form title="F" fields={fields} onSubmit={onSubmit} t={t} />);
-    // domyślnie pierwsza opcja (true); → przełącza na false
+    // defaults to the first option (true); → toggles to false
     await press(api.stdin, keys.right, keys.enter);
     expect(onSubmit).toHaveBeenCalledWith({ save: false });
   });

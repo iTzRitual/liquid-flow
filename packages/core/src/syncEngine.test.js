@@ -3,9 +3,9 @@ import fs from 'node:fs';
 import { SyncSession, MismatchType } from './syncEngine.js';
 import * as store from './store.js';
 
-// Fake klient SOAP — wstrzykiwany przez opts.client (seam w konstruktorze).
-// Wszystkie metody sieciowe podmienione na sterowalne atrapy; `calls` rejestruje
-// wywołania do asercji integracyjnych (sync → store, bez prawdziwego SOAP).
+// Fake SOAP client — injected via opts.client (a seam in the constructor).
+// All network methods are replaced with controllable stubs; `calls` records the
+// invocations for integration assertions (sync → store, without real SOAP).
 function fakeClient(remoteMeta = []) {
   return {
     calls: [],
@@ -37,8 +37,8 @@ function makeSession(shop, client) {
   return new SyncSession(shop, template, { client, language: 'pl' });
 }
 
-// Świeży, unikalny sklep per test — pliki lokalne żyją na dysku w obrębie pliku
-// testowego (jeden LIQUID_FLOW_HOME), więc izolujemy je nazwą sklepu.
+// A fresh, unique shop per test — local files live on disk within the test file
+// (a single LIQUID_FLOW_HOME), so we isolate them by shop name.
 let session, client, shop, n = 0;
 beforeEach(() => {
   shop = { Id: 1, Name: `TestShop${n++}`, Url: 'http://x', Login: 'webmaster', Password: '' };
@@ -67,9 +67,9 @@ describe('refreshMismatches — wykrywanie konfliktów', () => {
 
   it('Timestamp: po obu stronach, ale zdalny znacznik się zmienił', async () => {
     const localts = store.writeLocalFile(shop.Name, template.Id, 0, 'both.liquid', Buffer.from('x'));
-    // meta zsynchronizowane z poprzednim zdalnym Date
+    // meta synchronized with the previous remote Date
     store.setMetaEntry(shop.Name, template.Id, 0, 'both.liquid', localts, '2026-01-01T00:00:00');
-    // sklep zwraca NOWSZY Date → konflikt timestamp
+    // the shop returns a NEWER Date → a timestamp conflict
     client.remoteMeta = [{ Mode: 0, Name: 'both.liquid', Date: '2026-06-01T00:00:00' }];
     const list = await session.refreshMismatches({ silent: true });
     expect(list).toHaveLength(1);

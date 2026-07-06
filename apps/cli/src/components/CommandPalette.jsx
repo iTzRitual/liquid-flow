@@ -3,9 +3,9 @@ import { Box, Text } from 'ink';
 import { tfmt } from '@liquidflow/core';
 import { windowList } from '../window.js';
 
-// Paleta slash-komend z autouzupełnianiem. Renderowanie sterowane z App:
-// `items` to przefiltrowana lista, `index` to podświetlona pozycja. `maxRows`
-// ogranicza wysokość — przy dłuższej liście okno przewija się za zaznaczeniem.
+// The slash-command palette with autocomplete. Rendering is driven from App:
+// `items` is the filtered list, `index` is the highlighted item. `maxRows` caps
+// the height — with a longer list, the window scrolls with the selection.
 export default function CommandPalette({ items, index, maxRows = 12, t }) {
   if (!items.length) {
     return (

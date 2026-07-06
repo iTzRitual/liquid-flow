@@ -55,7 +55,7 @@ describe('ConnectList — nawigacja', () => {
 
   it('↓ przez sklepy wchodzi w stopkę; ↑↓ chodzi po tej samej sekwencji', async () => {
     const { api, onShop, onAction } = setup();
-    // 2 sklepy → trzeci ↓ ląduje na pierwszym przycisku (logout)
+    // 2 shops → the third ↓ lands on the first button (logout)
     await press(api.stdin, keys.down, keys.down, keys.enter);
     expect(onAction).toHaveBeenCalledWith('logout');
     expect(onShop).not.toHaveBeenCalled();
@@ -63,7 +63,7 @@ describe('ConnectList — nawigacja', () => {
 
   it('→ w stopce przechodzi między przyciskami', async () => {
     const { api, onAction } = setup();
-    // wejdź w stopkę (na logout), → na add, → na remove
+    // enter the footer (on logout), → to add, → to remove
     await press(api.stdin, keys.down, keys.down, keys.right, keys.right, keys.enter);
     expect(onAction).toHaveBeenCalledWith('remove');
   });

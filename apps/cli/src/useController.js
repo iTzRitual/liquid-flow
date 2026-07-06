@@ -1,6 +1,6 @@
-// Hook mostkujący rdzeń (@liquidflow/core Controller) do stanu Reacta/Ink.
-// Subskrybuje zdarzenia kontrolera (log / mismatches / state / git) i wystawia
-// aktualny stan oraz odświeżanie listy sklepów.
+// A hook bridging the core (@liquidflow/core Controller) to React/Ink state.
+// Subscribes to controller events (log / mismatches / state / git) and exposes
+// the current state plus a shop-list refresh.
 
 import { useEffect, useState, useCallback } from 'react';
 import { connectController, translationsFor } from '@liquidflow/core';
@@ -14,8 +14,8 @@ export function useController() {
   const [t, setT] = useState(() => translationsFor('pl'));
   const [mismatches, setMismatches] = useState([]);
   const [log, setLog] = useState([]);
-  // Rośnie przy każdym przełączeniu kanału logu (zmiana sklepu/szablonu) — App
-  // używa go, by zjechać scrollem na dół świeżego strumienia.
+  // Increments on every log channel switch (shop/template change) — App uses it
+  // to scroll to the bottom of the fresh stream.
   const [logVersion, setLogVersion] = useState(0);
   const [git, setGit] = useState(null);
   const [shops, setShops] = useState([]);
@@ -26,11 +26,11 @@ export function useController() {
     let disposed = false;
 
     const onLog = (e) => setLog((l) => [...l, e].slice(-LOG_LIMIT));
-    // Pełna podmiana bufora po przełączeniu kanału (osobny log per szablon/sklep).
+    // A full buffer replacement after switching the channel (a separate log per template/shop).
     const onLogReset = (entries) => { setLog((entries || []).slice(-LOG_LIMIT)); setLogVersion((v) => v + 1); };
     const onMis = (m) => setMismatches(m || []);
-    // Zmiana stanu = potencjalna zmiana połączenia (login/logout) → odśwież listę
-    // sklepów, żeby flaga isCurrent (● bieżący / URL) była zawsze aktualna.
+    // A state change = a potential connection change (login/logout) → refresh the
+    // shop list, so the isCurrent flag (● current / URL) is always up to date.
     const onState = (s) => {
       if (!s) return;
       setState(s);

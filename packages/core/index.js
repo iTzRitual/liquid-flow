@@ -1,6 +1,5 @@
-// @liquidflow/core — publiczne API logiki wspólnej (niezależnej od warstwy
-// prezentacji). Używane zarówno przez aplikację desktopową (Electron), jak i
-// przez CLI (`liquidflow`).
+// @liquidflow/core — public API for the shared, presentation-agnostic logic.
+// Consumed by both the desktop application (Electron) and the CLI (`liquidflow`).
 
 export { Controller } from './src/controller.js';
 export { ISklep24Client, SoapError } from './src/soap.js';

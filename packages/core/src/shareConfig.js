@@ -1,8 +1,8 @@
-// Nagłówek: Przenośny pakiet konfiguracji sklepów (export/import między maszynami).
-// Hasła w config.json są szyfrowane KLUCZEM LOKALNYM maszyny, więc surowa kopia
-// jest bezużyteczna gdzie indziej. Tutaj: (1) budujemy rekordy z ODSZYFROWANYMI
-// hasłami (caller podaje decryptFn), (2) szyfrujemy CAŁY pakiet hasłem
-// użytkownika (PBKDF2 + AES-256-GCM). Pusta fraza → pakiet BEZ haseł.
+// Portable shop configuration bundle (export/import between machines).
+// Passwords in config.json are encrypted with the machine's LOCAL KEY, so a raw
+// copy is useless elsewhere. Here we: (1) build records with DECRYPTED passwords
+// (the caller provides decryptFn), (2) encrypt the WHOLE bundle with the user's
+// passphrase (PBKDF2 + AES-256-GCM). An empty passphrase → a bundle WITHOUT passwords.
 import crypto from 'node:crypto';
 
 export const BUNDLE_APP = 'LiquidFlow';
@@ -14,8 +14,8 @@ export class ShareError extends Error {
   constructor(code) { super(code); this.name = 'ShareError'; this.code = code; }
 }
 
-// Zbuduj rekordy do udostępnienia z PEŁNYCH rekordów config.Shops.
-// includeSecrets=false → hasła pominięte (SavePassword=false), do pakietu bez frazy.
+// Build shareable records from the FULL config.Shops records.
+// includeSecrets=false → passwords omitted (SavePassword=false), for a passphrase-less bundle.
 export function buildShopRecords(shops, decryptFn, includeSecrets) {
   return (shops || []).map((s) => {
     const rec = {
@@ -38,8 +38,8 @@ export function buildShopRecords(shops, decryptFn, includeSecrets) {
   });
 }
 
-// Zapakuj rekordy w przenośną kopertę. Pusta fraza → koperta jawna (rekordy
-// muszą już być bez sekretów). Niepusta → PBKDF2 + AES-256-GCM.
+// Pack records into a portable envelope. An empty passphrase → a plaintext envelope
+// (the records must already be free of secrets). A non-empty one → PBKDF2 + AES-256-GCM.
 export function buildEnvelope(records, passphrase) {
   const pass = passphrase == null ? '' : String(passphrase);
   const base = {
@@ -61,7 +61,7 @@ export function buildEnvelope(records, passphrase) {
   };
 }
 
-// Odczytaj kopertę → rekordy. Rzuca ShareError('BadFormat'|'PassphraseRequired'|'BadPassphrase').
+// Read an envelope → records. Throws ShareError('BadFormat'|'PassphraseRequired'|'BadPassphrase').
 export function readEnvelope(envelope, passphrase) {
   if (!envelope || envelope.app !== BUNDLE_APP || envelope.kind !== BUNDLE_KIND) {
     throw new ShareError('BadFormat');
@@ -84,6 +84,6 @@ export function readEnvelope(envelope, passphrase) {
     return JSON.parse(pt.toString('utf8'));
   } catch (e) {
     if (e instanceof ShareError) throw e;
-    throw new ShareError('BadPassphrase'); // zła fraza → GCM auth fail
+    throw new ShareError('BadPassphrase'); // wrong passphrase → GCM auth fail
   }
 }

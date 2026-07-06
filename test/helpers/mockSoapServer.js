@@ -1,20 +1,20 @@
-// Lokalny serwer HTTP udający web-service Comarch e-Sklep (iSklep24Service.asmx).
-// Pozwala testować `ISklep24Client` / `SyncSession` na PRAWDZIWYM gnieździe
-// (klient wspiera http i sam buduje endpoint przez `endpointFor`), bez sieci i
-// bez prawdziwego sklepu.
+// A local HTTP server impersonating the Comarch e-Sklep web service (iSklep24Service.asmx).
+// Lets you test `ISklep24Client` / `SyncSession` against a REAL socket (the
+// client supports http and builds its own endpoint via `endpointFor`), without
+// network access or a real shop.
 //
 //   const srv = await startMockSoap({ handlers: { SignIn: () => true } });
 //   const client = new ISklep24Client(srv.url);   // url = http://127.0.0.1:PORT
 //   ...
-//   srv.requests  // przechwycone żądania [{ method, body }]
+//   srv.requests  // captured requests [{ method, body }]
 //   await srv.close();
 //
-// `handlers[method]` to funkcja (req) => wynik:
-//   - string/number/bool → owijane w <MethodResult>…</MethodResult>
-//   - { resultXml }       → surowy XML wstawiany jako wnętrze <MethodResult>
-//   - { fault }           → zwraca SOAP Fault (fault.string / fault.code / fault.detail)
-//   - { setCookie }       → dokłada nagłówek Set-Cookie (do testu jara sesji)
-//   - { raw }             → cała koperta odpowiedzi (pełna kontrola)
+// `handlers[method]` is a function (req) => result:
+//   - string/number/bool → wrapped in <MethodResult>…</MethodResult>
+//   - { resultXml }       → raw XML inserted as the <MethodResult> body
+//   - { fault }           → returns a SOAP Fault (fault.string / fault.code / fault.detail)
+//   - { setCookie }       → adds a Set-Cookie header (for testing the session jar)
+//   - { raw }             → the entire response envelope (full control)
 import http from 'node:http';
 
 const NS = 'http://www.icomarch24.pl/iSklep24';
@@ -42,7 +42,7 @@ function faultEnvelope({ string = 'SOAP Fault', code = 'soap:Server', detail } =
   );
 }
 
-// Wydobądź nazwę metody z nagłówka SOAPAction ("…/iSklep24/SignIn").
+// Extract the method name from the SOAPAction header ("…/iSklep24/SignIn").
 function methodFromAction(action = '') {
   const m = String(action).replace(/"/g, '').split('/').pop();
   return m || '';
@@ -96,8 +96,8 @@ export function startMockSoap({ handlers = {}, host = '127.0.0.1' } = {}) {
   });
 }
 
-// Pomocnik: zbuduj <LiquidTemplate> z zawartością (base64) — do odpowiedzi
-// Liquid_FilesGet / Liquid_FilesMetaGet.
+// Helper: build a <LiquidTemplate> with content (base64) — for the
+// Liquid_FilesGet / Liquid_FilesMetaGet response.
 export function liquidTemplateXml({ id = 0, mode = 0, name = '', content = null, date = '0001-01-01T00:00:00' }) {
   const tpl =
     `<TemplateId>${id}</TemplateId><Mode>${mode}</Mode>` +

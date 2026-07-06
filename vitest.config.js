@@ -1,27 +1,27 @@
 import { defineConfig } from 'vitest/config';
 
-// Konfiguracja testów (Vitest). Cały projekt to ESM, więc bez transpilacji.
-// Faza 1 obejmuje rdzeń (`packages/core`) oraz czystą logikę CLI (`window.js`).
-// Testy komponentów Ink (ink-testing-library) i renderera web dojdą w kolejnych
-// fazach — wystarczy dorzucić globy do `include` i ewentualnie projekt z
-// environment 'jsdom'.
+// Test configuration (Vitest). The whole project is ESM, so no transpilation.
+// Phase 1 covers the core (`packages/core`) and pure CLI logic (`window.js`).
+// Ink component tests (ink-testing-library) and web renderer tests will be added
+// in later phases — it is enough to add globs to `include` and, if needed, a
+// project with the 'jsdom' environment.
 export default defineConfig({
   test: {
-    // Tylko nasze pliki *.test.* — nie ruszamy ręcznych skryptów render-smoke
-    // (apps/cli/test/*.mjs), które nadal odpalasz przez `node`.
+    // Only our *.test.* files — we do not touch the manual render-smoke scripts
+    // (apps/cli/test/*.mjs), which you still run via `node`.
     include: [
       'packages/core/**/*.test.js',
       'apps/cli/**/*.test.js',
-      // Komponenty Ink (JSX) — interakcje przez ink-testing-library.
+      // Ink components (JSX) — interactions via ink-testing-library.
       'apps/cli/**/*.test.jsx',
       'apps/mcp/**/*.test.js',
     ],
     environment: 'node',
-    // Świeży, izolowany katalog danych (LIQUID_FLOW_HOME) per plik testowy —
-    // ustawiany ZANIM `store.js` policzy swoje ścieżki przy imporcie.
+    // A fresh, isolated data directory (LIQUID_FLOW_HOME) per test file — set
+    // BEFORE `store.js` computes its paths at import time.
     setupFiles: ['./test/setup/tmpHome.js'],
-    // Każdy plik w osobnym module registry: env z setupFiles obowiązuje przed
-    // statycznymi importami testowanego modułu.
+    // Every file gets its own module registry: the env from setupFiles takes
+    // effect before the static imports of the tested module.
     isolate: true,
     clearMocks: true,
   },

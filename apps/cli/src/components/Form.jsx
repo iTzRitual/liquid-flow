@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 
-// Sekwencyjny formularz. Pola:
-//   tekst:  { name, label, mask?, initial?, optional? }
-//   wybór:  { name, label, type:'choice', initial?, options:[{label,value}] }
-// Enter zatwierdza pole i przechodzi dalej; po ostatnim wywołuje onSubmit(values).
-// W polu wyboru strzałki ←/→ (lub ↑/↓) zmieniają opcję. Esc anuluje formularz.
+// A sequential form. Fields:
+//   text:   { name, label, mask?, initial?, optional? }
+//   choice: { name, label, type:'choice', initial?, options:[{label,value}] }
+// Enter confirms the field and moves on; after the last one it calls onSubmit(values).
+// In a choice field, ←/→ (or ↑/↓) arrows change the option. Esc cancels the form.
 export default function Form({ title, fields, onSubmit, onCancel, t }) {
   const initialValue = (f) =>
     f.initial !== undefined ? f.initial : (f.type === 'choice' ? f.options?.[0]?.value : '');
@@ -36,7 +36,7 @@ export default function Form({ title, fields, onSubmit, onCancel, t }) {
 
   useInput((input, key) => {
     if (key.escape) { onCancel?.(); return; }
-    if (f.type !== 'choice') return; // pola tekstowe obsługuje TextInput
+    if (f.type !== 'choice') return; // text fields are handled by TextInput
     const opts = f.options;
     const i = Math.max(0, opts.findIndex((o) => o.value === values[f.name]));
     if (key.leftArrow || key.upArrow) {
@@ -50,7 +50,7 @@ export default function Form({ title, fields, onSubmit, onCancel, t }) {
 
   const submitText = (val) => {
     const v = val ?? '';
-    if (!v && !f.optional) return; // wymagane pole — nie idź dalej
+    if (!v && !f.optional) return; // required field — do not advance
     advance(v);
   };
 

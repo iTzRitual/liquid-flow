@@ -4,8 +4,8 @@ import path from 'node:path';
 import * as store from './store.js';
 import { defaultAppDir } from './store.js';
 
-// Każdy test używa innej nazwy sklepu, więc współdzielą jeden LIQUID_FLOW_HOME
-// (ustawiony w setupFile) bez wzajemnych kolizji.
+// Each test uses a different shop name, so they share a single LIQUID_FLOW_HOME
+// (set in setupFile) without colliding with each other.
 let shop;
 let n = 0;
 beforeEach(() => { shop = `Sklep${n++}`; });
@@ -79,9 +79,9 @@ describe('isSafeRelName / ochrona przed path traversal (zapis)', () => {
 });
 
 describe('config', () => {
-  // config.json ma STAŁĄ ścieżkę (nie zależy od nazwy sklepu), więc w obrębie
-  // pliku testy konfiguracji dzielą jeden plik. Czyścimy go przed każdym, by
-  // 'brak pliku' nie zależał od kolejności (np. pod `--sequence.shuffle`).
+  // config.json has a FIXED path (independent of shop name), so within the file
+  // the config tests share a single file. We clear it before each so that
+  // 'no file' does not depend on ordering (e.g. under `--sequence.shuffle`).
   beforeEach(() => { try { fs.rmSync(store.paths.CONFIG_PATH); } catch {} });
 
   it('domyślna konfiguracja gdy brak pliku', () => {
@@ -96,7 +96,7 @@ describe('config', () => {
     const cfg = store.loadConfig();
     expect(cfg.Language).toBe('en');
     expect(cfg.Shops).toHaveLength(1);
-    expect(cfg.StartBrowser).toBe(true); // dopełnione z DEFAULT_CONFIG
+    expect(cfg.StartBrowser).toBe(true); // filled in from DEFAULT_CONFIG
   });
 });
 
@@ -104,7 +104,7 @@ describe('pliki lokalne + meta', () => {
   it('write/list zwraca wpis z mode/name/ts; pomija dotfiles', () => {
     store.writeLocalFile(shop, 9, 0, 'a/b.liquid', Buffer.from('x'));
     store.writeLocalFile(shop, 9, 2, 'c.liquid', Buffer.from('y'));
-    // plik kropkowy nie powinien się pojawić na liście
+    // a dotfile should not appear in the list
     fs.writeFileSync(path.join(store.templateModeDir(shop, 9, 0), '.hidden'), 'z');
 
     const files = store.listLocalFiles(shop, 9).sort((a, b) => a.name.localeCompare(b.name));

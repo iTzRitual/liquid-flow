@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Punkt wejścia serwera MCP `liquidflow-mcp` (transport stdio).
-// UWAGA: stdout należy do protokołu MCP — żadnych console.log.
+// Entry point for the `liquidflow-mcp` MCP server (stdio transport).
+// NOTE: stdout belongs to the MCP protocol — no console.log.
 import { connectController } from '@liquidflow/core';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { buildServer } from '../src/server.js';

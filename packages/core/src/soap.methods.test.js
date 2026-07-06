@@ -2,8 +2,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { ISklep24Client } from './soap.js';
 import { startMockSoap } from '../../../test/helpers/mockSoapServer.js';
 
-// Pokrycie pozostałych metod kontraktu SOAP (CLAUDE.md: protokół „NIE zmieniać").
-// Sprawdzamy nazwę metody, treść żądania (kolejność/pola) i parsowanie wyniku.
+// Coverage of the remaining SOAP contract methods (CLAUDE.md: protocol "must NOT change").
+// We check the method name, the request body (field order/fields) and result parsing.
 let srv;
 afterEach(async () => { if (srv) await srv.close(); srv = null; });
 

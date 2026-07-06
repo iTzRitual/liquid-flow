@@ -1,16 +1,16 @@
-// Integracja Git: wersjonowanie i kopie zapasowe folderu szablonu,
-// z opcjonalnym wypychaniem do zdalnego repozytorium (np. GitHub).
-// Opakowuje polecenia `git` (bez zewnętrznych zależności).
+// Git integration: versioning and backups of the template folder,
+// with optional pushing to a remote repository (e.g. GitHub).
+// Wraps the `git` commands (no external dependencies).
 
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-// GIT_TERMINAL_PROMPT=0 + puste ASKPASS zapobiegają zawieszeniu na interaktywnym
-// pytaniu o login/hasło (push bez skonfigurowanego SSH lub credential-helpera).
+// GIT_TERMINAL_PROMPT=0 + empty ASKPASS prevent hanging on an interactive
+// login/password prompt (a push without configured SSH or a credential helper).
 const GIT_ENV = { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: '', SSH_ASKPASS: '' };
-const GIT_TIMEOUT_MS = 30_000; // 30 s na typowe operacje
-const GIT_PUSH_TIMEOUT_MS = 60_000; // 60 s na push (dłuższy transfer)
+const GIT_TIMEOUT_MS = 30_000; // 30 s for typical operations
+const GIT_PUSH_TIMEOUT_MS = 60_000; // 60 s for push (longer transfer)
 
 function run(cwd, args, { allowFail = false, timeout = GIT_TIMEOUT_MS } = {}) {
   return new Promise((resolve, reject) => {
@@ -44,14 +44,14 @@ export function isRepo(dir) {
   return fs.existsSync(path.join(dir, '.git'));
 }
 
-// Zainicjuj repozytorium (jeśli nie istnieje) i wykonaj pierwszy commit.
+// Initialize the repository (if it does not exist) and make the first commit.
 export async function init(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   if (!isRepo(dir)) {
     await run(dir, ['init']);
     await run(dir, ['symbolic-ref', 'HEAD', 'refs/heads/main'], { allowFail: true });
   }
-  // lokalna tożsamość (gdy globalna nieustawiona) — by commit się powiódł
+  // local identity (when the global one is unset) — so the commit succeeds
   const name = await run(dir, ['config', 'user.name'], { allowFail: true });
   if (!name.stdout) await run(dir, ['config', 'user.name', 'Liquid Flow']);
   const email = await run(dir, ['config', 'user.email'], { allowFail: true });
@@ -60,12 +60,12 @@ export async function init(dir) {
   return status(dir);
 }
 
-// Zatwierdź wszystkie zmiany. Zwraca { committed, hash }.
+// Commit all changes. Returns { committed, hash }.
 export async function commitAll(dir, message) {
   if (!isRepo(dir)) return { committed: false };
   await run(dir, ['add', '-A']);
-  // --no-optional-locks (flaga globalna gita): nie twórz index.lock przy odczycie
-  // stanu po add — zapobiega wyścigowi z emitGit() wywołującym status w tle
+  // --no-optional-locks (global git flag): do not create index.lock when reading
+  // state after add — prevents a race with emitGit() calling status in the background
   const st = await run(dir, ['--no-optional-locks', 'status', '--porcelain']);
   if (!st.stdout) return { committed: false };
   await run(dir, ['commit', '-m', message || 'Update']);
@@ -73,7 +73,7 @@ export async function commitAll(dir, message) {
   return { committed: true, hash: hash.stdout };
 }
 
-// Historia commitów: [{ hash, iso, relative, message }].
+// Commit history: [{ hash, iso, relative, message }].
 export async function history(dir, limit = 100) {
   if (!isRepo(dir)) return [];
   const fmt = '%h%x1f%cI%x1f%cr%x1f%s';
@@ -85,9 +85,9 @@ export async function history(dir, limit = 100) {
   });
 }
 
-// Przywróć stan plików z danego commita (working tree), następnie zatwierdź.
-// Pliki wracają do wersji z commita; hot-reload wyśle je do sklepu. Komunikat
-// commita (widoczny w historii) przekazuje wywołujący — jest już przetłumaczony.
+// Restore the file state from a given commit (working tree), then commit.
+// Files revert to the commit's version; the hot-reload uploads them to the shop.
+// The commit message (visible in history) is passed by the caller — already translated.
 export async function restore(dir, hash, message) {
   if (!isRepo(dir)) throw new Error('No git repository');
   await run(dir, ['checkout', hash, '--', '.']);
@@ -108,8 +108,8 @@ export async function setRemote(dir, url) {
   return getRemote(dir);
 }
 
-// Wypchnij bieżącą gałąź do origin (zakłada skonfigurowane uwierzytelnianie:
-// klucz SSH lub helper poświadczeń / token w URL https).
+// Push the current branch to origin (assumes authentication is configured:
+// an SSH key or a credential helper / token in the https URL).
 export async function push(dir, branch) {
   if (!isRepo(dir)) throw new Error('No git repository');
   const b = branch || (await run(dir, ['rev-parse', '--abbrev-ref', 'HEAD'])).stdout || 'main';
@@ -156,7 +156,7 @@ export async function pull(dir) {
 export async function squashMergeInto(dir, fromBranch, intoBranch, message) {
   await run(dir, ['checkout', intoBranch]);
   await run(dir, ['merge', '--squash', fromBranch], { allowFail: true });
-  // --no-optional-locks (flaga globalna gita): nie twórz index.lock przy odczycie stanu
+  // --no-optional-locks (global git flag): do not create index.lock when reading state
   const st = await run(dir, ['--no-optional-locks', 'status', '--porcelain']);
   const committed = !!st.stdout;
   if (committed) await run(dir, ['commit', '-m', message]);
@@ -184,9 +184,9 @@ export async function status(dir) {
   const repo = isRepo(dir);
   if (!repo) return { isRepo: false, remote: null, branch: null, lastCommit: null, dirty: false, commitCount: 0 };
   const remote = await getRemote(dir);
-  // --no-optional-locks (flaga globalna gita): git status jest operacją odczytu —
-  // nie twórz index.lock, by nie ścigać się z równoległymi operacjami zapisu
-  // (auto-commit, checkout itp.) wywołanymi przez emitGit() fire-and-forget
+  // --no-optional-locks (global git flag): git status is a read operation —
+  // do not create index.lock, to avoid racing with concurrent write operations
+  // (auto-commit, checkout, etc.) triggered by fire-and-forget emitGit()
   const st = await run(dir, ['--no-optional-locks', 'status', '--porcelain'], { allowFail: true });
   const hist = await history(dir, 1);
   const count = await run(dir, ['rev-list', '--count', 'HEAD'], { allowFail: true });

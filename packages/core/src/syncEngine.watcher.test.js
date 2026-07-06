@@ -4,7 +4,7 @@ import path from 'node:path';
 import { SyncSession, MismatchType } from './syncEngine.js';
 import * as store from './store.js';
 
-// Atrapa klienta SOAP z rejestrem wywołań i sterowalnym stanem zdalnym.
+// A fake SOAP client with a call log and controllable remote state.
 function fakeClient() {
   return {
     calls: [],
@@ -120,7 +120,7 @@ describe('_initialDownload — pierwsze pobranie', () => {
     expect(fs.readFileSync(store.localFilePath(shop.Name, template.Id, 2, 'b.liquid'), 'utf8')).toBe('BBB');
     const meta = store.loadMeta(shop.Name, template.Id);
     expect(store.getMetaEntry(meta, 0, 'a.liquid').remotets).toBe('2026-01-01T00:00:00');
-    // postęp: start … done
+    // progress: start … done
     expect(progress.some((p) => p.phase === 'download' && p.state === 'start')).toBe(true);
     expect(progress.some((p) => p.phase === 'download' && p.state === 'done')).toBe(true);
   });
@@ -132,34 +132,34 @@ describe('_initialDownload — pierwsze pobranie', () => {
     ];
     await session._initialDownload();
 
-    // bezpieczny plik zapisany
+    // the safe file was written
     expect(fs.existsSync(store.localFilePath(shop.Name, template.Id, 0, 'ok.liquid'))).toBe(true);
-    // złośliwy plik NIE trafił poza katalog
+    // the malicious file did NOT escape the directory
     const escaped = path.join(store.templateModeDir(shop.Name, template.Id, 0), '..', '..', 'escape.liquid');
     expect(fs.existsSync(escaped)).toBe(false);
-    // brak meta dla złośliwego wpisu
+    // no meta for the malicious entry
     expect(store.getMetaEntry(store.loadMeta(shop.Name, template.Id), 0, '../../escape.liquid')).toBeNull();
   });
 
   it('przerwane pobieranie zostawia meta dla już zapisanych plików (przyrostowo)', async () => {
-    // Plik 'b.liquid' jest niezapisywalny: w jego miejscu tworzymy KATALOG,
-    // więc fs.writeFileSync rzuci EISDIR w trakcie pętli. To symuluje awarię w
-    // środku pobierania. 'a.liquid' (przetworzony wcześniej) powinien mieć meta.
+    // The file 'b.liquid' is unwritable: in its place we create a DIRECTORY, so
+    // fs.writeFileSync throws EISDIR mid-loop. This simulates a failure in the
+    // middle of the download. 'a.liquid' (processed earlier) should have meta.
     client.files = [
       { Mode: 0, Name: 'a.liquid', Template: Buffer.from('A'), Date: '2026-01-01T00:00:00' },
       { Mode: 0, Name: 'b.liquid', Template: Buffer.from('B'), Date: '2026-01-02T00:00:00' },
       { Mode: 0, Name: 'c.liquid', Template: Buffer.from('C'), Date: '2026-01-03T00:00:00' },
     ];
-    // Utwórz katalog dokładnie tam, gdzie miałby powstać plik 'b.liquid'.
+    // Create a directory exactly where the file 'b.liquid' would be written.
     const bPath = store.localFilePath(shop.Name, template.Id, 0, 'b.liquid');
     fs.mkdirSync(bPath, { recursive: true });
 
     await expect(session._initialDownload()).rejects.toThrow();
 
     const meta = store.loadMeta(shop.Name, template.Id);
-    // plik 'a' przetworzony przed awarią → meta zapisane przyrostowo
+    // file 'a' processed before the failure → meta saved incrementally
     expect(store.getMetaEntry(meta, 0, 'a.liquid')).toMatchObject({ remotets: '2026-01-01T00:00:00' });
-    // 'b'/'c' nie zdążyły → brak meta
+    // 'b'/'c' did not make it → no meta
     expect(store.getMetaEntry(meta, 0, 'b.liquid')).toBeNull();
     expect(store.getMetaEntry(meta, 0, 'c.liquid')).toBeNull();
   });
@@ -172,7 +172,7 @@ describe('cykl życia start()/dispose()', () => {
 
     await session.start();
     expect(session.watcherActive).toBe(true);
-    // etapy postępu prezentowane użytkownikowi
+    // the progress phases presented to the user
     expect(progress.some((p) => p.phase === 'check')).toBe(true);
     expect(progress.some((p) => p.phase === 'ready')).toBe(true);
 
@@ -212,7 +212,7 @@ describe('cykl życia start()/dispose()', () => {
 
 describe('runExclusive — serializacja na kolejce sesji', () => {
   it('dwa równoległe runExclusive nie przeplatają się; watcher nie jest zatrzymywany', async () => {
-    // Uruchom sesję, żeby watcher był aktywny.
+    // Start the session so the watcher is active.
     client.files = [{ Mode: 0, Name: 'a.liquid', Template: Buffer.from('x'), Date: '2026-01-01T00:00:00' }];
     client.remoteMeta = [{ Mode: 0, Name: 'a.liquid', Date: '2026-01-01T00:00:00' }];
     await session.start();
@@ -230,24 +230,24 @@ describe('runExclusive — serializacja na kolejce sesji', () => {
       order.push('e2');
     };
 
-    // Uruchom oba naraz — muszą być obsłużone sekwencyjnie (kolejka).
+    // Run both at once — they must be handled sequentially (the queue).
     await Promise.all([session.runExclusive(fn1), session.runExclusive(fn2)]);
 
-    // Kolejność ściśle sekwencyjna: s1→e1→s2→e2 (nigdy s1→s2→e1→e2).
+    // Strictly sequential order: s1→e1→s2→e2 (never s1→s2→e1→e2).
     expect(order).toEqual(['s1', 'e1', 's2', 'e2']);
-    // runExclusive NIE zatrzymuje watchera — watcher ma działać dalej.
+    // runExclusive does NOT stop the watcher — the watcher must keep running.
     expect(session.watcherActive).toBe(true);
   });
 });
 
 describe('_pollRefresh — wykrywanie zmian zdalnych', () => {
   it('przyrost konfliktów po stronie sklepu jest wychwytywany', async () => {
-    // start bez konfliktów
+    // start with no conflicts
     client.remoteMeta = [];
     await session.refreshMismatches({ silent: true });
     expect(session.mismatches).toHaveLength(0);
 
-    // sklep dodał plik → poll wykrywa nowy konflikt (LocalMissing)
+    // the shop added a file → the poll detects a new conflict (LocalMissing)
     client.remoteMeta = [{ Mode: 0, Name: 'remote-new.liquid', Date: '2026-03-03T00:00:00' }];
     await session._pollRefresh();
     expect(session.mismatches).toHaveLength(1);

@@ -1,17 +1,17 @@
-// Serwer MCP (Model Context Protocol) dla Liquid Flow pozwalający agentom AI
-// sterować synchronizacją, konfliktami, logami oraz git-checkpointami.
+// MCP (Model Context Protocol) server for Liquid Flow that lets AI agents
+// drive synchronization, conflicts, logs, and git checkpoints.
 import { readFileSync } from 'node:fs';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod';
 import { store, diffSummary } from '@liquidflow/core';
 
-// Wczytanie wersji z lokalnego package.json
+// Read the version from the local package.json
 const version = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
 export function buildServer(ctrl) {
   const server = new McpServer({ name: 'liquid-flow', version });
 
-  // Pomocnicze funkcje do formatowania odpowiedzi zgodnie z protokołem MCP
+  // Helper functions for formatting responses per the MCP protocol
   const ok = (data) => ({ content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] });
   const wrap = (fn) => async (args) => {
     try {
@@ -24,7 +24,7 @@ export function buildServer(ctrl) {
     }
   };
 
-  // 1. status — Zwraca ogólny stan synchronizacji i gita
+  // 1. status — Returns the overall sync and git state
   server.registerTool(
     'status',
     {
@@ -59,7 +59,7 @@ export function buildServer(ctrl) {
     })
   );
 
-  // 2. list_shops — Pobiera listę zapisanych sklepów
+  // 2. list_shops — Fetches the list of saved shops
   server.registerTool(
     'list_shops',
     {
@@ -70,7 +70,7 @@ export function buildServer(ctrl) {
     })
   );
 
-  // 3. connect_shop — Łączy z zapisanym sklepem (wymaga zapisanego hasła)
+  // 3. connect_shop — Connects to a saved shop (requires a saved password)
   server.registerTool(
     'connect_shop',
     {
@@ -84,7 +84,7 @@ export function buildServer(ctrl) {
     })
   );
 
-  // 4. disconnect — Rozłącza bieżący sklep i czyści sesję
+  // 4. disconnect — Disconnects the current shop and clears the session
   server.registerTool(
     'disconnect',
     {
@@ -95,7 +95,7 @@ export function buildServer(ctrl) {
     })
   );
 
-  // 5. list_templates — Pobiera szablony dostępne w sklepie
+  // 5. list_templates — Fetches the templates available in the shop
   server.registerTool(
     'list_templates',
     {
@@ -106,7 +106,7 @@ export function buildServer(ctrl) {
     })
   );
 
-  // 6. select_template — Wybiera szablon i startuje SyncSession
+  // 6. select_template — Selects a template and starts a SyncSession
   server.registerTool(
     'select_template',
     {
@@ -127,7 +127,7 @@ export function buildServer(ctrl) {
     })
   );
 
-  // 7. get_workspace_info — Zwraca ścieżki do edycji plików szablonu
+  // 7. get_workspace_info — Returns the paths for editing template files
   server.registerTool(
     'get_workspace_info',
     {
@@ -139,7 +139,7 @@ export function buildServer(ctrl) {
         throw new Error('No active sync session — call select_template first.');
       }
       const templateDir = await ctrl.currentFolder();
-      // editDir = tryb roboczy '0'; policz lokalnie przez store (czysta ścieżka)
+      // editDir = working mode '0'; compute it locally via store (a pure path)
       const editDir = store.templateModeDir(st.currentShop.Name, st.currentTemplate.Id, 0);
       return {
         templateDir,
@@ -149,7 +149,7 @@ export function buildServer(ctrl) {
     })
   );
 
-  // 8. list_conflicts — Listuje aktualne konflikty (mismatches)
+  // 8. list_conflicts — Lists the current conflicts (mismatches)
   server.registerTool(
     'list_conflicts',
     {
@@ -167,7 +167,7 @@ export function buildServer(ctrl) {
     })
   );
 
-  // 9. resolve_conflict — Rozwiązuje konflikty plikowe
+  // 9. resolve_conflict — Resolves file conflicts
   server.registerTool(
     'resolve_conflict',
     {
@@ -203,7 +203,7 @@ export function buildServer(ctrl) {
     })
   );
 
-  // 10. preview_conflict — Pokazuje różnice w plikach tekstowych przed rozstrzygnięciem
+  // 10. preview_conflict — Shows the differences in text files before resolving
   server.registerTool(
     'preview_conflict',
     {
@@ -253,7 +253,7 @@ export function buildServer(ctrl) {
     })
   );
 
-  // 11. get_logs — Cykliczne pobieranie logów synchronizacji (ostatnie 200 wpisów)
+  // 11. get_logs — Periodic retrieval of sync logs (last 200 entries)
   server.registerTool(
     'get_logs',
     {
@@ -277,7 +277,7 @@ export function buildServer(ctrl) {
     })
   );
 
-  // 12. git_status — Status lokalnego git repozytorium
+  // 12. git_status — Status of the local git repository
   server.registerTool(
     'git_status',
     {
@@ -288,7 +288,7 @@ export function buildServer(ctrl) {
     })
   );
 
-  // 13. git_history — Historia commitów w lokalnym repo
+  // 13. git_history — Commit history in the local repo
   server.registerTool(
     'git_history',
     {
@@ -302,7 +302,7 @@ export function buildServer(ctrl) {
     })
   );
 
-  // 14. git_checkpoint — Tworzy checkpoint, scalając wip do głównej gałęzi
+  // 14. git_checkpoint — Creates a checkpoint, merging wip into the main branch
   server.registerTool(
     'git_checkpoint',
     {

@@ -2,8 +2,8 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// Pole formularza: etykieta + input + opcjonalny błąd walidacji pod spodem.
-// Czysto prezentacyjny — cała logika (stan, walidacja, tłumaczenia) przychodzi z zewnątrz przez propsy.
+// A form field: label + input + an optional validation error below.
+// Purely presentational — all logic (state, validation, translations) comes from the outside via props.
 export default function FormField({
     id,
     label,

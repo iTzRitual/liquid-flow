@@ -1,5 +1,5 @@
-// Szybki render <ConnectList/> do sztucznego stdout (bez TTY) — sprawdza layout
-// listy + stopki akcji i brak błędu runtime. Uruchom: node apps/cli/test/connectlist-render.mjs
+// A quick render of <ConnectList/> to a fake stdout (no TTY) — checks the layout
+// of the list + action footer and the absence of a runtime error. Run: node apps/cli/test/connectlist-render.mjs
 import { register } from 'tsx/esm/api';
 register();
 const React = (await import('react')).default;
@@ -14,7 +14,7 @@ function fakeStdout(columns = 80, rows = 24) {
   let last = '';
   return { columns, rows, isTTY: false, write(s) { last = s; return true; }, on() {}, off() {}, removeListener() {}, get last() { return last; } };
 }
-// Atrapa stdin z obsługą raw mode — bez niej useInput rzuca „Raw mode…”.
+// A fake stdin supporting raw mode — without it useInput throws "Raw mode…".
 const { PassThrough } = await import('node:stream');
 function fakeStdin() {
   const s = new PassThrough();

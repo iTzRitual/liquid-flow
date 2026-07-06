@@ -5,24 +5,24 @@ import * as store from './store.js';
 import * as logbuf from './log.js';
 import { startMockSoap } from '../../../test/helpers/mockSoapServer.js';
 
-// config.json ma stałą ścieżkę i jest współdzielony w obrębie pliku — czyścimy
-// przed każdym testem, by stan (sklepy/język) nie wyciekał między testami i nie
-// zależał od kolejności. Resetujemy też aktywny kanał logu do efemerycznego.
+// config.json has a fixed path and is shared within the file — we clear it before
+// each test so state (shops/language) does not leak between tests or depend on
+// ordering. We also reset the active log channel to the ephemeral one.
 beforeEach(() => {
   try { fs.rmSync(store.paths.CONFIG_PATH); } catch {}
   logbuf.setActiveChannel('app');
 });
 
-// Controller buduje ISklep24Client z shop.Url, więc seedujemy sklep wskazujący
-// na lokalny mock SOAP (realne gniazdo http) i sprawdzamy orkiestrację stanu,
-// zdarzeń i zapisu konfiguracji na realnym `store` (tmp home z setupFile).
+// The Controller builds ISklep24Client from shop.Url, so we seed a shop pointing
+// at the local mock SOAP (a real http socket) and check the orchestration of state,
+// events and config persistence against the real `store` (tmp home from setupFile).
 let ctrl, srv;
 afterEach(async () => {
   if (ctrl) { ctrl.dispose(); ctrl = null; }
   if (srv) { await srv.close(); srv = null; }
 });
 
-// Zdarzenia kontrolera — zbierz ostatni 'state'.
+// Controller events — capture the last 'state'.
 function lastState(c) {
   let s = null;
   c.on('state', (x) => { s = x; });
@@ -39,12 +39,12 @@ describe('Controller — logowanie (signInShop)', () => {
     expect(pub.Name).toBe('mocksklep');
     expect(getState().currentShop.Name).toBe('mocksklep');
 
-    // zapisane w config.json (z zaszyfrowanym hasłem)
+    // saved in config.json (with an encrypted password)
     const cfg = store.loadConfig();
     const saved = cfg.Shops.find((s) => s.Name === 'mocksklep');
     expect(saved).toBeTruthy();
     expect(saved.SavePassword).toBe(true);
-    expect(saved.Password).toMatch(/^enc:/); // zaszyfrowane, nie plaintext
+    expect(saved.Password).toMatch(/^enc:/); // encrypted, not plaintext
   });
 
   it('odrzuca nazwę z niedozwolonymi znakami', async () => {
@@ -110,7 +110,7 @@ describe('Controller — sesja zapisanego sklepu', () => {
     await ctrl.signInSaved(1);
     ctrl.logout();
     expect(ctrl.getState().currentShop).toBeNull();
-    expect(store.loadConfig().Shops).toHaveLength(1); // sklep nadal zapisany
+    expect(store.loadConfig().Shops).toHaveLength(1); // the shop is still saved
   });
 });
 
@@ -142,7 +142,7 @@ describe('Controller — sklepy i język', () => {
     expect(store.loadConfig().HeaderMode).toBe('compact');
     expect(getState().logWrap).toBe(true);
     expect(getState().headerMode).toBe('compact');
-    // nowy Controller czyta zapisane preferencje (pamięć między uruchomieniami)
+    // a new Controller reads the saved preferences (persistence across runs)
     ctrl.dispose();
     ctrl = new Controller();
     expect(ctrl.getState().logWrap).toBe(true);

@@ -1,10 +1,9 @@
 import { Box, Text, useInput } from 'ink';
 import React, { useEffect } from 'react';
 
-// Krótki, samodzielnie znikający komunikat (np. „brak konfliktów”) — zamiast
-// migawki logu (widocznej ułamek sekundy), pokazujemy ją jako ekran na
-// `duration` ms, pomijalny DOWOLNYM klawiszem. `onDismiss` woła się raz — czy
-// to z timeoutu, czy z klawisza.
+// A short, self-dismissing message (e.g. "no conflicts") — instead of a log flash
+// (visible for a fraction of a second), we show it as a screen for `duration` ms,
+// dismissible by ANY key. `onDismiss` is called once — whether from the timeout or a key.
 export default function InfoScreen({ title, message, duration = 4000, onDismiss, color = 'green', t }) {
   useEffect(() => {
     const timeout = setTimeout(() => onDismiss?.(), duration);

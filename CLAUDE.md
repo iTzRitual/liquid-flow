@@ -485,11 +485,20 @@ narzędzi serwera MCP (`apps/mcp`) również są w języku angielskim jako kontr
 ## Konwencje kodu
 
 - **ESM** wszędzie (`"type":"module"`), Node 18+.
-- **Język / i18n**: komentarze w kodzie po polsku; **cały tekst widoczny dla
-  użytkownika** (UI, logi, błędy, tray) przechodzi przez `translations.js`
-  (`pl`/`en`) — zero hardkodowanych łańcuchów w warstwach prezentacji. Szczegóły
-  i twarda zasada „nowy tekst = wpis PL **i** EN" — patrz sekcja „Tłumaczenia
-  (i18n) — PL/EN" niżej.
+- **Język / i18n**: **cały tekst widoczny dla użytkownika** (UI, logi, błędy,
+  tray) przechodzi przez `translations.js` (`pl`/`en`) — zero hardkodowanych
+  łańcuchów w warstwach prezentacji. Szczegóły i twarda zasada „nowy tekst =
+  wpis PL **i** EN" — patrz sekcja „Tłumaczenia (i18n) — PL/EN" niżej.
+  Komentarze w kodzie — patrz zasady niżej.
+- **Komentarze w kodzie (OBOWIĄZKOWE)**: zawsze **wyłącznie po angielsku**,
+  niezależnie od tego, że reszta tej dokumentacji i UI aplikacji jest po
+  polsku. Mają być **profesjonalne i opisowe** — wyjaśniają PO CO dany
+  fragment istnieje albo jaki nieoczywisty niuans/ograniczenie reprezentuje,
+  a nie CO robi kod linijka po linijce (to widać z samego kodu). Zabronione:
+  ślady procesu edycji lub konwersacji z czatem — żadnych „usunięto X”,
+  „zmieniono na żądanie użytkownika”, „naprawiono zgodnie z prośbą”, „TODO:
+  do przejrzenia po rozmowie” itp. Komentarz ma być tak samo aktualny i
+  bezstronny, jakby ktoś pisał go od zera, patrząc tylko na finalny kod.
 - **Styl**: dopasuj się do otaczającego kodu; zwięzłe funkcje; bez nadmiarowych
   zależności (np. spinner/okno napisane ręcznie, nie z paczek).
 - **Commity**: Conventional Commits po angielsku (`feat(cli): …`, `fix(git): …`,

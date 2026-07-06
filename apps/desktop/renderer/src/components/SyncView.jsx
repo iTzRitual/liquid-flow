@@ -27,7 +27,7 @@ export default function SyncView() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {/* nagłówek */}
+      {/* header */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-6 py-3">
         <div className="mr-auto">
           <div className="flex items-center gap-2">

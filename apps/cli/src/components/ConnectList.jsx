@@ -3,27 +3,27 @@ import React, { useEffect, useState } from 'react';
 import { tfmt } from '@liquidflow/core';
 import { windowList } from '../window.js';
 
-// Ekran łączenia ze sklepem. Dwie strefy w JEDNEJ sekwencji nawigacji:
-//   1) lista zapisanych sklepów (po jednym wierszu, ↑/↓),
-//   2) stopka: pusta linia + JEDEN wiersz przycisków akcji (Rozłącz / Dodaj /
-//      Usuń), wybieranych ←/→ — ale ↑/↓ też po nich chodzi, w tej samej
-//      kolejności (ostatni sklep ↓ → pierwszy przycisk; pierwszy przycisk ↑ →
-//      ostatni sklep). Enter: na sklepie łączy, na przycisku wykonuje akcję.
+// The shop connection screen. Two zones in ONE navigation sequence:
+//   1) the list of saved shops (one per row, ↑/↓),
+//   2) footer: a blank line + ONE row of action buttons (Disconnect / Add /
+//      Remove), selected with ←/→ — but ↑/↓ also cycles through them, in the
+//      same order (last shop ↓ → first button; first button ↑ → last shop).
+//      Enter: on a shop, connects; on a button, runs the action.
 //   shops:   [{ label, hint?, shop }]
-//   actions: [{ key, label }]   (stopka; min. „dodaj")
-const FOOTER_LINES = 2; // pusta linia + wiersz przycisków
+//   actions: [{ key, label }]   (footer; at least "add")
+const FOOTER_LINES = 2; // blank line + button row
 
 export default function ConnectList({ title, shops, actions, onShop, onAction, onCancel, onSlash, maxRows = 12, initialIndex = 0, onIndexChange, t }) {
   const nShops = shops.length;
   const nAct = actions.length;
   const total = nShops + nAct;
-  // 0..nShops-1 = sklepy, dalej = akcje. `initialIndex` przywraca pozycję po
-  // powrocie Esc z ekranu otwartego z tej listy (pamięć kursora w App).
+  // 0..nShops-1 = shops, beyond that = actions. `initialIndex` restores the
+  // position after returning via Esc from a screen opened from this list (cursor memory in App).
   const [i, setI] = useState(() => Math.min(Math.max(0, initialIndex), Math.max(0, total - 1)));
-  useEffect(() => { onIndexChange?.(i); }, [i]); // raportuj pozycję rodzicowi
+  useEffect(() => { onIndexChange?.(i); }, [i]); // report the position to the parent
 
   const inFooter = i >= nShops;
-  const actIdx = i - nShops; // tylko gdy inFooter
+  const actIdx = i - nShops; // only when inFooter
 
   useInput((input, key) => {
     if (key.escape) { onCancel?.(); return; }
@@ -31,7 +31,7 @@ export default function ConnectList({ title, shops, actions, onShop, onAction, o
     if (!total) return;
     if (key.upArrow) { setI((p) => (p - 1 + total) % total); return; }
     if (key.downArrow) { setI((p) => (p + 1) % total); return; }
-    // ←/→ poruszają się tylko w obrębie stopki (cyklicznie po przyciskach)
+    // ←/→ move only within the footer (cycling through the buttons)
     if (inFooter && nAct) {
       if (key.leftArrow) { setI(nShops + ((actIdx - 1 + nAct) % nAct)); return; }
       if (key.rightArrow) { setI(nShops + ((actIdx + 1) % nAct)); return; }
@@ -42,7 +42,7 @@ export default function ConnectList({ title, shops, actions, onShop, onAction, o
     }
   });
 
-  // okienkowanie listy sklepów (budżet = cała wysokość minus stopka)
+  // windowing the shop list (budget = total height minus the footer)
   const budget = Math.max(1, maxRows - FOOTER_LINES);
   const focus = nShops ? Math.min(i, nShops - 1) : 0;
   const w = windowList(nShops, focus, budget);

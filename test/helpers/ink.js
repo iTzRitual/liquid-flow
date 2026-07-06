@@ -1,9 +1,9 @@
-// Pomocniki do testów komponentów Ink (ink-testing-library).
+// Helpers for testing Ink components (ink-testing-library).
 //
-// `keys` — surowe sekwencje, które `stdin.write(...)` wysyła do useInput.
-// `press(stdin, seq)` wpisuje sekwencję i czeka, aż React przetworzy zdarzenie
-// (ink parsuje wejście asynchronicznie). `frame(api)` zwraca ostatnią klatkę bez
-// kodów ANSI — wygodne do asercji na tekście.
+// `keys` — raw sequences that `stdin.write(...)` sends to useInput.
+// `press(stdin, seq)` types a sequence and waits for React to process the event
+// (Ink parses input asynchronously). `frame(api)` returns the last frame with
+// ANSI codes stripped — convenient for text assertions.
 const ANSI = /\x1b\[[0-9;?]*[A-Za-z]/g;
 
 export const keys = {
@@ -21,15 +21,15 @@ export function strip(s) {
   return String(s == null ? '' : s).replace(ANSI, '');
 }
 
-// Drobne opóźnienie: pozwala (1) efektowi useInput zasubskrybować stdin po
-// pierwszym renderze, (2) inkowi rozróżnić samotny ESC od sekwencji strzałki.
+// A small delay: lets (1) the useInput effect subscribe to stdin after the
+// first render, (2) Ink distinguish a lone ESC from an arrow-key sequence.
 const tick = (ms = 8) => new Promise((r) => setTimeout(r, ms));
 
-// Wpuść React do przetworzenia efektów po renderze (zanim wyślemy pierwszy klawisz).
+// Let React process effects after the render (before sending the first key).
 export const flush = () => tick();
 
-// Wciśnij jeden lub więcej klawiszy (sekwencji), czekając po każdym na re-render.
-// Pierwszy `tick()` gwarantuje, że subskrypcja useInput już działa.
+// Press one or more keys (sequences), waiting for a re-render after each.
+// The first `tick()` guarantees the useInput subscription is already active.
 export async function press(stdin, ...seqs) {
   await tick();
   for (const s of seqs) {
@@ -42,10 +42,10 @@ export function frame(api) {
   return strip(api.lastFrame());
 }
 
-// Render statyczny (bez interakcji) o ZADANEJ szerokości terminala — potrzebny
-// do testów layoutu (Header, dividery), bo ink-testing-library ma sztywne
-// columns=100. Zwraca tablicę wierszy bez kodów ANSI. Używa `render` z ink z
-// atrapą stdout o `cols` kolumnach.
+// A static render (no interaction) at a GIVEN terminal width — needed for layout
+// tests (Header, dividers), because ink-testing-library has a fixed
+// columns=100. Returns an array of rows with ANSI codes stripped. Uses ink's
+// `render` with a fake stdout of `cols` columns.
 export async function renderFrame(element, cols = 80, rows = 30) {
   const { render } = await import('ink');
   let last = '';
@@ -54,9 +54,9 @@ export async function renderFrame(element, cols = 80, rows = 30) {
     write(s) { last = s; return true; },
     on() {}, off() {}, removeListener() {},
   };
-  // Atrapa stdin z obsługą raw-mode — komponenty używające `useInput` (np.
-  // DiffView) rzucają „Raw mode is not supported" bez tego. Dla komponentów bez
-  // wejścia (Header) jest po prostu ignorowana.
+  // A fake stdin supporting raw mode — components using `useInput` (e.g.
+  // DiffView) throw "Raw mode is not supported" without it. For components
+  // without input (Header) it is simply ignored.
   const stdin = {
     isTTY: true, setRawMode() {}, setEncoding() {}, resume() {}, pause() {},
     ref() {}, unref() {}, read() { return null; },
