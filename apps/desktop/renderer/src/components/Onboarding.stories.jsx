@@ -3,7 +3,7 @@ import Onboarding from './Onboarding.jsx';
 import { MockApp } from '../stories/mock.jsx';
 
 export default {
-  title: 'Ekrany/Onboarding',
+  title: 'Screens/Onboarding',
   component: Onboarding,
   parameters: { layout: 'fullscreen' },
   decorators: [

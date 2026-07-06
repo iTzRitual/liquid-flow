@@ -27,7 +27,7 @@ function AppWindow({ platform }) {
 }
 
 export default {
-    title: "Ekrany/Okno aplikacji",
+    title: "Screens/Window Chrome",
     component: WindowChrome,
     parameters: { layout: "fullscreen" },
 };

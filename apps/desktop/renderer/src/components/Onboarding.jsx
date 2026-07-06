@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { useApp } from "../App.jsx";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import BrandMark from "./BrandMark.jsx";
+import FeatureItem from "./FeatureItem.jsx";
+import FormField from "./FormField.jsx";
+import SwitchField from "./SwitchField.jsx";
+import OrDivider from "./OrDivider.jsx";
 import { Loader2, Zap, Shuffle, PackageCheck } from "lucide-react";
 
 // Ekran startowy (pierwsze uruchomienie): lewa kolumna = branding/hero,
@@ -71,21 +73,9 @@ export default function Onboarding() {
     return (
         <div className="grid h-full grid-cols-1 overflow-hidden bg-background md:grid-cols-2">
             {/* Lewa kolumna — hero / branding (bezpośrednio na szarym tle okna) */}
-            <div className="hidden flex-col justify-between gap-8 overflow-hidden p-10 md:flex">
+            <div className="hidden flex-col justify-center gap-8 overflow-hidden p-10 md:flex">
                 <div className="space-y-4">
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-extrabold tracking-tight">
-                            Liquid
-                        </span>
-                        <span className="text-3xl font-extrabold tracking-tight text-primary">
-                            Flow
-                        </span>
-                        {version && (
-                            <span className="text-sm font-medium text-muted-foreground">
-                                {version}
-                            </span>
-                        )}
-                    </div>
+                    <BrandMark version={version} />
                     <p className="max-w-md text-lg font-semibold leading-snug text-foreground/90">
                         {t.AppTagline}
                     </p>
@@ -93,29 +83,24 @@ export default function Onboarding() {
 
                 {/* Placeholder podglądu aplikacji — do podmiany na realny screenshot */}
                 <div
-                    className="flex-1 overflow-hidden rounded-xl border bg-background/60 shadow-sm"
+                    className=" overflow-hidden rounded-xl border bg-background/60 shadow-sm"
                     aria-hidden
                 >
                     <img
                         src="dashboard-preview.png"
                         alt="Liquid Flow Dashboard Preview"
-                        className="h-full w-full object-cover object-left-top"
+                        className="h-full w-full "
                     />
                 </div>
 
                 <ul className="space-y-5">
                     {features.map((f) => (
-                        <li key={f.title} className="flex items-start gap-3">
-                            <f.icon className="mt-0.5 h-5 w-5 shrink-0 text-foreground" />
-                            <div>
-                                <p className="text-sm font-semibold">
-                                    {f.title}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    {f.desc}
-                                </p>
-                            </div>
-                        </li>
+                        <FeatureItem
+                            key={f.title}
+                            icon={f.icon}
+                            title={f.title}
+                            desc={f.desc}
+                        />
                     ))}
                 </ul>
             </div>
@@ -125,66 +110,56 @@ export default function Onboarding() {
             <div className="overflow-hidden px-2 pb-2 pt-2">
                 <div className="flex h-full items-center justify-center overflow-y-auto rounded-2xl bg-card p-8 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_0_16px_rgba(0,0,0,0.08)]">
                     <div className="w-full max-w-sm space-y-6">
-                        <h1 className="text-2xl font-bold">{t.OnboardTitle}</h1>
+                        <h1 className="text-2xl text-center font-bold">
+                            {t.OnboardTitle}
+                        </h1>
 
                         <div className="space-y-4">
-                            <div className="space-y-1.5">
-                                <Label>{t.ShopName}</Label>
-                                <Input
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="MójSklep"
-                                />
-                                {!nameValid && name.length > 0 && (
-                                    <p className="text-xs text-destructive">
-                                        {t.InvalidName_AllowedChars} A-Za-z0-9
-                                    </p>
-                                )}
-                            </div>
+                            <FormField
+                                id="shopName"
+                                label={t.ShopName}
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="MójSklep"
+                                error={
+                                    !nameValid && name.length > 0
+                                        ? `${t.InvalidName_AllowedChars} A-Za-z0-9`
+                                        : undefined
+                                }
+                            />
 
-                            <div className="space-y-1.5">
-                                <Label>{t.Url}</Label>
-                                <Input
-                                    value={url}
-                                    onChange={(e) => setUrl(e.target.value)}
-                                    placeholder="https://"
-                                />
-                                {!urlValid && url.length > 0 && (
-                                    <p className="text-xs text-destructive">
-                                        {t.SSL_Required}
-                                    </p>
-                                )}
-                            </div>
+                            <FormField
+                                id="shopUrl"
+                                label={t.Url}
+                                value={url}
+                                onChange={(e) => setUrl(e.target.value)}
+                                placeholder="https://"
+                                error={
+                                    !urlValid && url.length > 0
+                                        ? t.SSL_Required
+                                        : undefined
+                                }
+                            />
 
-                            <div className="space-y-1.5">
-                                <Label>{t.Password}</Label>
-                                <Input
-                                    type="password"
-                                    value={password}
-                                    placeholder="********"
-                                    onChange={(e) =>
-                                        setPassword(e.target.value)
-                                    }
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter" && canSubmit)
-                                            submit();
-                                    }}
-                                />
-                            </div>
+                            <FormField
+                                id="shopPassword"
+                                label={t.Password}
+                                type="password"
+                                value={password}
+                                placeholder="********"
+                                onChange={(e) => setPassword(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && canSubmit)
+                                        submit();
+                                }}
+                            />
 
-                            <div className="flex items-center gap-2">
-                                <Switch
-                                    id="savePwd"
-                                    checked={savePassword}
-                                    onCheckedChange={setSavePassword}
-                                />
-                                <Label
-                                    htmlFor="savePwd"
-                                    className="cursor-pointer"
-                                >
-                                    {t.SavePassword}
-                                </Label>
-                            </div>
+                            <SwitchField
+                                id="savePwd"
+                                label={t.SavePassword}
+                                checked={savePassword}
+                                onCheckedChange={setSavePassword}
+                            />
                         </div>
 
                         <Button
@@ -198,11 +173,7 @@ export default function Onboarding() {
                             {t.OnboardAddAndSignIn}
                         </Button>
 
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span className="h-px flex-1 bg-border" />
-                            {t.OrSeparator}
-                            <span className="h-px flex-1 bg-border" />
-                        </div>
+                        <OrDivider label={t.OrSeparator} />
 
                         <Button
                             variant="outline"
