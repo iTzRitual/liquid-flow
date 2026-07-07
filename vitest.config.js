@@ -5,6 +5,10 @@ import { defineConfig } from 'vitest/config';
 // Ink component tests (ink-testing-library) and web renderer tests will be added
 // in later phases — it is enough to add globs to `include` and, if needed, a
 // project with the 'jsdom' environment.
+//
+// The desktop renderer (jsdom) suite runs from a SEPARATE config
+// (vitest.renderer.config.js) so it never competes for CPU with the
+// timing-sensitive Ink CLI tests — see the `test` script.
 export default defineConfig({
   test: {
     // Only our *.test.* files — we do not touch the manual render-smoke scripts

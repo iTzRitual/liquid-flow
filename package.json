@@ -1,6 +1,6 @@
 {
   "name": "liquid-flow",
-  "version": "0.9.161",
+  "version": "0.9.162",
   "description": "Liquid Flow — synchronizacja i hot-reload szablonów Liquid sklepów Comarch e-Sklep. Aplikacja desktopowa i CLI.",
   "private": true,
   "type": "module",
@@ -16,7 +16,8 @@
     "build:win": "npm run build:win --workspace @liquidflow/desktop",
     "build:linux": "npm run build:linux --workspace @liquidflow/desktop",
     "cli": "npm start --workspace @liquidflow/cli",
-    "test": "vitest run",
+    "test": "vitest run && vitest run --config vitest.renderer.config.js",
+    "test:renderer": "vitest run --config vitest.renderer.config.js",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:e2e": "vitest run --config vitest.e2e.config.js"

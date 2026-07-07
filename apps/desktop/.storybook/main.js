@@ -7,7 +7,7 @@ const repoRoot = join(desktop, '..', '..');
 
 /** @type {import('@storybook/react-vite').StorybookConfig} */
 export default {
-  stories: ['../renderer/src/**/*.stories.@(js|jsx)'],
+  stories: ['../renderer/src/**/*.stories.@(js|jsx|ts|tsx)'],
   framework: { name: '@storybook/react-vite', options: {} },
   core: { disableTelemetry: true },
   staticDirs: ['../renderer/public'],

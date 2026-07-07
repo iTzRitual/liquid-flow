@@ -6,6 +6,13 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.162] — 2026-07-07
+
+### Added
+- Design-system foundation, fully isolated from the legacy renderer styles: token layer as shadcn-style CSS custom properties (`--ds-*`, HSL channels) extracted from the Figma screens, plus a `Design System/Tokens` Storybook page (colors, typography, spacing, radius, elevation, and a warm-vs-slate neutral comparison).
+- Design-system foundations: `theme.css` (own Tailwind entry via `@config`, isolated from `index.css`/`tailwind.config.js`), `cn` helper, Lucide icon set, and Framer Motion presets.
+- Renderer test harness: TypeScript config, jsdom + Testing Library + jest-dom, run from a separate `vitest.renderer.config.js` after the node suite (new `test:renderer` script); Storybook stories glob now accepts `ts`/`tsx`.
+
 ## [0.9.161] — 2026-07-07
 
 ### Changed

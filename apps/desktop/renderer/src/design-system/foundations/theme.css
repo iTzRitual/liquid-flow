@@ -1,0 +1,10 @@
+/*
+ * The single stylesheet NEW design-system stories/components import. It loads
+ * the tokens (CSS custom properties) and Tailwind's layers built with the
+ * design-system-scoped config — fully isolated from the legacy index.css.
+ */
+@import "../tokens/tokens.css";
+@config "./tailwind.ds.config.js";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

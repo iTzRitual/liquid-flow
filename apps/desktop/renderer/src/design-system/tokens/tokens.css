@@ -1,0 +1,154 @@
+/*
+ * Liquid Flow — Design Tokens (KROK 0)
+ * ------------------------------------------------------------------
+ * Single source of truth for the NEW design system. Values are derived
+ * EXCLUSIVELY from the 3 Figma screens (OnBoarding, Select Template, Hub) —
+ * nothing here is copied from the legacy renderer styles.
+ *
+ *   [F] extracted from Figma        [P] proposal (gap Figma does not define)
+ *
+ * Colors are stored as HSL channels (shadcn-compatible): consume with
+ *   hsl(var(--ds-...))            e.g. color: hsl(var(--ds-color-text-primary));
+ * which keeps them ready for a Tailwind `theme.extend` mapping later.
+ *
+ * Every custom property is namespaced `--ds-*` so this file is fully isolated
+ * from the legacy index.css tokens (--primary, --background, …). The two token
+ * systems can coexist until the app is migrated screen-by-screen (KROK 4.5).
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,900;1,400&display=swap');
+
+:root {
+  /* ================================================================
+   * 1. PRIMITIVE PALETTE  (raw values — reference only, use semantics)
+   * ================================================================ */
+
+  /* Brand / interactive [F] */
+  --ds-blue-500: 225 100% 60%;      /* #3365ff — primary action / "Flow" wordmark */
+
+  /* Feedback / status [F] (error is [P] — see below) */
+  --ds-green-500: 113 48% 55%;      /* #61c354 — success / connected / file-changed dot */
+  --ds-cyan-500:  202 48% 55%;      /* #549ac3 — info / git-checkpoint dot */
+  --ds-gold-500:  40 48% 55%;       /* #c39e54 — warning / conflict-check dot */
+  --ds-red-500:   358 75% 59%;      /* [P] #e5484d — danger; Figma has no error color */
+
+  /* Neutral ramp A — WARM (dominant in Figma body/heading text) [F] */
+  --ds-warm-900: 0 0% 7%;           /* #121212 */
+  --ds-warm-700: 0 0% 29%;          /* #4a4a4a */
+  --ds-warm-500: 0 0% 56%;          /* #909090 */
+
+  /* Neutral ramp B — SLATE (Figma onboarding form; named slate/* by designer) [F] */
+  --ds-slate-900: 222 47% 11%;      /* #0f172a */
+  --ds-slate-500: 215 16% 47%;      /* #64748b */
+  --ds-slate-400: 215 20% 65%;      /* #94a3b8 */
+  --ds-slate-300: 213 27% 84%;      /* #cbd5e1 */
+
+  /* Surfaces & borders [F] */
+  --ds-white:         0 0% 100%;    /* #ffffff — cards / panels */
+  --ds-neutral-app:   0 0% 94%;     /* #f0f0f0 — app background / sidebar */
+  --ds-neutral-muted: 0 0% 91%;     /* #e7e7e7 — selected row / subtle border */
+  --ds-neutral-line:  0 0% 85%;     /* #d9d9d9 — avatar / divider */
+  --ds-ink:           0 0% 0%;      /* #000000 — pure black (wordmark, some titles) */
+
+  /* Window chrome [F] — belongs to the WindowChrome organism, NOT global feedback */
+  --ds-window-close: 5 80% 65%;     /* #ed695e */
+  --ds-window-min:   40 89% 64%;    /* #f5bd4f */
+  --ds-window-max:   113 48% 55%;   /* #61c354 */
+
+  /* ================================================================
+   * 2. SEMANTIC COLORS
+   * ================================================================ */
+
+  /* Interactive [F] */
+  --ds-color-interactive-primary:    var(--ds-blue-500);
+  --ds-color-interactive-primary-fg: var(--ds-white);
+
+  /* Feedback [F] / error [P] */
+  --ds-color-feedback-success: var(--ds-green-500);
+  --ds-color-feedback-info:    var(--ds-cyan-500);
+  --ds-color-feedback-warning: var(--ds-gold-500);
+  --ds-color-feedback-error:   var(--ds-red-500);   /* [P] pending approval */
+
+  /* Neutrals — SLATE (ramp B) is the chosen ramp. The warm ramp primitives are
+   * kept above for reference only. The Tokens story still renders both side by
+   * side to document the decision. */
+  --ds-color-text-primary:    var(--ds-slate-900);
+  --ds-color-text-secondary:  var(--ds-slate-500);
+  --ds-color-text-muted:      var(--ds-slate-400);
+  --ds-color-surface-base:    var(--ds-white);
+  --ds-color-surface-app:     var(--ds-neutral-app);
+  --ds-color-surface-muted:   var(--ds-neutral-muted);
+  --ds-color-border-default:  var(--ds-slate-300);
+  --ds-color-border-strong:   var(--ds-neutral-line);
+
+  /* ================================================================
+   * 3. TYPOGRAPHY [F]
+   * ================================================================ */
+  --ds-font-display: 'Rubik', system-ui, -apple-system, sans-serif;  /* headings / brand */
+  --ds-font-ui:      'Inter', system-ui, -apple-system, sans-serif;  /* UI / body / labels */
+
+  --ds-weight-regular:  400;
+  --ds-weight-medium:   500;
+  --ds-weight-semibold: 600;
+  --ds-weight-black:    900;
+
+  /* size / line-height pairs (role → px) */
+  --ds-text-display-2xl:      48px;  --ds-lh-display-2xl:      48px;  /* Rubik Black — wordmark */
+  --ds-text-heading-xl:       30px;  --ds-lh-heading-xl:       36px;  /* Rubik SemiBold — page title */
+  --ds-text-heading-lg:       24px;  --ds-lh-heading-lg:       32px;  /* Rubik SemiBold — section */
+  --ds-text-heading-md:       16px;  --ds-lh-heading-md:       24px;  /* Rubik SemiBold — card title */
+  --ds-text-body-md:          13px;  --ds-lh-body-md:          18px;  /* Rubik Regular — lists (auto→1.4) */
+  --ds-text-body-sm:          12px;  --ds-lh-body-sm:          24px;  /* Rubik Regular — descriptions */
+  --ds-text-label-md:         14px;  --ds-lh-label-md:         20px;  /* Inter Medium — form label */
+  --ds-text-input-md:         14px;  --ds-lh-input-md:         20px;  /* Inter Regular — input text */
+  --ds-text-button-md:        14px;  --ds-lh-button-md:        20px;  /* Inter Medium — button (lh normalized) */
+  --ds-text-caption-md:       12px;  --ds-lh-caption-md:       14px;  /* Inter Regular — log timestamps */
+  --ds-text-badge-xs:         10px;  --ds-lh-badge-xs:         12px;  /* Rubik Regular — status badge */
+  --ds-text-label-sm:         14px;  --ds-lh-label-sm:         14px;  /* Inter Medium — inline label */
+
+  /* ================================================================
+   * 4. SPACING [F]  (base = 12; 2xs is [P] for scale continuity)
+   * ================================================================ */
+  --ds-space-2xs: 4px;   /* [P] */
+  --ds-space-xs:  6px;
+  --ds-space-sm:  8px;
+  --ds-space-md:  12px;  /* base */
+  --ds-space-lg:  16px;
+  --ds-space-xl:  20px;
+  --ds-space-2xl: 24px;
+  --ds-space-3xl: 40px;
+  --ds-space-4xl: 56px;
+
+  /* ================================================================
+   * 5. RADIUS [F]
+   * ================================================================ */
+  --ds-radius-sm:   4px;
+  --ds-radius-md:   6px;    /* inputs / buttons */
+  --ds-radius-lg:   8px;
+  --ds-radius-xl:   12px;
+  --ds-radius-2xl:  16px;
+  --ds-radius-full: 9999px; /* pills / avatars */
+
+  /* ================================================================
+   * 6. SHADOW [P]  — Figma did not serialize effects; proposed elevation
+   *    scale, to be verified against the card/window nodes.
+   * ================================================================ */
+  --ds-shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
+  --ds-shadow-md: 0 2px 8px -1px hsl(0 0% 0% / 0.08), 0 1px 3px -1px hsl(0 0% 0% / 0.06);
+  --ds-shadow-lg: 0 8px 24px -4px hsl(0 0% 0% / 0.12), 0 4px 8px -4px hsl(0 0% 0% / 0.08);
+}
+
+/*
+ * Dark theme [P] — the Figma screens are light-only, so every value here is a
+ * proposal. Toggled by the `.dark` class on <html> (Storybook theme switcher).
+ */
+.dark {
+  --ds-color-text-primary:   0 0% 98%;
+  --ds-color-text-secondary: 0 0% 70%;
+  --ds-color-text-muted:     0 0% 52%;
+  --ds-color-surface-base:   0 0% 9%;
+  --ds-color-surface-app:    0 0% 7%;
+  --ds-color-surface-muted:  0 0% 15%;
+  --ds-color-border-default: 0 0% 22%;
+  --ds-color-border-strong:  0 0% 30%;
+}
