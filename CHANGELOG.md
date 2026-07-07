@@ -6,6 +6,14 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.156] — 2026-07-07
+
+### Added
+- Storybook-only redesign of the "select a template" screen: new `Avatar` and `TemplateListItem` shared components, `Sidebar`/`SelectTemplateContainer` features, and a `SelectTemplateScreen` composing them, following a new `components/` (generic UI) → `features/` (context-aware sections) → `screens/` (full-page compositions) layering for the desktop redesign. Not yet wired into the real app shell.
+- `SelectTemplateHeading` translation key (PL/EN).
+
+---
+
 ## [0.9.155] — 2026-07-06
 
 ### Changed

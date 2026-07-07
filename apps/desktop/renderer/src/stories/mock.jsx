@@ -36,6 +36,13 @@ export const shops = [
 export const currentShop = shops[0];
 export const currentTemplate = { Id: '42', Name: 'Topaz — Główny' };
 
+export const templates = [
+  { Id: 1, Name: 'Topaz 2024.10.2' },
+  { Id: 2, Name: 'Topaz 2024.10.2' },
+  { Id: 12, Name: 'Topaz Mobile' },
+  { Id: 7, Name: 'One Page Shop 2023.5', Locked: true },
+];
+
 // Note: `File` is an OBJECT { Mode, Name } (not a string) — components key and
 // display rows as `Mode/Name`.
 export const mismatches = [
