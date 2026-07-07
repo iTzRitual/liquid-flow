@@ -8,7 +8,7 @@ export default function SelectTemplateScreen() {
     return (
         <div className="flex h-full overflow-hidden bg-background">
             <Sidebar />
-            <main className="flex-1 overflow-hidden">
+            <main className="min-w-0 flex-1 overflow-hidden px-2 pb-2 pt-2">
                 <SelectTemplateContainer />
             </main>
         </div>

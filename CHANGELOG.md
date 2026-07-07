@@ -6,6 +6,13 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.158] — 2026-07-07
+
+### Fixed
+- Select Template screen's main panel was flush against the window edges with no border, unlike the Onboarding screen's right-side panel (inset with an 8px gap, `rounded-2xl`, a subtle 1px border + soft shadow via `box-shadow`). `SelectTemplateScreen`'s `<main>` now carries the same `px-2 pb-2 pt-2` inset, and `SelectTemplateContainer`'s panel now carries the same `rounded-2xl` + border/shadow treatment, matching Onboarding and the reference mockup exactly.
+
+---
+
 ## [0.9.157] — 2026-07-07
 
 ### Fixed

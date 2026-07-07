@@ -42,7 +42,7 @@ export default function SelectTemplateContainer() {
     };
 
     return (
-        <div className="flex h-full items-center justify-center overflow-y-auto bg-card p-10">
+        <div className="flex h-full items-center justify-center overflow-y-auto rounded-2xl bg-card p-8 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_0_16px_rgba(0,0,0,0.08)]">
             <div className="w-full max-w-2xl">
                 <h2 className="mb-8 text-2xl font-bold">
                     {t.SelectTemplateHeading}
