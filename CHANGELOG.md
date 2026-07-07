@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.164] — 2026-07-07
+
+### Added
+- Design-system Tier-1 atoms (TypeScript, isolated `--ds-*` Tailwind styling, a Storybook story and a Vitest test each): `Button`, `Input`, `Label`, `Text`, `Badge`, `StatusDot`, `Avatar`, and a `Switch` built on Base UI (`@base-ui-components/react` 1.0.0-rc.0). Icons come from `foundations/icons.ts` rather than a separate atom. All verified in Storybook against the Figma screens.
+
 ## [0.9.163] — 2026-07-07
 
 ### Fixed
