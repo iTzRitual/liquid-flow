@@ -1,0 +1,36 @@
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi } from 'vitest';
+import { SelectTemplateScreen, type SelectTemplateScreenProps } from './SelectTemplateScreen';
+
+const base: SelectTemplateScreenProps = {
+  shops: [
+    { Id: 'a', Name: 'Sklep A', Url: 'https://a.example.com' },
+    { Id: 'b', Name: 'Sklep B', Url: 'https://b.example.com' },
+  ],
+  currentShopId: 'a',
+  templates: [
+    { Id: 1, Name: 'Topaz' },
+    { Id: 2, Name: 'One Page Shop', Locked: true },
+  ],
+  labels: { shops: 'Sklepy', addShop: 'Dodaj sklep', heading: 'Wybierz szablon' },
+};
+
+describe('SelectTemplateScreen', () => {
+  it('renders the heading, shops and templates', () => {
+    render(<SelectTemplateScreen {...base} />);
+    expect(screen.getByRole('heading', { name: 'Wybierz szablon' })).toBeInTheDocument();
+    expect(screen.getByText('Sklep A')).toBeInTheDocument();
+    expect(screen.getByText('Topaz [1]')).toBeInTheDocument();
+  });
+
+  it('wires template selection and shop switching', async () => {
+    const onSelectTemplate = vi.fn();
+    const onSelectShop = vi.fn();
+    render(<SelectTemplateScreen {...base} onSelectTemplate={onSelectTemplate} onSelectShop={onSelectShop} />);
+    await userEvent.click(screen.getByText('Topaz [1]'));
+    expect(onSelectTemplate).toHaveBeenCalledWith(base.templates[0]);
+    await userEvent.click(screen.getByRole('button', { name: /Sklep B/ }));
+    expect(onSelectShop).toHaveBeenCalledWith(base.shops[1]);
+  });
+});

@@ -6,6 +6,15 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.167] — 2026-07-07
+
+### Added
+- Design-system templates (pure layout scaffolds, a Storybook story and a Vitest test each): `WindowChrome` (frameless window with macOS/Windows/Linux controls + drag strip, self-contained — no legacy window-size provider), `AppShell` (sidebar + main two-column shell), `SplitMarketingForm` (onboarding hero/form split).
+- Design-system screens assembled from the organisms/templates (presentational; local UI state only, actions via props): `OnboardingScreen` (marketing + sign-in form), `SelectTemplateScreen` (shop rail + template card), `HubScreen` (shop rail + template header + "Pliki" file tree + tabbed activity log, with optional conflicts/git slots). Each with a Storybook story + Vitest test; verified live in Storybook.
+
+### Changed
+- Design-system `Tabs.Tab` labels no longer wrap (`whitespace-nowrap`) — a hyphenated label such as "Git-Backup" stays on one line.
+
 ## [0.9.166] — 2026-07-07
 
 ### Added

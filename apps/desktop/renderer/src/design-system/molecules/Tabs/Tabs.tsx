@@ -27,7 +27,7 @@ function TabsTab({ className, ...props }: WithStringClass<React.ComponentProps<t
   return (
     <BaseTabs.Tab
       className={cn(
-        'inline-flex cursor-pointer items-center gap-2 rounded-md px-3 py-1.5 font-ui text-[13px] font-medium',
+        'inline-flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 font-ui text-[13px] font-medium',
         'text-text-secondary transition-colors hover:text-text-primary',
         'aria-selected:bg-surface-base aria-selected:text-text-primary aria-selected:shadow-sm',
         className,
