@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Minus, Square, X } from "lucide-react";
+import { WindowSizeProvider } from "../lib/windowSize.jsx";
 
 // A frameless application window. The controls have NO separate bar or app name
 // — they sit as an overlay in the corner, directly on the content (macOS: traffic
@@ -62,10 +63,35 @@ export default function WindowChrome({
     const mac = platform === "mac";
     const handlers = { onMinimize, onMaximize, onClose };
 
+    // Storybook's Window Chrome story sizes this box independently of the
+    // real browser viewport (see WindowChrome.stories.jsx width/height
+    // controls) — a ResizeObserver on the actual box, rather than
+    // window.innerHeight, lets height-driven layout (e.g. FeatureCarousel)
+    // react correctly to those controls instead of only to real resizes.
+    const rootRef = useRef(null);
+    const [height, setHeight] = useState(null);
+
+    useEffect(() => {
+        const el = rootRef.current;
+        if (!el) return;
+        const observer = new ResizeObserver(([entry]) => {
+            setHeight(entry.contentRect.height);
+        });
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
     return (
-        <div className="relative h-full w-full overflow-hidden rounded-3xl shadow-2xl">
+        <div
+            ref={rootRef}
+            className="relative h-full w-full overflow-hidden rounded-3xl shadow-2xl"
+        >
             {/* Content spanning the whole window surface */}
-            <div className="h-full w-full">{children}</div>
+            <div className="h-full w-full">
+                <WindowSizeProvider height={height}>
+                    {children}
+                </WindowSizeProvider>
+            </div>
 
             {/* An invisible bar for dragging the window */}
             <div className="drag-region pointer-events-auto absolute inset-x-0 top-0 z-10 h-9" />

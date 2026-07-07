@@ -10,6 +10,7 @@ export default {
   stories: ['../renderer/src/**/*.stories.@(js|jsx)'],
   framework: { name: '@storybook/react-vite', options: {} },
   core: { disableTelemetry: true },
+  staticDirs: ['../renderer/public'],
 
   // We do not inherit the app's vite.config.js (it sets root=renderer, which
   // conflicts with Storybook's own root) — we configure only what the components
