@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.161] — 2026-07-07
+
+### Changed
+- Moved the Window Chrome preview out of `Screens/Window Chrome` into a new `Systems/*` category (macOS, Windows, Linux), one story per platform, sharing a `SystemWindow` renderer and a `screen` select control (`stories/systemPreview.jsx`) — pick the OS from the sidebar, then the screen to preview inside it via Controls.
+
 ## [0.9.160] — 2026-07-07
 
 ### Added

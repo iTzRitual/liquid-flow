@@ -1,0 +1,14 @@
+import React from "react";
+import { SystemWindow, systemArgTypes, systemArgs } from "./systemPreview.jsx";
+
+// macOS window chrome: traffic lights top-left. Pick the screen to preview
+// inside via the `screen` control (see systemPreview.jsx for the registry).
+export default {
+    title: "Systems/macOS",
+    parameters: { layout: "fullscreen" },
+    argTypes: systemArgTypes,
+    args: systemArgs,
+    render: (args) => <SystemWindow platform="mac" {...args} />,
+};
+
+export const Preview = {};
