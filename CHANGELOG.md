@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.163] — 2026-07-07
+
+### Fixed
+- Test suite reliability: run the node test files serially (`fileParallelism: false`). Several Ink component and Controller suites are timing-sensitive — they passed in isolation but flaked under cross-file CPU/IO contention, making `npm test` intermittently red. Serial files recreate the isolation condition (same rationale as the separate e2e config); the desktop renderer suite still runs after, from its own config.
+
 ## [0.9.162] — 2026-07-07
 
 ### Added

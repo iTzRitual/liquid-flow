@@ -21,6 +21,14 @@ export default defineConfig({
       'apps/mcp/**/*.test.js',
     ],
     environment: 'node',
+    // Run test FILES one at a time. Several suites (Ink component tests via
+    // ink-testing-library, and Controller tests that spin async work over a
+    // shared tmp LIQUID_FLOW_HOME) are timing-sensitive: they pass reliably in
+    // isolation but flake under cross-file CPU/IO contention. Serial files
+    // recreate the isolation condition — the same reason e2e runs serially.
+    // Tests within a file still run in order; module state stays isolated per
+    // file (`isolate: true`).
+    fileParallelism: false,
     // A fresh, isolated data directory (LIQUID_FLOW_HOME) per test file — set
     // BEFORE `store.js` computes its paths at import time.
     setupFiles: ['./test/setup/tmpHome.js'],
