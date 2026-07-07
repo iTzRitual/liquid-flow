@@ -6,6 +6,14 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.165] — 2026-07-07
+
+### Added
+- Design-system molecules (TypeScript, a Storybook story and a Vitest test each): `OrDivider`, `CardShell`, `FeatureItem`, `FormField`, `SwitchField`, `LogRow`, `FileTreeRow`, and `Tabs` (segmented, on Base UI). Composed from the atoms and verified in Storybook against the Figma screens.
+
+### Changed
+- Renderer test setup now stubs `ResizeObserver` and `matchMedia` (jsdom lacks them; Base UI references them during render).
+
 ## [0.9.164] — 2026-07-07
 
 ### Added
