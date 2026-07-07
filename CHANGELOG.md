@@ -6,6 +6,13 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.157] — 2026-07-07
+
+### Fixed
+- Select Template screen redesign was reusing the old Sidebar's visual language (uppercase label, primary-tinted "active" highlight, a checkmark) instead of matching the provided mockup. Sidebar now sits on the page's gray `bg-background` with every shop rendered as a `bg-card` (white) tile, no color/checkmark-based active state; the main panel is an explicit white `bg-card` surface; and its content (heading + list) is centered vertically, not top-anchored, matching the reference image.
+
+---
+
 ## [0.9.156] — 2026-07-07
 
 ### Added

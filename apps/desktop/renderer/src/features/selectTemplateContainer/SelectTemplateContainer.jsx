@@ -42,9 +42,9 @@ export default function SelectTemplateContainer() {
     };
 
     return (
-        <div className="h-full overflow-y-auto p-10">
-            <div className="mx-auto max-w-2xl">
-                <h2 className="mb-6 text-xl font-bold">
+        <div className="flex h-full items-center justify-center overflow-y-auto bg-card p-10">
+            <div className="w-full max-w-2xl">
+                <h2 className="mb-8 text-2xl font-bold">
                     {t.SelectTemplateHeading}
                 </h2>
 
@@ -60,7 +60,7 @@ export default function SelectTemplateContainer() {
                     </p>
                 )}
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                     {templates?.map((tpl) => (
                         <TemplateListItem
                             key={tpl.Id}
