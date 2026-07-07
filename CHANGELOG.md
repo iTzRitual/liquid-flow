@@ -6,25 +6,10 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
-## [0.9.158] — 2026-07-07
+## [0.9.159] — 2026-07-07
 
-### Fixed
-- Select Template screen's main panel was flush against the window edges with no border, unlike the Onboarding screen's right-side panel (inset with an 8px gap, `rounded-2xl`, a subtle 1px border + soft shadow via `box-shadow`). `SelectTemplateScreen`'s `<main>` now carries the same `px-2 pb-2 pt-2` inset, and `SelectTemplateContainer`'s panel now carries the same `rounded-2xl` + border/shadow treatment, matching Onboarding and the reference mockup exactly.
-
----
-
-## [0.9.157] — 2026-07-07
-
-### Fixed
-- Select Template screen redesign was reusing the old Sidebar's visual language (uppercase label, primary-tinted "active" highlight, a checkmark) instead of matching the provided mockup. Sidebar now sits on the page's gray `bg-background` with every shop rendered as a `bg-card` (white) tile, no color/checkmark-based active state; the main panel is an explicit white `bg-card` surface; and its content (heading + list) is centered vertically, not top-anchored, matching the reference image.
-
----
-
-## [0.9.156] — 2026-07-07
-
-### Added
-- Storybook-only redesign of the "select a template" screen: new `Avatar` and `TemplateListItem` shared components, `Sidebar`/`SelectTemplateContainer` features, and a `SelectTemplateScreen` composing them, following a new `components/` (generic UI) → `features/` (context-aware sections) → `screens/` (full-page compositions) layering for the desktop redesign. Not yet wired into the real app shell.
-- `SelectTemplateHeading` translation key (PL/EN).
+### Removed
+- Reverted the Storybook-only Select Template screen (`Avatar`, `TemplateListItem` components; `Sidebar`, `SelectTemplateContainer` features; `SelectTemplateScreen`) and the `SelectTemplateHeading` translation key added in 0.9.156–0.9.158 — the visual approach didn't match the intended design closely enough. Back to the pre-screen baseline to restart it.
 
 ---
 

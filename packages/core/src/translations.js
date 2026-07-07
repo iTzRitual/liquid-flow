@@ -338,9 +338,6 @@ const pl = {
   FeatureAutomationTitle: 'Gotowy do automatyzacji',
   FeatureAutomationDesc: 'Pełna kontrola nad strukturą szablonów i stanem repozytorium sklepu.',
 
-  // --- select template screen ---
-  SelectTemplateHeading: 'Wybierz szablon nad którym chcesz pracować',
-
   // --- diff preview ---
   ActionPreviewShort: 'Podgląd',
   PreviewLoading: 'Ładowanie podglądu…',
@@ -714,9 +711,6 @@ const en = {
   FeatureConflictDesc: 'A visual diff panel that guards against data loss and accidental overwrites.',
   FeatureAutomationTitle: 'Automation-ready',
   FeatureAutomationDesc: 'Full control over template structure and the shop repository state.',
-
-  // --- select template screen ---
-  SelectTemplateHeading: 'Select the template you want to work on',
 
   // --- diff preview ---
   ActionPreviewShort: 'Preview',
