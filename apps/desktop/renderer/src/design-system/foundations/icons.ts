@@ -11,6 +11,8 @@ export {
   FolderOpen,
   ChevronDown,
   Check,
+  Lock,
+  Plus,
   Lightbulb,
   Frown,
   Globe,

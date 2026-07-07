@@ -6,6 +6,12 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.166] — 2026-07-07
+
+### Added
+- Design-system organisms (TypeScript, a Storybook story and a Vitest test each), composed from the atoms/molecules and presentational only (data via props; IPC lands in the later container step): `Sidebar` (shop rail), `SyncHeader` (Hub header with ID/conflict badges + folder/shop/refresh actions), `ActivityLog` (log feed), `TemplateList` (template rows with lock badge + selecting spinner), `FeatureList` (onboarding features), and `FileTree` — a new data-driven folder/file tree that owns its own expand/collapse state. Verified in Storybook against the Figma screens in light and dark mode.
+- `Lock` and `Plus` icons added to `foundations/icons.ts`.
+
 ## [0.9.165] — 2026-07-07
 
 ### Added
