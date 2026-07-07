@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { SplitMarketingForm } from '../../templates/SplitMarketingForm';
+import { ContentSurface } from '../../templates/ContentSurface';
 import { FeatureList, type Feature } from '../../organisms/FeatureList';
 import { FormField } from '../../molecules/FormField';
 import { SwitchField } from '../../molecules/SwitchField';
@@ -78,9 +79,9 @@ export function OnboardingScreen({
         </>
       }
     >
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-surface-base p-8 shadow-lg">
+      <ContentSurface center className="p-8">
         <form
-          className="flex flex-col gap-6"
+          className="flex w-full max-w-sm flex-col gap-6"
           onSubmit={(e) => {
             e.preventDefault();
             submit();
@@ -132,7 +133,7 @@ export function OnboardingScreen({
             {labels.import}
           </Button>
         </form>
-      </div>
+      </ContentSurface>
     </SplitMarketingForm>
   );
 }

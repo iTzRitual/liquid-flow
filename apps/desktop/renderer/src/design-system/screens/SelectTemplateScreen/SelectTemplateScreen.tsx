@@ -1,4 +1,5 @@
 import { AppShell } from '../../templates/AppShell';
+import { ContentSurface } from '../../templates/ContentSurface';
 import { Sidebar, type SidebarShop } from '../../organisms/Sidebar';
 import { TemplateList, type Template } from '../../organisms/TemplateList';
 import { Text } from '../../atoms/Text';
@@ -49,19 +50,17 @@ export function SelectTemplateScreen({
         />
       }
     >
-      <div className="flex h-full items-center justify-center overflow-y-auto p-2">
-        <div className="w-full max-w-2xl rounded-2xl border border-border bg-surface-base p-8 shadow-lg">
-          <div className="flex flex-col gap-6">
-            <Text as="h1" variant="heading-lg">{labels.heading}</Text>
-            <TemplateList
-              templates={templates}
-              selectingId={selectingId}
-              onSelect={onSelectTemplate}
-              emptyLabel={labels.emptyTemplates}
-            />
-          </div>
+      <ContentSurface center className="p-8">
+        <div className="flex w-full max-w-2xl flex-col gap-6">
+          <Text as="h1" variant="heading-lg">{labels.heading}</Text>
+          <TemplateList
+            templates={templates}
+            selectingId={selectingId}
+            onSelect={onSelectTemplate}
+            emptyLabel={labels.emptyTemplates}
+          />
         </div>
-      </div>
+      </ContentSurface>
     </AppShell>
   );
 }

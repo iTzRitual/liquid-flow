@@ -6,6 +6,14 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.168] — 2026-07-07
+
+### Added
+- `ContentSurface` design-system template: the framed, full-window-height main-content card that floats inside a delicate 8px inset from the window edges. `center` centers a max-width block (onboarding / template picker); the default fills it top-to-bottom (Hub header + body).
+
+### Fixed
+- Screen main areas now use the correct layout: a full-height bordered/elevated surface with delicate padding (matching the reference screens), instead of a small card floating in the middle of the content region. `OnboardingScreen`, `SelectTemplateScreen`, and `HubScreen` route their content through `ContentSurface`; `SplitMarketingForm` no longer bakes in the frame (it now hands its right slot to `ContentSurface`).
+
 ## [0.9.167] — 2026-07-07
 
 ### Added

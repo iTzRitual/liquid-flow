@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import '../../foundations/theme.css';
 import { SplitMarketingForm } from './SplitMarketingForm';
+import { ContentSurface } from '../ContentSurface';
 
 const meta = {
   title: 'Templates/SplitMarketingForm',
@@ -20,9 +21,11 @@ export const Split: Story = {
       </div>
     ),
     children: (
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-surface-base p-8 text-center font-ui text-[13px] text-text-secondary shadow-lg">
-        karta formularza
-      </div>
+      <ContentSurface center className="p-8">
+        <div className="w-full max-w-sm text-center font-ui text-[13px] text-text-secondary">
+          karta formularza
+        </div>
+      </ContentSurface>
     ),
   },
 };

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { AppShell } from '../../templates/AppShell';
+import { ContentSurface } from '../../templates/ContentSurface';
 import { Sidebar, type SidebarShop } from '../../organisms/Sidebar';
 import { SyncHeader } from '../../organisms/SyncHeader';
 import { FileTree, type FileTreeNode } from '../../organisms/FileTree';
@@ -89,52 +90,54 @@ export function HubScreen({
         />
       }
     >
-      <SyncHeader
-        templateName={templateName}
-        templateId={templateId}
-        shopName={shopName}
-        shopUrl={shopUrl}
-        conflictCount={conflictCount}
-        idLabel={labels.id}
-        okLabel={labels.ok}
-        openFolderLabel={labels.openFolder}
-        openShopLabel={labels.openShop}
-        refreshLabel={labels.refresh}
-        onOpenFolder={onOpenFolder}
-        onOpenShop={onOpenShop}
-        onRefresh={onRefresh}
-      />
+      <ContentSurface>
+        <SyncHeader
+          templateName={templateName}
+          templateId={templateId}
+          shopName={shopName}
+          shopUrl={shopUrl}
+          conflictCount={conflictCount}
+          idLabel={labels.id}
+          okLabel={labels.ok}
+          openFolderLabel={labels.openFolder}
+          openShopLabel={labels.openShop}
+          refreshLabel={labels.refresh}
+          onOpenFolder={onOpenFolder}
+          onOpenShop={onOpenShop}
+          onRefresh={onRefresh}
+        />
 
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <section className="flex w-72 shrink-0 flex-col overflow-hidden border-r border-border" aria-label={labels.files}>
-          <div className="px-4 py-3">
-            <Text variant="label-md" tone="secondary">{labels.files}</Text>
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <section className="flex w-72 shrink-0 flex-col overflow-hidden border-r border-border" aria-label={labels.files}>
+            <div className="px-4 py-3">
+              <Text variant="label-md" tone="secondary">{labels.files}</Text>
+            </div>
+            <div className="flex-1 overflow-y-auto px-2 pb-3">
+              <FileTree nodes={fileTree} />
+            </div>
+          </section>
+
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden p-4">
+            <Tabs defaultValue="activity" className="flex min-h-0 flex-1 flex-col">
+              <Tabs.List>
+                <Tabs.Tab value="activity">{labels.tabActivity}</Tabs.Tab>
+                <Tabs.Tab value="conflicts">{labels.tabConflicts}</Tabs.Tab>
+                <Tabs.Tab value="git">{labels.tabGit}</Tabs.Tab>
+              </Tabs.List>
+
+              <Tabs.Panel value="activity" className="min-h-0 flex-1 overflow-hidden">
+                <ActivityLog entries={logEntries} emptyLabel={labels.emptyLog} className="h-full" />
+              </Tabs.Panel>
+              <Tabs.Panel value="conflicts" className="min-h-0 flex-1 overflow-y-auto">
+                {conflictsSlot ?? <TabPlaceholder label={labels.placeholder} />}
+              </Tabs.Panel>
+              <Tabs.Panel value="git" className="min-h-0 flex-1 overflow-y-auto">
+                {gitSlot ?? <TabPlaceholder label={labels.placeholder} />}
+              </Tabs.Panel>
+            </Tabs>
           </div>
-          <div className="flex-1 overflow-y-auto px-2 pb-3">
-            <FileTree nodes={fileTree} />
-          </div>
-        </section>
-
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden p-4">
-          <Tabs defaultValue="activity" className="flex min-h-0 flex-1 flex-col">
-            <Tabs.List>
-              <Tabs.Tab value="activity">{labels.tabActivity}</Tabs.Tab>
-              <Tabs.Tab value="conflicts">{labels.tabConflicts}</Tabs.Tab>
-              <Tabs.Tab value="git">{labels.tabGit}</Tabs.Tab>
-            </Tabs.List>
-
-            <Tabs.Panel value="activity" className="min-h-0 flex-1 overflow-hidden">
-              <ActivityLog entries={logEntries} emptyLabel={labels.emptyLog} className="h-full" />
-            </Tabs.Panel>
-            <Tabs.Panel value="conflicts" className="min-h-0 flex-1 overflow-y-auto">
-              {conflictsSlot ?? <TabPlaceholder label={labels.placeholder} />}
-            </Tabs.Panel>
-            <Tabs.Panel value="git" className="min-h-0 flex-1 overflow-y-auto">
-              {gitSlot ?? <TabPlaceholder label={labels.placeholder} />}
-            </Tabs.Panel>
-          </Tabs>
         </div>
-      </div>
+      </ContentSurface>
     </AppShell>
   );
 }
