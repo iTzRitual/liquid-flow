@@ -12,19 +12,23 @@ import { translationsFor, LANGUAGES } from '@liquidflow/core/translations.js';
 
 const t = translationsFor('pl');
 
-// A stub of the IPC bridge — every method is an async no-op (logs the call to the console).
-const api = new Proxy(
-  {},
-  {
-    get(_target, prop) {
+// A stub of the IPC bridge — every method is an async no-op (logs the call to
+// the console) unless `overrides` supplies a fixture-backed implementation
+// for it (e.g. `listTemplates` returning the `templates` fixture below).
+export function mockApi(overrides = {}) {
+  return new Proxy(overrides, {
+    get(target, prop) {
+      if (prop in target) return target[prop];
       return async (...args) => {
         // eslint-disable-next-line no-console
         console.info(`[mock api] ${String(prop)}`, ...args);
         return undefined;
       };
     },
-  },
-);
+  });
+}
+
+const api = mockApi();
 
 // ————— Fixtures (sample data for screens) —————
 
@@ -35,6 +39,13 @@ export const shops = [
 
 export const currentShop = shops[0];
 export const currentTemplate = { Id: '42', Name: 'Topaz — Główny' };
+
+export const templates = [
+  { Id: 1, Name: 'Topaz 2024.10.2', Locked: false },
+  { Id: 2, Name: 'Topaz 2023.5', Locked: false },
+  { Id: 3, Name: 'One Page Shop 2024.1', Locked: true },
+  { Id: 4, Name: 'Custom Liquid', Locked: false },
+];
 
 // Note: `File` is an OBJECT { Mode, Name } (not a string) — components key and
 // display rows as `Mode/Name`.

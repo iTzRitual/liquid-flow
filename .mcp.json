@@ -3,6 +3,10 @@
     "liquidflow-sb-mcp": {
       "url": "http://localhost:6006/mcp",
       "type": "http"
+    },
+    "figma-mcp-go": {
+      "command": "npx",
+      "args": ["-y", "@vkhanhqui/figma-mcp-go@latest"]
     }
   }
 }

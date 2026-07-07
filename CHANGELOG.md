@@ -6,6 +6,12 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.160] — 2026-07-07
+
+### Added
+- Select Template screen in the Storybook design gallery (`SelectTemplate.jsx` + `Avatar.jsx`), matched 1:1 against the Figma mockup via the `figma-mcp-go` MCP connection: shop sidebar (monogram avatar, active-shop check, "Dodaj sklep" footer) and a flat template list card, reusing Onboarding's inset-card/window layout conventions. Added the `SelectTemplateHeading` translation key (PL/EN).
+- `screen` control on the `Screens/Window Chrome` story, letting Storybook switch the previewed screen between Onboarding and Select Template inside the same window chrome.
+
 ## [0.9.159] — 2026-07-07
 
 ### Removed
