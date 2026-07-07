@@ -12,4 +12,16 @@ export default {
     render: (args) => <SystemWindow platform="linux" {...args} />,
 };
 
-export const Preview = {};
+export const Onboarding = {
+    args: {
+        screen: "onboarding"
+    }
+};
+
+export const SelectTemplate = {
+    args: {
+        width: 1180,
+        height: 800,
+        screen: "selectTemplate"
+    }
+};

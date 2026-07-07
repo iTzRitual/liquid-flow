@@ -12,4 +12,12 @@ export default {
     render: (args) => <SystemWindow platform="windows" {...args} />,
 };
 
-export const Preview = {};
+export const Onboarding = {};
+
+export const SelectTemplate = {
+    args: {
+        width: 1180,
+        height: 800,
+        screen: "selectTemplate"
+    }
+};
