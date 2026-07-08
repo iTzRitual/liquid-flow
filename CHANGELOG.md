@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.178] — 2026-07-08
+
+### Fixed
+- The actual source of the uneven top gap on Windows/Linux: `ContentSurface`'s own `p-2` (the delicate inset it applies uniformly on macOS) was stacking an extra 8px under the new control strip, so the white card's top gap read as much larger than its other three sides. `WindowChrome` now cancels just that redundant 8px (`-mt-2` on the content wrapper, Windows/Linux only) so the card sits flush against the strip — `ContentSurface` and `Sidebar` are untouched, macOS unaffected.
+
 ## [0.9.177] — 2026-07-08
 
 ### Changed

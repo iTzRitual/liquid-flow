@@ -94,7 +94,13 @@ export function WindowChrome({
             <WinLinuxControls {...handlers} rounded={platform === 'linux'} />
           </div>
         </div>
-        <div className="min-h-0 flex-1">{children}</div>
+        {/* ContentSurface's own p-2 (shared with macOS, where it's the sole top
+            inset) would otherwise stack an extra 8px under the strip above,
+            leaving the white card's top gap uneven with its other three sides.
+            Cancel just that redundant 8px so the card sits flush against the
+            strip; Sidebar has no such wrapper, so it only loses its own
+            unrelated 8px of empty top padding — still clear of the strip. */}
+        <div className="min-h-0 flex-1 -mt-2">{children}</div>
       </div>
     );
   }
