@@ -7,6 +7,43 @@ Wskazówki dla przyszłych sesji pracujących nad tym repozytorium.
 > katalogu: `apps/cli/CLAUDE.md` (Ink/TUI — layout, scroll, kolory, slash‑komendy),
 > `apps/desktop/CLAUDE.md` (redesign, Storybook, MCP designu).
 
+## Zasady pracy z kodem (ogólne)
+
+Ogólne wytyczne zachowania, niezależne od tego repozytorium — zmniejszają
+typowe błędy modeli LLM przy pisaniu kodu. Priorytet: ostrożność nad
+szybkością; przy zadaniach trywialnych stosuj zdrowy rozsądek.
+
+1. **Myśl, zanim zaczniesz kodować.** Nie zakładaj, nie ukrywaj niejasności,
+   ujawniaj kompromisy. Przed implementacją: wypisz założenia wprost (jeśli
+   niepewne — dopytaj); jeśli istnieje kilka interpretacji zadania, przedstaw
+   je zamiast po cichu wybierać jedną; jeśli istnieje prostsze podejście —
+   powiedz to i, jeśli to zasadne, podważ prośbę; jeśli coś jest niejasne —
+   zatrzymaj się, nazwij co dokładnie i zapytaj.
+2. **Najpierw prostota.** Minimalny kod rozwiązujący problem, nic
+   spekulacyjnego. Żadnych funkcji poza tym, o co proszono; żadnych
+   abstrakcji pod jednorazowy kod; żadnej „elastyczności"/„konfigurowalności",
+   o którą nikt nie prosił; żadnej obsługi błędów dla scenariuszy, które nie
+   mogą się zdarzyć. Jeśli napisałeś 200 linii, a wystarczy 50 — przepisz.
+   Test: „Czy senior uznałby to za nadmiernie skomplikowane?" — jeśli tak,
+   uprość.
+3. **Chirurgiczne zmiany.** Dotykaj tylko tego, co musisz; sprzątaj tylko po
+   sobie. Przy edycji istniejącego kodu: nie „ulepszaj" sąsiedniego kodu,
+   komentarzy ani formatowania; nie refaktoryzuj tego, co nie jest zepsute;
+   dopasuj się do istniejącego stylu, nawet jeśli zrobiłbyś inaczej; jeśli
+   zauważysz niepowiązany martwy kod — wspomnij o nim, nie usuwaj go. Gdy
+   Twoje zmiany tworzą sieroty (nieużywane importy/zmienne/funkcje
+   POWSTAŁE przez Twoją zmianę) — usuń je; nie usuwaj martwego kodu
+   sprzed Twojej zmiany, chyba że o to poproszono. Test: każda zmieniona
+   linia powinna dać się wprost powiązać z prośbą użytkownika.
+4. **Realizacja napędzana celem.** Zdefiniuj kryteria sukcesu, iteruj do
+   potwierdzenia. Przekładaj zadania na weryfikowalne cele („dodaj walidację"
+   → „napisz testy na niepoprawne dane wejściowe, potem spraw, by
+   przechodziły"; „napraw buga" → „napisz test odtwarzający buga, potem
+   spraw, by przechodził"; „zrefaktoryzuj X" → „upewnij się, że testy
+   przechodzą przed i po"). Przy zadaniach wieloetapowych podaj krótki plan
+   (krok → weryfikacja). Mocne kryteria sukcesu pozwalają działać
+   samodzielnie; słabe („spraw, żeby działało") wymagają ciągłego dopytywania.
+
 ## Czym jest projekt
 
 **Liquid Flow** — narzędzie do synchronizacji i hot‑reloadu szablonów Liquid w

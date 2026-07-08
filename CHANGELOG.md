@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.172] — 2026-07-08
+
+### Added
+- Added a "Zasady pracy z kodem (ogólne)" section to the root `CLAUDE.md` (adapted from https://github.com/multica-ai/andrej-karpathy-skills/blob/main/CLAUDE.md): think-before-coding, simplicity-first, surgical changes, and goal-driven execution guidelines.
+
 ## [0.9.171] — 2026-07-08
 
 ### Changed
