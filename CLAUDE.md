@@ -444,20 +444,61 @@ osobnego billingu API. Warunek: `agy` musi być zainstalowany i zalogowany
 lokalnie (`agy auth status`) — to jednorazowy, interaktywny krok użytkownika, nie
 da się go wykonać z poziomu sesji agenta.
 
-Narzędzia dostępne przez ten MCP:
-- `ask-gemini` — prompt + opcjonalne odwołania do plików (`@ścieżka`), do analizy
-  dużych zbiorów plików/kontekstu wykraczającego poza wygodne okno Sonnet.
-- `sandbox-test` — uruchomienie/przetestowanie fragmentu kodu w izolowanej
-  piaskownicy Gemini (jednorazowe sprawdzenie, nie kod do wklejenia bez przeglądu).
+Narzędzia dostępne przez ten MCP: `ask-gemini` (prompt + opcjonalne odwołania do
+plików `@ścieżka`; flaga `sandbox:true` uruchamia fragment w izolowanej
+piaskownicy do jednorazowego sprawdzenia; flaga `changeMode:true` każe zwrócić
+**strukturalne edycje** zamiast wolnego tekstu), `brainstorm` (generowanie
+pomysłów), `ping`/`Help` (diagnostyka MCP).
 
-Kiedy sięgać: przeszukiwanie/analiza dużych zbiorów plików lub logów,
-prototypowanie kodu do szybkiego sprawdzenia, research wymagający dużego okna
-kontekstu. To NIE jest zamiennik `advisor()` (Opus/Fable) — `advisor()` to druga
-opinia/recenzja nad tokiem pracy Sonnet, `ask-gemini`/`sandbox-test` to wykonawcze
-narzędzie do konkretnych, zlecanych podzadań; oba mechanizmy działają niezależnie
-i mogą być używane w tej samej sesji. Automatyzacja `agy` przez CLI podlega
-zasadom Google dla kont AI Pro/Ultra — to nie jest oficjalny kanał API, więc przy
-dużym wolumenie zapytań może podlegać throttlingowi konta.
+Kiedy sięgać: przeszukiwanie/analiza dużych zbiorów plików lub logów, research
+wymagający dużego okna kontekstu, oraz **implementacja małych, dobrze
+odizolowanych zadań/featurów** (patrz niżej). To NIE jest zamiennik `advisor()`
+(Opus/Fable) — `advisor()` to druga opinia/recenzja nad tokiem pracy Sonnet,
+Gemini to wykonawcze narzędzie do konkretnych, zlecanych podzadań; oba
+mechanizmy działają niezależnie i mogą być używane w tej samej sesji.
+Automatyzacja `agy` przez CLI podlega zasadom Google dla kont AI Pro/Ultra — to
+nie jest oficjalny kanał API, więc przy dużym wolumenie zapytań może podlegać
+throttlingowi konta (zlecać zadania „paczkami”, nie w pętli na każdą drobną
+zmianę).
+
+### Gemini jako subagent implementacyjny
+
+Sonnet może zlecać Gemini implementację **małych, samodzielnych zadań i
+featurów** dokładnie tak, jak deleguje się pracę do subagenta: zleć zadanie z
+pełnym kontekstem, poczekaj na odpowiedź, zintegruj wynik. Podział ról jest
+świadomy: **Gemini pisze kod, Sonnet myśli i decyduje** (scope, weryfikacja,
+integracja, gate'y jakości).
+
+Workflow:
+1. **Zleć precyzyjnie** — `ask-gemini` z `changeMode:true` i pełnym kontekstem
+   w prompcie: dotknięte pliki przez `@ścieżka`, odpowiednie fragmenty
+   CLAUDE.md (i18n, konwencje nazewnictwa, zakazy typu „nie zmyślaj propsów”),
+   oraz — dla komponentów design‑systemu — dokumentacja propsów pobrana
+   wcześniej z `liquidflow-sb-mcp` (Sonnet ją dociąga, Gemini nie ma dostępu do
+   tego MCP). Zadanie musi być jednoznacznie ograniczone (jeden plik/komponent/
+   feature), nie architektoniczne.
+2. **Poczekaj na odpowiedź** — `changeMode:true` zwraca ustrukturyzowane
+   edycje (ewentualnie w kawałkach — `fetch-chunk` po `cacheKey` przy dużych
+   odpowiedziach).
+3. **Zweryfikuj i zaaplikuj** — Sonnet przegląda zwrócone edycje pod kątem
+   zgodności z CLAUDE.md (i18n PL/EN, brak zmyślonych propsów, styl
+   komentarzy) i sam zapisuje zmiany do plików (`Edit`/`Write`) — Gemini nie
+   ma bezpośredniego zapisu do repo, zwraca tylko treść edycji.
+4. **Gate'y zostają przy Sonnet** — `npm test`, weryfikacja i18n, bump wersji
+   w 4 plikach, wpis do `CHANGELOG.md`, commit + push. Te kroki NIGDY nie są
+   delegowane.
+
+Dobre kandydatury do zlecenia: nowe `*.stories.jsx` po istniejącym wzorcu,
+masowe/mechaniczne dodawanie kluczy i18n lub zamiana literałów logów na
+`tmsg('Klucz', params)` w wielu plikach, pierwsze szkice testów po wzorcu
+istniejących `*.test.js`/`*.test.jsx`, powtarzalne refaktory (rename, ekstrakcja
+funkcji) rozsiane po wielu plikach, prototypy komponentów design‑systemu na
+bazie tokenów Figmy + docs Storybooka.
+
+Nie deleguj: `packages/core/src/soap.js` (zamrożony kontrakt SOAP), layout Ink
+(`Header.jsx` i inne miejsca oznaczone „NIE psuć!” — kruche inwarianty
+wymagające pełnego kontekstu z tego pliku), decyzje architektoniczne, oraz
+wszystko z punktu 4 workflow powyżej (testy/wersja/changelog/git).
 
 ## Tłumaczenia (i18n) — PL/EN
 

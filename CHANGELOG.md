@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.171] — 2026-07-08
+
+### Changed
+- `CLAUDE.md`: expanded the Gemini/Antigravity delegation section into a documented "Gemini as implementation subagent" workflow — Sonnet scopes and reviews, Gemini implements small self-contained tasks via `ask-gemini` (`changeMode:true`), test/version/changelog/git gates stay with Sonnet. Corrected the tool list (there is no separate `sandbox-test` tool; `sandbox` is a flag on `ask-gemini`).
+
 ## [0.9.170] — 2026-07-08
 
 ### Added
