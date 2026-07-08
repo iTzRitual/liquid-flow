@@ -1,6 +1,6 @@
 {
   "name": "@liquidflow/mcp",
-  "version": "0.9.168",
+  "version": "0.9.169",
   "description": "Liquid Flow — serwer MCP (Model Context Protocol) dla agentów AI",
   "type": "module",
   "license": "MIT",

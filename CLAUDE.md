@@ -432,6 +432,33 @@ niego. Nazwa story może nie odpowiadać nazwie propsu, więc właściwości zaw
 weryfikuj przez dokumentację/przykłady, nie przez nazwę story. Źródło:
 <https://storybook.js.org/docs/ai>.
 
+## Delegowanie podzadań do Gemini/Antigravity (MCP)
+
+Główny model sesji (Sonnet) może delegować pojedyncze podzadania do Gemini przez
+serwer MCP **`gemini-mcp-tool`** (zarejestrowany w `.mcp.json`, `npx -y
+gemini-mcp-tool`). Serwer nie używa klucza API — w tle uruchamia lokalnie
+zainstalowany **Antigravity CLI (`agy`)**, następcę Gemini CLI (Google wygasił
+Gemini CLI dla kont darmowych/AI Pro/AI Ultra 2026‑06‑18), zalogowany przez OAuth
+na koncie Google z subskrypcją AI Pro/Ultra — zużywa limit tego konta, bez
+osobnego billingu API. Warunek: `agy` musi być zainstalowany i zalogowany
+lokalnie (`agy auth status`) — to jednorazowy, interaktywny krok użytkownika, nie
+da się go wykonać z poziomu sesji agenta.
+
+Narzędzia dostępne przez ten MCP:
+- `ask-gemini` — prompt + opcjonalne odwołania do plików (`@ścieżka`), do analizy
+  dużych zbiorów plików/kontekstu wykraczającego poza wygodne okno Sonnet.
+- `sandbox-test` — uruchomienie/przetestowanie fragmentu kodu w izolowanej
+  piaskownicy Gemini (jednorazowe sprawdzenie, nie kod do wklejenia bez przeglądu).
+
+Kiedy sięgać: przeszukiwanie/analiza dużych zbiorów plików lub logów,
+prototypowanie kodu do szybkiego sprawdzenia, research wymagający dużego okna
+kontekstu. To NIE jest zamiennik `advisor()` (Opus/Fable) — `advisor()` to druga
+opinia/recenzja nad tokiem pracy Sonnet, `ask-gemini`/`sandbox-test` to wykonawcze
+narzędzie do konkretnych, zlecanych podzadań; oba mechanizmy działają niezależnie
+i mogą być używane w tej samej sesji. Automatyzacja `agy` przez CLI podlega
+zasadom Google dla kont AI Pro/Ultra — to nie jest oficjalny kanał API, więc przy
+dużym wolumenie zapytań może podlegać throttlingowi konta.
+
 ## Tłumaczenia (i18n) — PL/EN
 
 Aplikacja jest w pełni dwujęzyczna (polski + angielski). Jedno źródło prawdy:

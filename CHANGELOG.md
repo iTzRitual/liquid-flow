@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.169] — 2026-07-08
+
+### Added
+- `gemini-mcp-tool` MCP server registered in `.mcp.json` (project scope): lets the main session model delegate large-context file search and sandboxed code prototyping to Gemini via the locally-installed, OAuth-authenticated Antigravity CLI (`agy`) — no separate API billing, runs alongside `advisor()` rather than replacing it. Documented in `CLAUDE.md`.
+
 ## [0.9.168] — 2026-07-07
 
 ### Added

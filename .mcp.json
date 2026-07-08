@@ -7,6 +7,10 @@
     "figma-mcp-go": {
       "command": "npx",
       "args": ["-y", "@vkhanhqui/figma-mcp-go@latest"]
+    },
+    "gemini-mcp-tool": {
+      "command": "npx",
+      "args": ["-y", "gemini-mcp-tool"]
     }
   }
 }
