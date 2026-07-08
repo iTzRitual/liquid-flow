@@ -89,7 +89,7 @@ export function WindowChrome({
     // a screen's white ContentSurface and screens don't need to reserve clearance.
     return (
       <div className={cn('flex h-full w-full flex-col overflow-hidden rounded-2xl bg-surface-app shadow-lg', className)}>
-        <div className="drag-region flex h-9 shrink-0 items-center justify-end pr-3">
+        <div className="drag-region flex h-8 shrink-0 items-center justify-end pr-3">
           <div className="no-drag">
             <WinLinuxControls {...handlers} rounded={platform === 'linux'} />
           </div>

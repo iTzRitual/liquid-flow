@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.177] — 2026-07-08
+
+### Changed
+- Tightened the Windows/Linux window-control strip in `WindowChrome` (`h-9` → `h-8`) — the controls stay vertically centered in the strip, just with a smaller margin around them instead of being pushed further down.
+
 ## [0.9.176] — 2026-07-08
 
 ### Changed
