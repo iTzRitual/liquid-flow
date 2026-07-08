@@ -1,6 +1,6 @@
 {
   "name": "@liquidflow/core",
-  "version": "0.9.175",
+  "version": "0.9.176",
   "description": "Liquid Flow — wspólna logika (klient SOAP, silnik synchronizacji, store, git) niezależna od warstwy prezentacji",
   "type": "module",
   "main": "index.js",

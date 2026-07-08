@@ -108,10 +108,6 @@ export function HubScreen({
           onOpenFolder={onOpenFolder}
           onOpenShop={onOpenShop}
           onRefresh={onRefresh}
-          // Reserve the top strip so window controls (Windows/Linux min/max/close,
-          // top-right) don't overlap the folder/shop/refresh actions when the
-          // screen is inside WindowChrome — mirrors the Sidebar's mac clearance.
-          className="pt-12"
         />
 
         <div className="flex min-h-0 flex-1 overflow-hidden">

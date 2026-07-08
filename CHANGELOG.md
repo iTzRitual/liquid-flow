@@ -6,6 +6,14 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.176] — 2026-07-08
+
+### Changed
+- Reworked how `WindowChrome` places Windows/Linux window controls: instead of floating over the app content (the approach shared with macOS), they now sit in a dedicated strip on the window's own gray background, above the content — so they never overlap a screen's white `ContentSurface`. macOS is unchanged (traffic lights still float top-left; the `Sidebar` clearance from 0.9.170 still applies there).
+
+### Fixed
+- Reverted the `pt-12` padding added to `HubScreen`'s `SyncHeader` in 0.9.175 — no longer needed now that `WindowChrome` reserves the Windows/Linux control strip structurally.
+
 ## [0.9.175] — 2026-07-08
 
 ### Fixed
