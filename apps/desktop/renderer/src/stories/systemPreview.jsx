@@ -4,10 +4,87 @@ import Onboarding from "../components/Onboarding.jsx";
 import SelectTemplate from "../components/SelectTemplate.jsx";
 import { MockApp, shops, templates, mockApi } from "./mock.jsx";
 
-// Which screen to preview inside the window chrome, and the mock context each
-// one needs to render meaningfully — shared across the per-OS system stories
-// (Systems/macOS, Systems/Windows, Systems/Linux) so adding a future screen is
-// just one more entry here.
+// New design-system screens (prop-driven, no AppCtx) + their window frame.
+import "../design-system/foundations/theme.css";
+import { WindowChrome as DSWindowChrome } from "../design-system/templates/WindowChrome";
+import { OnboardingScreen } from "../design-system/screens/OnboardingScreen";
+import { SelectTemplateScreen } from "../design-system/screens/SelectTemplateScreen";
+import { HubScreen } from "../design-system/screens/HubScreen";
+import { Zap, Shuffle, PackageSearch } from "../design-system/foundations/icons";
+
+// ————— Fixtures for the design-system screens —————
+// The DS screens take plain props (labels + data), not AppCtx, so their preview
+// data lives here rather than in a mock context.
+const dsFeatures = [
+    { icon: Zap, title: "Hot-reload na żywo", description: "Zapisz plik — zmiana natychmiast trafia do sklepu." },
+    { icon: Shuffle, title: "Wykrywanie konfliktów", description: "Porównanie lokalne ↔ zdalne z jasnym wyborem wersji." },
+    { icon: PackageSearch, title: "Automatyczne kopie", description: "Każda zmiana wersjonowana w git." },
+];
+
+const dsFileTree = [
+    {
+        name: "components",
+        children: [
+            { name: "mobile", children: [{ name: "mobile1.min.css" }, { name: "main.js" }] },
+            { name: "header.liquid" },
+            { name: "footer.liquid" },
+        ],
+    },
+    { name: "css", children: [{ name: "layout.css" }, { name: "theme.css" }] },
+    { name: "settings.liquid" },
+    { name: "index.html" },
+];
+
+const dsLog = [
+    { id: 6, time: "12:03:24", tone: "success", message: "Plik został zmieniony — layout.css" },
+    { id: 5, time: "12:03:21", tone: "info", message: "Utworzono punkt kontrolny git" },
+    { id: 4, time: "12:03:18", tone: "warning", message: "Sprawdzono niezgodności — 1 konflikt" },
+    { id: 3, time: "12:00:03", tone: "success", message: "Pobrano 128 plików szablonu", muted: true },
+    { id: 2, time: "12:00:02", tone: "info", message: "Połączono ze sklepem", muted: true },
+];
+
+const dsOnboardingLabels = {
+    title: "Dodaj sklep",
+    shopName: "Nazwa sklepu",
+    url: "Adres URL",
+    password: "Hasło",
+    savePassword: "Zapamiętaj hasło",
+    submit: "Dodaj i zaloguj",
+    or: "lub",
+    import: "Importuj konfigurację",
+};
+
+const dsSelectLabels = {
+    shops: "Sklepy",
+    addShop: "Dodaj sklep",
+    heading: "Wybierz szablon",
+    emptyShops: "Brak sklepów — dodaj pierwszy",
+    emptyTemplates: "Brak szablonów w tym sklepie",
+};
+
+const dsHubLabels = {
+    shops: "Sklepy",
+    addShop: "Dodaj sklep",
+    id: "ID",
+    ok: "Brak konfliktów",
+    openFolder: "Otwórz folder",
+    openShop: "Otwórz sklep",
+    refresh: "Odśwież",
+    files: "Pliki",
+    tabActivity: "Aktywność",
+    tabConflicts: "Konflikty",
+    tabGit: "Git-Backup",
+    emptyLog: "Brak aktywności",
+    placeholder: "Wkrótce",
+};
+
+// Which screen to preview inside the window chrome. Two kinds of entries:
+//   • legacy (AppCtx-driven): `{ component, ctx }` rendered inside the legacy
+//     WindowChrome via MockApp.
+//   • design-system (prop-driven): `{ ds: true, element }` rendered inside the
+//     DS WindowChrome, no MockApp needed.
+// Shared across the per-OS system stories (Systems/macOS, Systems/Windows,
+// Systems/Linux) so adding a future screen is just one more entry here.
 export const SCREENS = {
     onboarding: {
         component: Onboarding,
@@ -28,6 +105,46 @@ export const SCREENS = {
             api: mockApi({ listTemplates: async () => templates }),
         },
     },
+    onboardingScreen: {
+        ds: true,
+        element: (
+            <OnboardingScreen
+                appName="Liquid Flow"
+                version="0.9.168"
+                tagline="Edytuj szablony lokalnie — zmiany lecą do sklepu w czasie rzeczywistym."
+                features={dsFeatures}
+                labels={dsOnboardingLabels}
+            />
+        ),
+    },
+    selectTemplateScreen: {
+        ds: true,
+        element: (
+            <SelectTemplateScreen
+                shops={shops}
+                currentShopId={shops[0].Id}
+                templates={templates}
+                labels={dsSelectLabels}
+            />
+        ),
+    },
+    hubScreen: {
+        ds: true,
+        element: (
+            <HubScreen
+                shops={shops}
+                currentShopId={shops[0].Id}
+                templateName="Topaz — Główny"
+                templateId={42}
+                shopName={shops[0].Name}
+                shopUrl="ogrodek.comarch.pl/sklep"
+                conflictCount={3}
+                fileTree={dsFileTree}
+                logEntries={dsLog}
+                labels={dsHubLabels}
+            />
+        ),
+    },
 };
 
 // Renders the whole application window as a "floating" OS window over a desktop
@@ -38,15 +155,19 @@ export const SCREENS = {
 // story file (Systems/macOS, Systems/Windows, Systems/Linux) — only the
 // screen inside the window is a control.
 export function SystemWindow({ platform, width, height, screen }) {
-    const { component: Screen, ctx } = SCREENS[screen];
+    const entry = SCREENS[screen];
     return (
         <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-300 to-slate-500 p-10 dark:from-slate-800 dark:to-slate-950">
             <div style={{ width, height }}>
-                <MockApp ctx={ctx}>
-                    <WindowChrome platform={platform}>
-                        <Screen />
-                    </WindowChrome>
-                </MockApp>
+                {entry.ds ? (
+                    <DSWindowChrome platform={platform}>{entry.element}</DSWindowChrome>
+                ) : (
+                    <MockApp ctx={entry.ctx}>
+                        <WindowChrome platform={platform}>
+                            {React.createElement(entry.component)}
+                        </WindowChrome>
+                    </MockApp>
+                )}
             </div>
         </div>
     );

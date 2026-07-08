@@ -21,3 +21,26 @@ export const SelectTemplate = {
         screen: "selectTemplate"
     }
 };
+
+// Redesign (design-system) screens inside the same window frame.
+export const HubScreen = {
+    args: {
+        width: 1180,
+        height: 800,
+        screen: "hubScreen"
+    }
+};
+
+export const OnboardingScreen = {
+    args: {
+        screen: "onboardingScreen"
+    }
+};
+
+export const SelectTemplateScreen = {
+    args: {
+        width: 1180,
+        height: 800,
+        screen: "selectTemplateScreen"
+    }
+};

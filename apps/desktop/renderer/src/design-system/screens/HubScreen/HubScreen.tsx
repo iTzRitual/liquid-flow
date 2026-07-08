@@ -87,6 +87,9 @@ export function HubScreen({
           label={labels.shops}
           addLabel={labels.addShop}
           emptyLabel={labels.emptyShops}
+          // Reserve the top strip so window controls (macOS traffic lights) don't
+          // overlap the shop-rail label when the screen is inside WindowChrome.
+          className="pt-12"
         />
       }
     >

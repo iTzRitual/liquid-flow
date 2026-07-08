@@ -6,6 +6,14 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.170] — 2026-07-08
+
+### Added
+- The three new design-system screens (`OnboardingScreen`, `SelectTemplateScreen`, `HubScreen`) are now selectable inside the `Systems/macOS`, `Systems/Windows`, and `Systems/Linux` window-frame previews — both via the `screen` dropdown and as their own named stories. Rendered inside the design-system `WindowChrome` (prop-driven, no AppCtx); the legacy screen entries still work unchanged.
+
+### Fixed
+- `SelectTemplateScreen` and `HubScreen` reserve the top strip of the shop rail (`pt-12`) so the macOS traffic-light window controls no longer overlap the "Sklepy" label when the screen sits inside `WindowChrome`.
+
 ## [0.9.169] — 2026-07-08
 
 ### Added
