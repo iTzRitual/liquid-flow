@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.175] — 2026-07-08
+
+### Fixed
+- `HubScreen`'s `SyncHeader` reserved no clearance for window controls, so on Windows/Linux (min/max/close, top-right) the "Otwórz folder"/"Otwórz sklep"/"Odśwież" actions overlapped the controls when rendered inside `WindowChrome`. Added the same `pt-12` clearance already used on `Sidebar` for macOS's traffic lights.
+
 ## [0.9.174] — 2026-07-08
 
 ### Changed
