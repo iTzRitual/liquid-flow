@@ -6,6 +6,21 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.173] — 2026-07-08
+
+### Changed
+- Translated the root `CLAUDE.md`, `apps/cli/CLAUDE.md`, and `apps/desktop/CLAUDE.md` from Polish to English — these files are read only by AI agents (no human-facing audience beyond the maintainer), and English tokenizes more efficiently for the model. `README.md` and `CHANGELOG.md` stay as they were (README targets Polish e-Sklep users; the changelog was already English-only).
+
+## [0.9.172] — 2026-07-08
+
+### Added
+- Added a "Zasady pracy z kodem (ogólne)" section to the root `CLAUDE.md` (adapted from https://github.com/multica-ai/andrej-karpathy-skills/blob/main/CLAUDE.md): think-before-coding, simplicity-first, surgical changes, and goal-driven execution guidelines.
+
+## [0.9.171] — 2026-07-08
+
+### Changed
+- Split the 703-line root `CLAUDE.md` into a concise architecture/workflow overview plus two directory-scoped files (`apps/cli/CLAUDE.md`, `apps/desktop/CLAUDE.md`) that only load when working in those folders. Documented the shared-daemon architecture (`connectController`/`DaemonClient`, plans 022–030) in the root file, which had no mention of it despite it being fully shipped. Fixed the stale claim that desktop redesign work happens on a `redesign` branch — that branch was merged into `main` long ago and all redesign work lands directly on `main`. Removed the "Aktualny stan prac" narrative, which duplicated `CHANGELOG.md`.
+
 ## [0.9.170] — 2026-07-08
 
 ### Added
