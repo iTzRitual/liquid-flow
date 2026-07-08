@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.173] — 2026-07-08
+
+### Changed
+- Translated the root `CLAUDE.md`, `apps/cli/CLAUDE.md`, and `apps/desktop/CLAUDE.md` from Polish to English — these files are read only by AI agents (no human-facing audience beyond the maintainer), and English tokenizes more efficiently for the model. `README.md` and `CHANGELOG.md` stay as they were (README targets Polish e-Sklep users; the changelog was already English-only).
+
 ## [0.9.172] — 2026-07-08
 
 ### Added
