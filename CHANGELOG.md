@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.174] — 2026-07-08
+
+### Changed
+- Merged the "Gemini as an implementation subagent" workflow section into the now-translated English `CLAUDE.md` (instead of reintroducing Polish prose from an earlier draft) and corrected the Gemini MCP tool list — there is no separate `sandbox-test` tool; `sandbox` is a flag on `ask-gemini`. Added `brainstorm`/`ping`/`Help` to the documented tool list.
+
 ## [0.9.173] — 2026-07-08
 
 ### Changed

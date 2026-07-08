@@ -212,21 +212,61 @@ billing. Requirement: `agy` must be installed and logged in locally (`agy
 auth status`) — a one-time, interactive step the user has to do; it can't
 be done from within an agent session.
 
-Tools exposed through this MCP:
-- `ask-gemini` — a prompt + optional file references (`@path`), for
-  analyzing large sets of files/context beyond Sonnet's comfortable window.
-- `sandbox-test` — running/testing a code snippet in an isolated Gemini
-  sandbox (a one-off check, not code to paste in without review).
+Tools exposed through this MCP: `ask-gemini` (prompt + optional file
+references `@path`; the `sandbox:true` flag runs a snippet in an isolated
+sandbox for a one-off check; the `changeMode:true` flag makes it return
+**structured edits** instead of free-form text), `brainstorm` (idea
+generation), `ping`/`Help` (MCP diagnostics).
 
 When to reach for it: searching/analyzing large sets of files or logs,
-prototyping code for a quick check, research that needs a large context
-window. This is NOT a replacement for `advisor()` (Opus/Fable) —
-`advisor()` is a second opinion/review over Sonnet's line of work,
-`ask-gemini`/`sandbox-test` is an executive tool for specific, delegated
+research that needs a large context window, and **implementing small,
+well-isolated tasks/features** (see below). This is NOT a replacement for
+`advisor()` (Opus/Fable) — `advisor()` is a second opinion/review over
+Sonnet's line of work, Gemini is an executive tool for specific, delegated
 subtasks; both mechanisms work independently and can be used in the same
 session. Automating `agy` via CLI is subject to Google's rules for AI
 Pro/Ultra accounts — this is not an official API channel, so high query
-volume may hit account throttling.
+volume may hit account throttling (batch delegated tasks rather than
+looping per small change).
+
+### Gemini as an implementation subagent
+
+Sonnet can delegate implementation of **small, self-contained tasks and
+features** to Gemini exactly like delegating to a subagent: scope the task
+with full context, wait for the response, integrate the result. The split
+of responsibilities is deliberate: **Gemini writes code, Sonnet thinks and
+decides** (scope, verification, integration, quality gates).
+
+Workflow:
+1. **Scope precisely** — `ask-gemini` with `changeMode:true` and full
+   context in the prompt: affected files via `@path`, the relevant
+   CLAUDE.md sections (i18n, naming conventions, rules like "don't invent
+   props"), and — for design-system components — prop documentation
+   fetched beforehand from `liquidflow-sb-mcp` (Sonnet pulls it in; Gemini
+   has no access to that MCP). The task must be unambiguously scoped (one
+   file/component/feature), not architectural.
+2. **Wait for the response** — `changeMode:true` returns structured edits
+   (possibly chunked — `fetch-chunk` by `cacheKey` for large responses).
+3. **Verify and apply** — Sonnet reviews the returned edits against
+   CLAUDE.md (PL/EN i18n, no invented props, comment style) and writes the
+   changes to files itself (`Edit`/`Write`) — Gemini has no direct write
+   access to the repo, it only returns edit content.
+4. **Gates stay with Sonnet** — `npm test`, i18n verification, the
+   4-file version bump, the `CHANGELOG.md` entry, commit + push. These
+   steps are NEVER delegated.
+
+Good candidates to delegate: new `*.stories.jsx` files following an
+existing pattern, bulk/mechanical addition of i18n keys or converting log
+literals to `tmsg('Key', params)` across many files, first drafts of tests
+following existing `*.test.js`/`*.test.jsx` patterns, repetitive refactors
+(rename, function extraction) spread across many files, design-system
+component prototypes based on Figma tokens + Storybook docs.
+
+Don't delegate: `packages/core/src/soap.js` (frozen SOAP contract), Ink
+layout code (`Header.jsx` and other spots marked "do NOT break!" — brittle
+invariants that need full context from that file), architectural
+decisions, and anything from workflow step 4 above (tests/version/
+changelog/git).
 
 ## Translations (i18n) — PL/EN
 
