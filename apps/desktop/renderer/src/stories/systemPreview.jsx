@@ -160,7 +160,9 @@ export function SystemWindow({ platform, width, height, screen }) {
         <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-300 to-slate-500 p-10 dark:from-slate-800 dark:to-slate-950">
             <div style={{ width, height }}>
                 {entry.ds ? (
-                    <DSWindowChrome platform={platform}>{entry.element}</DSWindowChrome>
+                    <DSWindowChrome platform={platform} title="Liquid Flow v0.9.178">
+                        {entry.element}
+                    </DSWindowChrome>
                 ) : (
                     <MockApp ctx={entry.ctx}>
                         <WindowChrome platform={platform}>

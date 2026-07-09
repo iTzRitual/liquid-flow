@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.179] — 2026-07-09
+
+### Added
+- `WindowChrome` gained an optional `title` prop, rendered centered in the Windows/Linux control strip (e.g. "Liquid Flow v<version>"); macOS has no dedicated strip, so it's a no-op there. Wired into the `Systems/*` preview harness.
+
 ## [0.9.178] — 2026-07-08
 
 ### Fixed

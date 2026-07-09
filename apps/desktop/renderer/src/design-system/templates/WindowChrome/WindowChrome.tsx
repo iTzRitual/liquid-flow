@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { X } from '../../foundations/icons';
 import { cn } from '../../foundations/cn';
+import { Text } from '../../atoms/Text';
 
 export type Platform = 'mac' | 'win' | 'linux';
 
@@ -8,9 +9,12 @@ export type Platform = 'mac' | 'win' | 'linux';
  * top drag strip and window controls overlaid in the corner (macOS traffic
  * lights top-left; Windows/Linux min/max/close top-right). Pure layout — content
  * fills the whole surface via `children`; the caller wires the control handlers.
- * In Electron this pairs with `frame:false` + IPC. */
+ * In Electron this pairs with `frame:false` + IPC. `title` (e.g. "Liquid Flow
+ * v0.9.178") renders centered in the Windows/Linux strip only — macOS has no
+ * dedicated strip to put it in. */
 export interface WindowChromeProps {
   platform?: Platform;
+  title?: string;
   onMinimize?: () => void;
   onMaximize?: () => void;
   onClose?: () => void;
@@ -75,6 +79,7 @@ function WinLinuxControls({
 
 export function WindowChrome({
   platform = 'mac',
+  title,
   onMinimize,
   onMaximize,
   onClose,
@@ -89,7 +94,16 @@ export function WindowChrome({
     // a screen's white ContentSurface and screens don't need to reserve clearance.
     return (
       <div className={cn('flex h-full w-full flex-col overflow-hidden rounded-2xl bg-surface-app shadow-lg', className)}>
-        <div className="drag-region flex h-8 shrink-0 items-center justify-end pr-3">
+        <div className="drag-region relative flex h-8 shrink-0 items-center justify-end pr-3">
+          {title && (
+            <Text
+              variant="caption-md"
+              tone="secondary"
+              className="pointer-events-none absolute left-1/2 -translate-x-1/2 select-none"
+            >
+              {title}
+            </Text>
+          )}
           <div className="no-drag">
             <WinLinuxControls {...handlers} rounded={platform === 'linux'} />
           </div>

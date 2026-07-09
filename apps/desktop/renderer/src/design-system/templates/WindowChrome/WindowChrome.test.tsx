@@ -28,4 +28,14 @@ describe('WindowChrome', () => {
     expect(screen.getByRole('button', { name: 'minimize' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'maximize' })).toBeInTheDocument();
   });
+
+  it('shows the title centered in the Windows/Linux strip', () => {
+    render(<WindowChrome platform="win" title="Liquid Flow v0.9.178" />);
+    expect(screen.getByText('Liquid Flow v0.9.178')).toBeInTheDocument();
+  });
+
+  it('does not render a title strip on macOS', () => {
+    render(<WindowChrome platform="mac" title="Liquid Flow v0.9.178" />);
+    expect(screen.queryByText('Liquid Flow v0.9.178')).not.toBeInTheDocument();
+  });
 });

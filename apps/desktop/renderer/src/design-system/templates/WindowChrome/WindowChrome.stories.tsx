@@ -23,9 +23,9 @@ export const Mac: Story = {
 };
 
 export const Windows: Story = {
-  args: { platform: 'win', children: <Fill label="Obszar treści" /> },
+  args: { platform: 'win', title: 'Liquid Flow v0.9.178', children: <Fill label="Obszar treści" /> },
 };
 
 export const Linux: Story = {
-  args: { platform: 'linux', children: <Fill label="Obszar treści" /> },
+  args: { platform: 'linux', title: 'Liquid Flow v0.9.178', children: <Fill label="Obszar treści" /> },
 };
