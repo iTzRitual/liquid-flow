@@ -30,3 +30,8 @@ export const NoConflicts: Story = {
 export const WithConflicts: Story = {
   args: { conflictCount: 3 },
 };
+
+// Leading expand button, shown while the shop rail is collapsed.
+export const CollapsedSidebar: Story = {
+  args: { conflictCount: 0, expandLabel: 'Rozwiń panel boczny', onExpandSidebar: () => {} },
+};

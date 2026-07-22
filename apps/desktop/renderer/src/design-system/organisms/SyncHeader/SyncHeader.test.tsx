@@ -48,4 +48,16 @@ describe('SyncHeader', () => {
     expect(onOpenShop).toHaveBeenCalledOnce();
     expect(onRefresh).toHaveBeenCalledOnce();
   });
+
+  it('renders the expand button only when onExpandSidebar is set, and calls it', async () => {
+    const onExpandSidebar = vi.fn();
+    const { rerender } = render(<SyncHeader {...base} conflictCount={0} expandLabel="Rozwiń panel" />);
+    expect(screen.queryByRole('button', { name: 'Rozwiń panel' })).not.toBeInTheDocument();
+
+    rerender(
+      <SyncHeader {...base} conflictCount={0} onExpandSidebar={onExpandSidebar} expandLabel="Rozwiń panel" />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Rozwiń panel' }));
+    expect(onExpandSidebar).toHaveBeenCalledOnce();
+  });
 });

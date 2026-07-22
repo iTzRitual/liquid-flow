@@ -11,6 +11,8 @@ import { Text } from '../../atoms/Text';
 export interface HubScreenLabels {
   shops: string;
   addShop: string;
+  collapseSidebar: string;
+  expandSidebar: string;
   emptyShops?: string;
   id: string;
   ok: string;
@@ -40,6 +42,7 @@ export interface HubScreenProps {
   fileTree: FileTreeNode[];
   logEntries: ActivityLogEntry[];
   labels: HubScreenLabels;
+  defaultSidebarCollapsed?: boolean;
   conflictsSlot?: React.ReactNode;
   gitSlot?: React.ReactNode;
   onSelectShop?: (shop: SidebarShop) => void;
@@ -68,6 +71,7 @@ export function HubScreen({
   fileTree,
   logEntries,
   labels,
+  defaultSidebarCollapsed = false,
   conflictsSlot,
   gitSlot,
   onSelectShop,
@@ -76,21 +80,27 @@ export function HubScreen({
   onOpenShop,
   onRefresh,
 }: HubScreenProps) {
+  const [collapsed, setCollapsed] = React.useState(defaultSidebarCollapsed);
+
   return (
     <AppShell
       sidebar={
-        <Sidebar
-          shops={shops}
-          currentShopId={currentShopId}
-          onSelectShop={onSelectShop}
-          onAddShop={onAddShop}
-          label={labels.shops}
-          addLabel={labels.addShop}
-          emptyLabel={labels.emptyShops}
-          // Reserve the top strip so window controls (macOS traffic lights) don't
-          // overlap the shop-rail label when the screen is inside WindowChrome.
-          className="pt-12"
-        />
+        collapsed ? null : (
+          <Sidebar
+            shops={shops}
+            currentShopId={currentShopId}
+            onSelectShop={onSelectShop}
+            onAddShop={onAddShop}
+            onCollapse={() => setCollapsed(true)}
+            label={labels.shops}
+            addLabel={labels.addShop}
+            collapseLabel={labels.collapseSidebar}
+            emptyLabel={labels.emptyShops}
+            // Reserve the top strip so window controls (macOS traffic lights) don't
+            // overlap the shop-rail label when the screen is inside WindowChrome.
+            className="pt-12"
+          />
+        )
       }
     >
       <ContentSurface>
@@ -105,6 +115,8 @@ export function HubScreen({
           openFolderLabel={labels.openFolder}
           openShopLabel={labels.openShop}
           refreshLabel={labels.refresh}
+          onExpandSidebar={collapsed ? () => setCollapsed(false) : undefined}
+          expandLabel={labels.expandSidebar}
           onOpenFolder={onOpenFolder}
           onOpenShop={onOpenShop}
           onRefresh={onRefresh}

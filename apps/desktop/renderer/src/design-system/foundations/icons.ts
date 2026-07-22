@@ -23,6 +23,8 @@ export {
   Loader2,
   CircleDot,
   X,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 export type { LucideIcon } from 'lucide-react';

@@ -26,3 +26,8 @@ export const WithShops: Story = {
 export const Empty: Story = {
   args: { shops: [] },
 };
+
+// With the collapse button in the header (shown only when onCollapse is wired).
+export const Collapsible: Story = {
+  args: { shops, currentShopId: 'demo-1', collapseLabel: 'Zwiń panel boczny', onCollapse: () => {} },
+};

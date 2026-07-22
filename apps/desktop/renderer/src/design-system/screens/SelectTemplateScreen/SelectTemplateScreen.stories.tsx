@@ -29,6 +29,8 @@ const meta = {
       shops: 'Sklepy',
       addShop: 'Dodaj sklep',
       heading: 'Wybierz szablon',
+      collapseSidebar: 'Zwiń panel boczny',
+      expandSidebar: 'Rozwiń panel boczny',
       emptyShops: 'Brak sklepów — dodaj pierwszy',
       emptyTemplates: 'Brak szablonów w tym sklepie',
     },
@@ -42,4 +44,9 @@ export const Default: Story = {};
 
 export const Selecting: Story = {
   args: { selectingId: 2 },
+};
+
+// Shop rail closed — the floating button (top-left of the card) reopens it.
+export const SidebarCollapsed: Story = {
+  args: { defaultSidebarCollapsed: true },
 };

@@ -1,6 +1,6 @@
 import { Avatar } from '../../atoms/Avatar';
 import { Text } from '../../atoms/Text';
-import { Check, Plus } from '../../foundations/icons';
+import { Check, Plus, PanelLeftClose } from '../../foundations/icons';
 import { cn } from '../../foundations/cn';
 
 export interface SidebarShop {
@@ -17,8 +17,11 @@ export interface SidebarProps {
   currentShopId?: string;
   onSelectShop?: (shop: SidebarShop) => void;
   onAddShop?: () => void;
+  /** When set, renders a collapse button beside the label that closes the rail. */
+  onCollapse?: () => void;
   label: string;
   addLabel: string;
+  collapseLabel?: string;
   emptyLabel?: string;
   className?: string;
 }
@@ -33,14 +36,28 @@ export function Sidebar({
   currentShopId,
   onSelectShop,
   onAddShop,
+  onCollapse,
   label,
   addLabel,
+  collapseLabel,
   emptyLabel,
   className,
 }: SidebarProps) {
   return (
     <aside className={cn('flex w-80 shrink-0 flex-col gap-2 p-3', className)}>
-      <Text as="div" variant="body-md" tone="muted" className="px-1.5 pb-1">{label}</Text>
+      <div className="flex items-center justify-between gap-2 px-1.5 pb-1">
+        <Text as="div" variant="body-md" tone="muted">{label}</Text>
+        {onCollapse && (
+          <button
+            type="button"
+            aria-label={collapseLabel}
+            onClick={onCollapse}
+            className="-mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-muted"
+          >
+            <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
+      </div>
 
       <div className="flex flex-1 flex-col gap-1.5 overflow-y-auto">
         {shops.length === 0 && (

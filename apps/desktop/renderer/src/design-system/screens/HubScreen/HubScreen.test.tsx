@@ -22,6 +22,8 @@ const base: HubScreenProps = {
   labels: {
     shops: 'Sklepy',
     addShop: 'Dodaj sklep',
+    collapseSidebar: 'Zwiń panel boczny',
+    expandSidebar: 'Rozwiń panel boczny',
     id: 'ID',
     ok: 'Brak konfliktów',
     openFolder: 'Otwórz folder',
@@ -66,5 +68,17 @@ describe('HubScreen', () => {
     render(<HubScreen {...base} onRefresh={onRefresh} />);
     await userEvent.click(screen.getByRole('button', { name: 'Odśwież' }));
     expect(onRefresh).toHaveBeenCalledOnce();
+  });
+
+  it('collapses the shop rail and reopens it from the header', async () => {
+    render(<HubScreen {...base} />);
+    expect(screen.getByRole('button', { name: /Sklep A/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rozwiń panel boczny' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Zwiń panel boczny' }));
+    expect(screen.queryByRole('button', { name: /Sklep A/ })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Rozwiń panel boczny' }));
+    expect(screen.getByRole('button', { name: /Sklep A/ })).toBeInTheDocument();
   });
 });
