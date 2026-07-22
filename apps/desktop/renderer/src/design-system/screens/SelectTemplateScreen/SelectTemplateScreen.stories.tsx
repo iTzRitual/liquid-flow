@@ -18,7 +18,9 @@ const meta = {
   title: 'Screens/SelectTemplateScreen',
   component: SelectTemplateScreen,
   parameters: { layout: 'fullscreen' },
-  decorators: [(Story) => <div style={{ height: 600 }}><Story /></div>],
+  // Fill the viewport height so the sidebar + ContentSurface reach the full
+  // canvas (a fixed pixel height would leave the screen short of it).
+  decorators: [(Story) => <div style={{ height: '100vh' }}><Story /></div>],
   args: {
     shops,
     currentShopId: 'demo-1',

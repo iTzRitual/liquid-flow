@@ -6,6 +6,18 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.180] — 2026-07-22
+
+### Added
+- `FeatureCarousel` organism + `useIsCompactWindow` hook: the onboarding feature list collapses to a single auto-rotating item on short windows (≤ 750px tall), keeping the marketing column readable down to the app's 600px minimum height.
+
+### Changed
+- `OnboardingScreen`'s marketing column now reproduces the original onboarding content — the gradient "Liquid Flow" wordmark, the dashboard screenshot (new optional `previewSrc` prop, with `min-h-0 shrink` so it collapses first on short windows), and the feature bullets via the new carousel. The design-system Rubik import gained weights 700/800 for the extrabold wordmark.
+
+### Fixed
+- The sidebar `Avatar` no longer blends into the active shop row: it used `surface-muted` (identical to the selected-row highlight) and now uses the `border-strong` disc (#d9d9d9) with white initials.
+- The three design-system screen stories (`OnboardingScreen`, `SelectTemplateScreen`, `HubScreen`) used a fixed pixel height, so they didn't fill the canvas; they now use `height: 100vh` like the legacy screen stories, matching how the screens fill a real (tall) app window.
+
 ## [0.9.179] — 2026-07-09
 
 ### Added

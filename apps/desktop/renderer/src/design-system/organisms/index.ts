@@ -4,3 +4,4 @@ export * from './ActivityLog';
 export * from './FileTree';
 export * from './TemplateList';
 export * from './FeatureList';
+export * from './FeatureCarousel';

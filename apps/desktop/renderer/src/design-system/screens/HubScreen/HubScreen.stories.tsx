@@ -50,7 +50,9 @@ const meta = {
   title: 'Screens/HubScreen',
   component: HubScreen,
   parameters: { layout: 'fullscreen' },
-  decorators: [(Story) => <div style={{ height: 620 }}><Story /></div>],
+  // Fill the viewport height so the header + file tree + tab area reach the full
+  // canvas (a fixed pixel height would leave the screen short of it).
+  decorators: [(Story) => <div style={{ height: '100vh' }}><Story /></div>],
   args: {
     shops,
     currentShopId: 'demo-1',

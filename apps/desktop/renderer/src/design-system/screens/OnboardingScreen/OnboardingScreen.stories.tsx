@@ -7,11 +7,15 @@ const meta = {
   title: 'Screens/OnboardingScreen',
   component: OnboardingScreen,
   parameters: { layout: 'fullscreen' },
-  decorators: [(Story) => <div style={{ height: 640 }}><Story /></div>],
+  // Fill the viewport height (like the legacy Screens/Onboarding story) so the
+  // screen's h-full chain is exercised — a fixed pixel height would leave the
+  // right-hand ContentSurface short of the canvas.
+  decorators: [(Story) => <div style={{ height: '100vh' }}><Story /></div>],
   args: {
     appName: 'Liquid Flow',
     version: '0.9.166',
     tagline: 'Edytuj szablony lokalnie — zmiany lecą do sklepu w czasie rzeczywistym.',
+    previewSrc: 'dashboard-preview.png',
     features: [
       { icon: Zap, title: 'Hot-reload na żywo', description: 'Zapisz plik — zmiana natychmiast trafia do sklepu.' },
       { icon: Shuffle, title: 'Wykrywanie konfliktów', description: 'Porównanie lokalne ↔ zdalne z jasnym wyborem wersji.' },

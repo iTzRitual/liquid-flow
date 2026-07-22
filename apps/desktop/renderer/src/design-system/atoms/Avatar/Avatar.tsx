@@ -18,8 +18,11 @@ export function Avatar({ name = '', className, ...props }: AvatarProps) {
     <span
       aria-label={name || undefined}
       className={cn(
-        'inline-flex h-9 w-9 items-center justify-center rounded-full bg-surface-muted',
-        'font-ui text-[12px] font-medium text-text-secondary',
+        // A distinct disc shade (not surface-muted): otherwise it matches the
+        // active shop row's surface-muted highlight and the avatar disappears
+        // into it. border-strong is the token earmarked "avatar / divider".
+        'inline-flex h-9 w-9 items-center justify-center rounded-full bg-border-strong',
+        'font-ui text-[12px] font-semibold text-white',
         className,
       )}
       {...props}
