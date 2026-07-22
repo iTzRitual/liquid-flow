@@ -44,7 +44,7 @@ export function Sidebar({
   className,
 }: SidebarProps) {
   return (
-    <aside className={cn('flex w-80 shrink-0 flex-col gap-2 p-3', className)}>
+    <aside className={cn('flex h-full w-full flex-col gap-2 p-3', className)}>
       <div className="flex items-center justify-between gap-2 px-1.5 pb-1">
         <Text as="div" variant="body-md" tone="muted">{label}</Text>
         {onCollapse && (

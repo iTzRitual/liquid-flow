@@ -6,6 +6,14 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.182] — 2026-07-22
+
+### Added
+- The shop rail is now **drag-resizable and remembers its width**. A grabber on the sidebar/main seam (hover shows a `col-resize` cursor and a highlighted line) drags the width between 240–480px; dragging narrower than 200px collapses the rail. Width persists to `localStorage` via the new `useResizableSidebar` hook + a `sidebarStorageKey` prop on both screens. `AppShell` gained `sidebarWidth`/`sidebarCollapsed`/`sidebarResizing`/`onSidebarResizeStart`.
+
+### Changed
+- Collapsing/expanding the sidebar is now **animated with Motion** — `AppShell` tweens the rail's width (kept mounted but `aria-hidden`/`inert` when collapsed, so it leaves the a11y tree). `Sidebar` now fills its host width (`AppShell` owns the width).
+
 ## [0.9.181] — 2026-07-22
 
 ### Added

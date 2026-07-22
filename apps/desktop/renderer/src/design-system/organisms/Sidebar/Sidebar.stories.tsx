@@ -12,7 +12,9 @@ const meta = {
   title: 'Organisms/Sidebar',
   component: Sidebar,
   parameters: { layout: 'fullscreen' },
-  decorators: [(Story) => <div style={{ height: 480 }} className="flex bg-surface-app"><Story /></div>],
+  // Sidebar fills its host width (AppShell owns the width in the app), so the
+  // story pins a representative width.
+  decorators: [(Story) => <div style={{ height: 480, width: 320 }} className="flex bg-surface-app"><Story /></div>],
   args: { label: 'Sklepy', addLabel: 'Dodaj sklep', emptyLabel: 'Brak sklepów — dodaj pierwszy' },
 } satisfies Meta<typeof Sidebar>;
 

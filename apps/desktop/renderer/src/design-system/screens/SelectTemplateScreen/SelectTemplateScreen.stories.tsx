@@ -31,6 +31,7 @@ const meta = {
       heading: 'Wybierz szablon',
       collapseSidebar: 'Zwiń panel boczny',
       expandSidebar: 'Rozwiń panel boczny',
+      resizeSidebar: 'Zmień szerokość panelu bocznego',
       emptyShops: 'Brak sklepów — dodaj pierwszy',
       emptyTemplates: 'Brak szablonów w tym sklepie',
     },

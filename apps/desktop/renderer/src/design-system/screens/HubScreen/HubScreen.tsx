@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { AppShell } from '../../templates/AppShell';
+import { useResizableSidebar } from '../../foundations/useResizableSidebar';
 import { ContentSurface } from '../../templates/ContentSurface';
 import { Sidebar, type SidebarShop } from '../../organisms/Sidebar';
 import { SyncHeader } from '../../organisms/SyncHeader';
@@ -13,6 +14,7 @@ export interface HubScreenLabels {
   addShop: string;
   collapseSidebar: string;
   expandSidebar: string;
+  resizeSidebar: string;
   emptyShops?: string;
   id: string;
   ok: string;
@@ -43,6 +45,8 @@ export interface HubScreenProps {
   logEntries: ActivityLogEntry[];
   labels: HubScreenLabels;
   defaultSidebarCollapsed?: boolean;
+  /** localStorage key the rail width is remembered under; omit to keep it in-memory. */
+  sidebarStorageKey?: string;
   conflictsSlot?: React.ReactNode;
   gitSlot?: React.ReactNode;
   onSelectShop?: (shop: SidebarShop) => void;
@@ -72,6 +76,7 @@ export function HubScreen({
   logEntries,
   labels,
   defaultSidebarCollapsed = false,
+  sidebarStorageKey,
   conflictsSlot,
   gitSlot,
   onSelectShop,
@@ -80,27 +85,33 @@ export function HubScreen({
   onOpenShop,
   onRefresh,
 }: HubScreenProps) {
-  const [collapsed, setCollapsed] = React.useState(defaultSidebarCollapsed);
+  const { width, collapsed, resizing, beginResize, collapse, expand } = useResizableSidebar({
+    storageKey: sidebarStorageKey,
+    defaultCollapsed: defaultSidebarCollapsed,
+  });
 
   return (
     <AppShell
+      sidebarWidth={width}
+      sidebarCollapsed={collapsed}
+      sidebarResizing={resizing}
+      onSidebarResizeStart={beginResize}
+      resizeHandleLabel={labels.resizeSidebar}
       sidebar={
-        collapsed ? null : (
-          <Sidebar
-            shops={shops}
-            currentShopId={currentShopId}
-            onSelectShop={onSelectShop}
-            onAddShop={onAddShop}
-            onCollapse={() => setCollapsed(true)}
-            label={labels.shops}
-            addLabel={labels.addShop}
-            collapseLabel={labels.collapseSidebar}
-            emptyLabel={labels.emptyShops}
-            // Reserve the top strip so window controls (macOS traffic lights) don't
-            // overlap the shop-rail label when the screen is inside WindowChrome.
-            className="pt-12"
-          />
-        )
+        <Sidebar
+          shops={shops}
+          currentShopId={currentShopId}
+          onSelectShop={onSelectShop}
+          onAddShop={onAddShop}
+          onCollapse={collapse}
+          label={labels.shops}
+          addLabel={labels.addShop}
+          collapseLabel={labels.collapseSidebar}
+          emptyLabel={labels.emptyShops}
+          // Reserve the top strip so window controls (macOS traffic lights) don't
+          // overlap the shop-rail label when the screen is inside WindowChrome.
+          className="pt-12"
+        />
       }
     >
       <ContentSurface>
@@ -115,7 +126,7 @@ export function HubScreen({
           openFolderLabel={labels.openFolder}
           openShopLabel={labels.openShop}
           refreshLabel={labels.refresh}
-          onExpandSidebar={collapsed ? () => setCollapsed(false) : undefined}
+          onExpandSidebar={collapsed ? expand : undefined}
           expandLabel={labels.expandSidebar}
           onOpenFolder={onOpenFolder}
           onOpenShop={onOpenShop}

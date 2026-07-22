@@ -15,7 +15,7 @@ type Story = StoryObj<typeof meta>;
 export const TwoColumn: Story = {
   args: {
     sidebar: (
-      <div className="flex h-full w-72 items-center justify-center bg-surface-base font-ui text-[13px] text-text-secondary">
+      <div className="flex h-full w-full items-center justify-center bg-surface-base font-ui text-[13px] text-text-secondary">
         sidebar
       </div>
     ),

@@ -60,6 +60,7 @@ const dsSelectLabels = {
     heading: "Wybierz szablon",
     collapseSidebar: "Zwiń panel boczny",
     expandSidebar: "Rozwiń panel boczny",
+    resizeSidebar: "Zmień szerokość panelu bocznego",
     emptyShops: "Brak sklepów — dodaj pierwszy",
     emptyTemplates: "Brak szablonów w tym sklepie",
 };
@@ -69,6 +70,7 @@ const dsHubLabels = {
     addShop: "Dodaj sklep",
     collapseSidebar: "Zwiń panel boczny",
     expandSidebar: "Rozwiń panel boczny",
+    resizeSidebar: "Zmień szerokość panelu bocznego",
     id: "ID",
     ok: "Brak konfliktów",
     openFolder: "Otwórz folder",
@@ -130,6 +132,7 @@ export const SCREENS = {
                 currentShopId={shops[0].Id}
                 templates={templates}
                 labels={dsSelectLabels}
+                sidebarStorageKey="lf.sidebarWidth"
             />
         ),
     },
@@ -147,6 +150,7 @@ export const SCREENS = {
                 fileTree={dsFileTree}
                 logEntries={dsLog}
                 labels={dsHubLabels}
+                sidebarStorageKey="lf.sidebarWidth"
             />
         ),
     },

@@ -24,6 +24,7 @@ const base: HubScreenProps = {
     addShop: 'Dodaj sklep',
     collapseSidebar: 'Zwiń panel boczny',
     expandSidebar: 'Rozwiń panel boczny',
+    resizeSidebar: 'Zmień szerokość panelu bocznego',
     id: 'ID',
     ok: 'Brak konfliktów',
     openFolder: 'Otwórz folder',

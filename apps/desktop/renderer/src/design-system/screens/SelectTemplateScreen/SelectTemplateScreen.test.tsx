@@ -19,6 +19,7 @@ const base: SelectTemplateScreenProps = {
     heading: 'Wybierz szablon',
     collapseSidebar: 'Zwiń panel boczny',
     expandSidebar: 'Rozwiń panel boczny',
+    resizeSidebar: 'Zmień szerokość panelu bocznego',
   },
 };
 
