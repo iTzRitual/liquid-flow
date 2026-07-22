@@ -1,7 +1,7 @@
 import { Text } from '../../atoms/Text';
 import { Badge } from '../../atoms/Badge';
 import { Button } from '../../atoms/Button';
-import { FolderOpen, Globe, RefreshCw, CircleDot, Check } from '../../foundations/icons';
+import { FolderOpen, Globe, RefreshCw, CircleDot, Check, PanelLeftOpen } from '../../foundations/icons';
 import { cn } from '../../foundations/cn';
 
 /** The Hub header: template title with ID + conflict/OK status badges, the
@@ -20,6 +20,9 @@ export interface SyncHeaderProps {
   refreshLabel: string;
   onOpenFolder?: () => void;
   onOpenShop?: () => void;
+  /** When set, renders a leading button that reopens the collapsed shop rail. */
+  onExpandSidebar?: () => void;
+  expandLabel?: string;
   onRefresh?: () => void;
   className?: string;
 }
@@ -37,11 +40,24 @@ export function SyncHeader({
   refreshLabel,
   onOpenFolder,
   onOpenShop,
+  onExpandSidebar,
+  expandLabel,
   onRefresh,
   className,
 }: SyncHeaderProps) {
   return (
     <header className={cn('flex flex-wrap items-center gap-3 border-b border-border px-6 py-3', className)}>
+      {onExpandSidebar && (
+        <button
+          type="button"
+          aria-label={expandLabel}
+          onClick={onExpandSidebar}
+          className="-ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-muted"
+        >
+          <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
+        </button>
+      )}
+
       <div className="mr-auto min-w-0">
         <div className="flex items-center gap-2">
           <Text as="h2" variant="heading-lg" className="truncate">{templateName}</Text>

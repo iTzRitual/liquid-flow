@@ -33,6 +33,8 @@ const logEntries = [
 const labels = {
   shops: 'Sklepy',
   addShop: 'Dodaj sklep',
+  collapseSidebar: 'Zwiń panel boczny',
+  expandSidebar: 'Rozwiń panel boczny',
   id: 'ID',
   ok: 'Brak konfliktów',
   openFolder: 'Otwórz folder',
@@ -75,4 +77,9 @@ export const WithConflicts: Story = {
 
 export const NoConflicts: Story = {
   args: { conflictCount: 0 },
+};
+
+// Shop rail closed — the header's leading button reopens it.
+export const SidebarCollapsed: Story = {
+  args: { conflictCount: 3, defaultSidebarCollapsed: true },
 };

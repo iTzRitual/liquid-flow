@@ -6,6 +6,11 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.181] — 2026-07-22
+
+### Added
+- The shop rail (`Sidebar`) is now collapsible on `SelectTemplateScreen` and `HubScreen`. A collapse button sits in the sidebar header; when closed, the rail is hidden and a reopen button appears **in the screen** — inline in the `HubScreen` header (`SyncHeader` gained `onExpandSidebar`/`expandLabel`) and as a floating top-left button on `SelectTemplateScreen`. `Sidebar` gained `onCollapse`/`collapseLabel`; both screens gained a `defaultSidebarCollapsed` prop plus `collapseSidebar`/`expandSidebar` labels. Added `PanelLeftClose`/`PanelLeftOpen` to the icon set.
+
 ## [0.9.180] — 2026-07-22
 
 ### Added

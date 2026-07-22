@@ -33,4 +33,18 @@ describe('Sidebar', () => {
     render(<Sidebar shops={[]} label="Sklepy" addLabel="Dodaj sklep" emptyLabel="Brak sklepów" />);
     expect(screen.getByText('Brak sklepów')).toBeInTheDocument();
   });
+
+  it('renders the collapse button only when onCollapse is set, and calls it', async () => {
+    const onCollapse = vi.fn();
+    const { rerender } = render(
+      <Sidebar shops={shops} label="Sklepy" addLabel="Dodaj sklep" collapseLabel="Zwiń panel" />,
+    );
+    expect(screen.queryByRole('button', { name: 'Zwiń panel' })).not.toBeInTheDocument();
+
+    rerender(
+      <Sidebar shops={shops} onCollapse={onCollapse} label="Sklepy" addLabel="Dodaj sklep" collapseLabel="Zwiń panel" />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Zwiń panel' }));
+    expect(onCollapse).toHaveBeenCalledOnce();
+  });
 });

@@ -58,6 +58,8 @@ const dsSelectLabels = {
     shops: "Sklepy",
     addShop: "Dodaj sklep",
     heading: "Wybierz szablon",
+    collapseSidebar: "Zwiń panel boczny",
+    expandSidebar: "Rozwiń panel boczny",
     emptyShops: "Brak sklepów — dodaj pierwszy",
     emptyTemplates: "Brak szablonów w tym sklepie",
 };
@@ -65,6 +67,8 @@ const dsSelectLabels = {
 const dsHubLabels = {
     shops: "Sklepy",
     addShop: "Dodaj sklep",
+    collapseSidebar: "Zwiń panel boczny",
+    expandSidebar: "Rozwiń panel boczny",
     id: "ID",
     ok: "Brak konfliktów",
     openFolder: "Otwórz folder",

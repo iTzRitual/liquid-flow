@@ -13,7 +13,13 @@ const base: SelectTemplateScreenProps = {
     { Id: 1, Name: 'Topaz' },
     { Id: 2, Name: 'One Page Shop', Locked: true },
   ],
-  labels: { shops: 'Sklepy', addShop: 'Dodaj sklep', heading: 'Wybierz szablon' },
+  labels: {
+    shops: 'Sklepy',
+    addShop: 'Dodaj sklep',
+    heading: 'Wybierz szablon',
+    collapseSidebar: 'Zwiń panel boczny',
+    expandSidebar: 'Rozwiń panel boczny',
+  },
 };
 
 describe('SelectTemplateScreen', () => {
@@ -32,5 +38,22 @@ describe('SelectTemplateScreen', () => {
     expect(onSelectTemplate).toHaveBeenCalledWith(base.templates[0]);
     await userEvent.click(screen.getByRole('button', { name: /Sklep B/ }));
     expect(onSelectShop).toHaveBeenCalledWith(base.shops[1]);
+  });
+
+  it('collapses the shop rail and reopens it with the floating button', async () => {
+    render(<SelectTemplateScreen {...base} />);
+    expect(screen.getByRole('button', { name: /Sklep A/ })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Zwiń panel boczny' }));
+    expect(screen.queryByRole('button', { name: /Sklep A/ })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Rozwiń panel boczny' }));
+    expect(screen.getByRole('button', { name: /Sklep A/ })).toBeInTheDocument();
+  });
+
+  it('starts collapsed when defaultSidebarCollapsed is set', () => {
+    render(<SelectTemplateScreen {...base} defaultSidebarCollapsed />);
+    expect(screen.queryByRole('button', { name: /Sklep A/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rozwiń panel boczny' })).toBeInTheDocument();
   });
 });
