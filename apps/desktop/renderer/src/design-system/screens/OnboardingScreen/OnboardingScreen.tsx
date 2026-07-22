@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { SplitMarketingForm } from '../../templates/SplitMarketingForm';
 import { ContentSurface } from '../../templates/ContentSurface';
-import { FeatureList, type Feature } from '../../organisms/FeatureList';
+import { FeatureCarousel } from '../../organisms/FeatureCarousel';
+import { type Feature } from '../../organisms/FeatureList';
 import { FormField } from '../../molecules/FormField';
 import { SwitchField } from '../../molecules/SwitchField';
 import { OrDivider } from '../../molecules/OrDivider';
@@ -36,6 +37,8 @@ export interface OnboardingScreenProps {
   version: string;
   tagline: string;
   features: Feature[];
+  /** Dashboard screenshot shown in the marketing column; omit to hide the box. */
+  previewSrc?: string;
   labels: OnboardingScreenLabels;
   busy?: boolean;
   onSubmit?: (values: OnboardingValues) => void;
@@ -47,6 +50,7 @@ export function OnboardingScreen({
   version,
   tagline,
   features,
+  previewSrc,
   labels,
   busy = false,
   onSubmit,
@@ -68,14 +72,32 @@ export function OnboardingScreen({
     <SplitMarketingForm
       marketing={
         <>
-          <div className="flex flex-col gap-2">
+          <div className="shrink-0 space-y-4">
             <div className="flex items-baseline gap-2">
-              <Text as="span" variant="heading-xl">{appName}</Text>
+              {/* Gradient "Liquid Flow" wordmark carried over from the original
+                  onboarding's marketing column (text-primary → interactive-primary). */}
+              <span className="bg-gradient-to-r from-text-primary to-interactive-primary to-[65%] bg-clip-text font-display text-3xl font-extrabold tracking-tight text-transparent">
+                {appName}
+              </span>
               <Text as="span" variant="caption-md" tone="muted">{version}</Text>
             </div>
             <Text as="p" variant="heading-md" tone="secondary">{tagline}</Text>
           </div>
-          <FeatureList features={features} />
+
+          {previewSrc && (
+            // min-h-0 + shrink lets the screenshot be the first element to give
+            // up height on short windows, keeping the wordmark and features visible.
+            <div
+              className="aspect-[1024/728] w-auto min-h-0 shrink self-center overflow-hidden rounded-xl border border-border bg-surface-app/60 shadow-sm"
+              aria-hidden="true"
+            >
+              <img src={previewSrc} alt="" className="h-full w-full object-contain" />
+            </div>
+          )}
+
+          <div className="shrink-0">
+            <FeatureCarousel features={features} />
+          </div>
         </>
       }
     >

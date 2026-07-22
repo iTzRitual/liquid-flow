@@ -113,6 +113,7 @@ export const SCREENS = {
                 version="0.9.168"
                 tagline="Edytuj szablony lokalnie — zmiany lecą do sklepu w czasie rzeczywistym."
                 features={dsFeatures}
+                previewSrc="dashboard-preview.png"
                 labels={dsOnboardingLabels}
             />
         ),
