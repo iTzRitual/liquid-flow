@@ -6,6 +6,13 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.184] — 2026-07-23
+
+### Changed
+- Polished the sidebar seam. The content card now docks flush against the rail while it's open (equal gutters left/right) and its shadow bleeds softly onto the sidebar instead of being sliced at the seam (`AppShell`'s main region and `ContentSurface`'s wrapper no longer clip it; new `flushLeft` prop on `ContentSurface`). The resize-handle hint tooltip now follows the cursor's height while the grab bullet stays centered.
+
+---
+
 ## [0.9.183] — 2026-07-23
 
 ### Changed

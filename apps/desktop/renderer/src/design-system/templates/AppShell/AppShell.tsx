@@ -44,6 +44,17 @@ export function AppShell({
   collapseShortcut,
   resizeHint,
 }: AppShellProps) {
+  const handleRef = React.useRef<HTMLDivElement>(null);
+  // Vertical position of the hint tooltip: it tracks the cursor while the bullet
+  // stays centered on the seam. Null when the pointer isn't over the handle.
+  const [hintY, setHintY] = React.useState<number | null>(null);
+  const trackHint = (e: React.PointerEvent) => {
+    const rect = handleRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    // Keep the two-line tooltip clear of the window's top/bottom edges.
+    setHintY(Math.min(Math.max(e.clientY - rect.top, 28), rect.height - 28));
+  };
+
   return (
     <div className={cn('flex h-full overflow-hidden bg-surface-app', className)}>
       <motion.div
@@ -64,18 +75,22 @@ export function AppShell({
         </div>
       </motion.div>
 
-      <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+      {/* Not overflow-hidden: the docked content card's shadow bleeds left onto
+          the sidebar rail instead of being sliced off at the seam. */}
+      <main className="relative flex min-w-0 flex-1 flex-col">
         {onSidebarResizeStart && !sidebarCollapsed && (
-          // Sits centered on the content card's left border (ContentSurface's 8px
-          // p-2 inset), tracking the seam as the rail resizes. Invisible until
-          // hover — click collapses, drag resizes (both wired in the caller's
-          // pointer handler).
+          // Sits centered on the seam where the content card docks against the
+          // rail. Invisible until hover — click collapses, drag resizes (both
+          // wired in the caller's pointer handler).
           <div
+            ref={handleRef}
             role="separator"
             aria-orientation="vertical"
             aria-label={resizeHandleLabel}
             onPointerDown={onSidebarResizeStart}
-            className="group absolute inset-y-0 left-2 z-30 w-3 -translate-x-1/2 cursor-col-resize touch-none select-none"
+            onPointerMove={trackHint}
+            onPointerLeave={() => setHintY(null)}
+            className="group absolute inset-y-0 left-0 z-30 w-3 -translate-x-1/2 cursor-col-resize touch-none select-none"
           >
             <span
               aria-hidden="true"
@@ -89,6 +104,7 @@ export function AppShell({
             {(collapseHint || resizeHint) && (
               <div
                 role="tooltip"
+                style={{ top: hintY ?? undefined }}
                 className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 whitespace-nowrap rounded-lg bg-[#2b2b2b] px-3 py-2 font-ui text-[13px] leading-snug text-white shadow-lg group-hover:block"
               >
                 {collapseHint && (

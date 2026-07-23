@@ -98,7 +98,7 @@ export function SelectTemplateScreen({
             <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
           </button>
         )}
-        <ContentSurface center className="p-8">
+        <ContentSurface center flushLeft={!collapsed} className="p-8">
           <div className="flex w-full max-w-2xl flex-col gap-6">
             <Text as="h1" variant="heading-lg">{labels.heading}</Text>
             <TemplateList

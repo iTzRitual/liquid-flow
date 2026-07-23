@@ -121,7 +121,7 @@ export function HubScreen({
         />
       }
     >
-      <ContentSurface>
+      <ContentSurface flushLeft={!collapsed}>
         <SyncHeader
           templateName={templateName}
           templateId={templateId}
