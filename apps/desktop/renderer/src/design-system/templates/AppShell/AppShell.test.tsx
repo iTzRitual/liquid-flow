@@ -24,6 +24,25 @@ describe('AppShell', () => {
     expect(onSidebarResizeStart).toHaveBeenCalledOnce();
   });
 
+  it('renders the resize-handle hint tooltip when hint labels are given', () => {
+    render(
+      <AppShell
+        sidebar={<nav>rail</nav>}
+        onSidebarResizeStart={() => {}}
+        resizeHandleLabel="Zmień szerokość"
+        collapseHint="Kliknij, aby zwinąć"
+        collapseShortcut="⌘B"
+        resizeHint="Przeciągnij, aby zmienić szerokość"
+      >
+        <section>treść</section>
+      </AppShell>,
+    );
+    const tip = screen.getByRole('tooltip');
+    expect(tip).toHaveTextContent('Kliknij, aby zwinąć');
+    expect(tip).toHaveTextContent('⌘B');
+    expect(tip).toHaveTextContent('Przeciągnij, aby zmienić szerokość');
+  });
+
   it('removes the collapsed sidebar from the a11y tree (and drops its handle)', () => {
     render(
       <AppShell

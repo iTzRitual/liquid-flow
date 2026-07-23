@@ -13,6 +13,10 @@ export interface SelectTemplateScreenLabels {
   collapseSidebar: string;
   expandSidebar: string;
   resizeSidebar: string;
+  /** Resize-handle tooltip: click-to-collapse line, its shortcut chip, drag-to-resize line. */
+  collapseHint?: string;
+  collapseShortcut?: string;
+  resizeHint?: string;
   emptyShops?: string;
   emptyTemplates?: string;
 }
@@ -60,6 +64,9 @@ export function SelectTemplateScreen({
       sidebarResizing={resizing}
       onSidebarResizeStart={beginResize}
       resizeHandleLabel={labels.resizeSidebar}
+      collapseHint={labels.collapseHint}
+      collapseShortcut={labels.collapseShortcut}
+      resizeHint={labels.resizeHint}
       sidebar={
         <Sidebar
           shops={shops}
@@ -91,7 +98,7 @@ export function SelectTemplateScreen({
             <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
           </button>
         )}
-        <ContentSurface center className="p-8">
+        <ContentSurface center flushLeft={!collapsed} className="p-8">
           <div className="flex w-full max-w-2xl flex-col gap-6">
             <Text as="h1" variant="heading-lg">{labels.heading}</Text>
             <TemplateList
