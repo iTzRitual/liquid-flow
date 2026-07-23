@@ -24,7 +24,7 @@ describe('AppShell', () => {
     expect(onSidebarResizeStart).toHaveBeenCalledOnce();
   });
 
-  it('renders the resize-handle hint tooltip when hint labels are given', () => {
+  it('shows the cursor-following hint tooltip while the handle is hovered', () => {
     render(
       <AppShell
         sidebar={<nav>rail</nav>}
@@ -37,25 +37,35 @@ describe('AppShell', () => {
         <section>treść</section>
       </AppShell>,
     );
+    const handle = screen.getByRole('separator', { name: 'Zmień szerokość' });
+    // Hidden until the pointer is over the handle (position-driven, not CSS hover).
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    fireEvent.pointerEnter(handle, { clientY: 100 });
     const tip = screen.getByRole('tooltip');
     expect(tip).toHaveTextContent('Kliknij, aby zwinąć');
     expect(tip).toHaveTextContent('⌘B');
     expect(tip).toHaveTextContent('Przeciągnij, aby zmienić szerokość');
+    fireEvent.pointerLeave(handle);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
-  it('removes the collapsed sidebar from the a11y tree (and drops its handle)', () => {
+  it('keeps a reopen handle when collapsed but drops the rail from the a11y tree', () => {
     render(
       <AppShell
         sidebar={<nav><button>Sklep</button></nav>}
         sidebarCollapsed
         onSidebarResizeStart={() => {}}
         resizeHandleLabel="Zmień szerokość"
+        expandHint="Kliknij, aby rozwinąć"
       >
         <section>treść</section>
       </AppShell>,
     );
     expect(screen.queryByRole('button', { name: 'Sklep' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+    // The handle stays so a collapsed rail can be dragged/clicked back open.
+    const handle = screen.getByRole('separator', { name: 'Zmień szerokość' });
+    fireEvent.pointerEnter(handle, { clientY: 100 });
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Kliknij, aby rozwinąć');
     expect(screen.getByText('treść')).toBeInTheDocument();
   });
 });

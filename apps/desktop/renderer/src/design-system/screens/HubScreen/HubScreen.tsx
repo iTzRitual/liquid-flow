@@ -15,8 +15,9 @@ export interface HubScreenLabels {
   collapseSidebar: string;
   expandSidebar: string;
   resizeSidebar: string;
-  /** Resize-handle tooltip: click-to-collapse line, its shortcut chip, drag-to-resize line. */
+  /** Resize-handle tooltip: click-to-toggle line (open/collapsed), shortcut chip, drag line. */
   collapseHint?: string;
+  expandHint?: string;
   collapseShortcut?: string;
   resizeHint?: string;
   emptyShops?: string;
@@ -102,6 +103,7 @@ export function HubScreen({
       onSidebarResizeStart={beginResize}
       resizeHandleLabel={labels.resizeSidebar}
       collapseHint={labels.collapseHint}
+      expandHint={labels.expandHint}
       collapseShortcut={labels.collapseShortcut}
       resizeHint={labels.resizeHint}
       sidebar={

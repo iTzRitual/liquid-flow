@@ -6,6 +6,13 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.185] — 2026-07-23
+
+### Changed
+- More resize-handle polish. The hint tooltip now appears already positioned at the cursor (no longer flashes centered then jumps), sits a touch further (~16px) from the border, and the handle now stays on the card's inner-left border **while collapsed** — so the rail can be dragged back open (or clicked open), mirroring how it closes. New `expandHint` label for the collapsed tooltip line.
+
+---
+
 ## [0.9.184] — 2026-07-23
 
 ### Changed

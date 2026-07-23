@@ -11,8 +11,9 @@ import { cn } from '../../foundations/cn';
  * slides it to zero width (kept mounted but `aria-hidden`/`inert`, so it leaves
  * the a11y tree and tab order); `sidebarWidth` drives its size. When
  * `onSidebarResizeStart` is set a resize handle sits on the content card's left
- * border — clicking it collapses the rail, dragging resizes it; hovering reveals
- * a grab bullet and a hint tooltip. While a drag is in flight the caller passes
+ * border in both states — clicking it toggles the rail, dragging resizes it (and
+ * from collapsed, drags it back open); hovering reveals a grab bullet and a hint
+ * tooltip that follows the cursor. While a drag is in flight the caller passes
  * `sidebarResizing` so width changes apply instantly instead of tweening. */
 export interface AppShellProps {
   sidebar: React.ReactNode;
@@ -23,11 +24,13 @@ export interface AppShellProps {
   sidebarResizing?: boolean;
   onSidebarResizeStart?: (e: React.PointerEvent) => void;
   resizeHandleLabel?: string;
-  /** First tooltip line (e.g. "Click to collapse"); paired with `collapseShortcut`. */
+  /** Tooltip's first line when the rail is open (e.g. "Click to collapse"). */
   collapseHint?: string;
-  /** Keyboard hint rendered as a chip after `collapseHint` (e.g. "⌘B"). */
+  /** Tooltip's first line when the rail is collapsed (e.g. "Click to expand"). */
+  expandHint?: string;
+  /** Keyboard hint rendered as a chip after the first line (e.g. "⌘B"). */
   collapseShortcut?: string;
-  /** Second tooltip line (e.g. "Drag to resize"). */
+  /** Tooltip's second line (e.g. "Drag to resize"). */
   resizeHint?: string;
 }
 
@@ -41,6 +44,7 @@ export function AppShell({
   onSidebarResizeStart,
   resizeHandleLabel,
   collapseHint,
+  expandHint,
   collapseShortcut,
   resizeHint,
 }: AppShellProps) {
@@ -54,6 +58,7 @@ export function AppShell({
     // Keep the two-line tooltip clear of the window's top/bottom edges.
     setHintY(Math.min(Math.max(e.clientY - rect.top, 28), rect.height - 28));
   };
+  const hintTitle = sidebarCollapsed ? expandHint : collapseHint;
 
   return (
     <div className={cn('flex h-full overflow-hidden bg-surface-app', className)}>
@@ -78,19 +83,24 @@ export function AppShell({
       {/* Not overflow-hidden: the docked content card's shadow bleeds left onto
           the sidebar rail instead of being sliced off at the seam. */}
       <main className="relative flex min-w-0 flex-1 flex-col">
-        {onSidebarResizeStart && !sidebarCollapsed && (
-          // Sits centered on the seam where the content card docks against the
-          // rail. Invisible until hover — click collapses, drag resizes (both
-          // wired in the caller's pointer handler).
+        {onSidebarResizeStart && (
+          // Sits on the content card's left border in both states (on the docked
+          // seam when open; on the card's inset border when collapsed, so the
+          // rail can be dragged back out). Invisible until hover — click toggles,
+          // drag resizes (both wired in the caller's pointer handler).
           <div
             ref={handleRef}
             role="separator"
             aria-orientation="vertical"
             aria-label={resizeHandleLabel}
             onPointerDown={onSidebarResizeStart}
+            onPointerEnter={trackHint}
             onPointerMove={trackHint}
             onPointerLeave={() => setHintY(null)}
-            className="group absolute inset-y-0 left-0 z-30 w-3 -translate-x-1/2 cursor-col-resize touch-none select-none"
+            className={cn(
+              'group absolute inset-y-0 z-30 w-3 -translate-x-1/2 cursor-col-resize touch-none select-none',
+              sidebarCollapsed ? 'left-2' : 'left-0',
+            )}
           >
             <span
               aria-hidden="true"
@@ -101,15 +111,17 @@ export function AppShell({
                   : 'bg-text-secondary opacity-0 group-hover:opacity-100',
               )}
             />
-            {(collapseHint || resizeHint) && (
+            {/* Driven by hintY (not CSS :hover) so it appears already positioned
+                at the cursor instead of flashing centered then jumping. */}
+            {hintY !== null && (hintTitle || resizeHint) && (
               <div
                 role="tooltip"
-                style={{ top: hintY ?? undefined }}
-                className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 whitespace-nowrap rounded-lg bg-[#2b2b2b] px-3 py-2 font-ui text-[13px] leading-snug text-white shadow-lg group-hover:block"
+                style={{ top: hintY }}
+                className="pointer-events-none absolute left-[22px] -translate-y-1/2 whitespace-nowrap rounded-lg bg-[#2b2b2b] px-3 py-2 font-ui text-[13px] leading-snug text-white shadow-lg"
               >
-                {collapseHint && (
+                {hintTitle && (
                   <span className="flex items-center gap-2">
-                    {collapseHint}
+                    {hintTitle}
                     {collapseShortcut && (
                       <kbd className="rounded bg-white/15 px-1.5 py-0.5 text-[11px] font-medium text-white/80">
                         {collapseShortcut}

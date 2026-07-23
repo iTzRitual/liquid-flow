@@ -31,6 +31,23 @@ describe('useResizableSidebar', () => {
     expect(result.current.width).toBe(320); // width untouched
   });
 
+  it('reopens a collapsed rail on a click', () => {
+    const { result } = renderHook(() => useResizableSidebar({ defaultCollapsed: true }));
+    expect(result.current.collapsed).toBe(true);
+    act(() => result.current.beginResize(pointerDownAt(8)));
+    act(() => release()); // click with no drag → toggle open
+    expect(result.current.collapsed).toBe(false);
+  });
+
+  it('drags a collapsed rail back open from zero width', () => {
+    const { result } = renderHook(() => useResizableSidebar({ defaultCollapsed: true }));
+    act(() => result.current.beginResize(pointerDownAt(8)));
+    act(() => move(308)); // from collapsed: desired = 0 + (308-8) = 300 → expand to 300
+    expect(result.current.collapsed).toBe(false);
+    expect(result.current.width).toBe(300);
+    act(() => release());
+  });
+
   it('toggles collapse with ⌘B / Ctrl+B', () => {
     const { result } = renderHook(() => useResizableSidebar());
     expect(result.current.collapsed).toBe(false);

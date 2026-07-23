@@ -71,12 +71,16 @@ export function useResizableSidebar(options: UseResizableSidebarOptions = {}): R
     (e: React.PointerEvent) => {
       e.preventDefault();
       const startX = e.clientX;
-      const startWidth = width;
-      // Last committed width during this drag, read synchronously on release so
-      // the persisted value isn't a render behind the final pointer position.
-      let latest = startWidth;
+      const wasCollapsed = collapsed;
+      // A collapsed rail resizes as if it were zero-width, so dragging its edge
+      // grows the sidebar back out from nothing (symmetric with dragging it shut).
+      const startWidth = wasCollapsed ? 0 : width;
+      // Last committed width, read synchronously on release so the persisted
+      // value isn't a render behind the final pointer position. Seeded to the
+      // remembered width so a collapsed drag that never expands leaves it intact.
+      let latest = width;
       // A press that never travels past DRAG_THRESHOLD is a click, not a drag,
-      // and collapses the rail on release instead of resizing it.
+      // and toggles the rail on release instead of resizing it.
       let moved = false;
 
       const onMove = (ev: PointerEvent) => {
@@ -89,7 +93,6 @@ export function useResizableSidebar(options: UseResizableSidebarOptions = {}): R
         const desired = startWidth + (ev.clientX - startX);
         if (desired < COLLAPSE_AT) {
           setCollapsed(true);
-          finish();
           return;
         }
         setCollapsed(false);
@@ -103,10 +106,11 @@ export function useResizableSidebar(options: UseResizableSidebarOptions = {}): R
         if (moved) {
           setResizing(false);
           if (typeof document !== 'undefined') document.body.style.userSelect = '';
+          setWidth(latest);
           persist(latest);
         } else {
-          // Click with no drag: collapse (mirrors the sidebar's own button).
-          setCollapsed(true);
+          // Click with no drag toggles the rail (mirrors the sidebar's own button).
+          setCollapsed(!wasCollapsed);
         }
       };
 
@@ -114,7 +118,7 @@ export function useResizableSidebar(options: UseResizableSidebarOptions = {}): R
       window.addEventListener('pointerup', finish);
       window.addEventListener('pointercancel', finish);
     },
-    [width, persist],
+    [width, collapsed, persist],
   );
 
   const collapse = React.useCallback(() => setCollapsed(true), []);

@@ -37,6 +37,7 @@ const labels = {
   expandSidebar: 'Rozwiń panel boczny',
   resizeSidebar: 'Zmień szerokość panelu bocznego',
   collapseHint: 'Kliknij, aby zwinąć',
+  expandHint: 'Kliknij, aby rozwinąć',
   collapseShortcut: '⌘B',
   resizeHint: 'Przeciągnij, aby zmienić szerokość',
   id: 'ID',
