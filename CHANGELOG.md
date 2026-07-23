@@ -6,6 +6,13 @@ Versioning: `0.MINOR.PATCH` — patch increments with every commit, minor on lar
 
 ---
 
+## [0.9.183] — 2026-07-23
+
+### Changed
+- Reworked the sidebar resize handle. Dropped the full-height accent line and its side gaps; the handle now sits on the content card's left border. Hovering reveals a "thickened bullet" grab pill and a hint tooltip (*Click to collapse ⌘B* / *Drag to resize*). Clicking the handle collapses the rail, dragging resizes it, and **⌘B / Ctrl+B** toggles it (ignored while typing in a field). New optional `collapseHint`/`collapseShortcut`/`resizeHint` labels on `AppShell` and both screens.
+
+---
+
 ## [0.9.182] — 2026-07-22
 
 ### Added

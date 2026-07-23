@@ -23,6 +23,23 @@ describe('useResizableSidebar', () => {
     expect(result.current.resizing).toBe(false);
   });
 
+  it('collapses on a click (press with no drag)', () => {
+    const { result } = renderHook(() => useResizableSidebar());
+    act(() => result.current.beginResize(pointerDownAt(500)));
+    act(() => release()); // no pointermove → treated as a click
+    expect(result.current.collapsed).toBe(true);
+    expect(result.current.width).toBe(320); // width untouched
+  });
+
+  it('toggles collapse with ⌘B / Ctrl+B', () => {
+    const { result } = renderHook(() => useResizableSidebar());
+    expect(result.current.collapsed).toBe(false);
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', metaKey: true })));
+    expect(result.current.collapsed).toBe(true);
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true })));
+    expect(result.current.collapsed).toBe(false);
+  });
+
   it('collapses when dragged narrower than the threshold', () => {
     const { result } = renderHook(() => useResizableSidebar());
     act(() => result.current.beginResize(pointerDownAt(500)));

@@ -6,6 +6,9 @@ const MIN_WIDTH = 240;
 const MAX_WIDTH = 480;
 const DEFAULT_WIDTH = 320;
 const COLLAPSE_AT = 200;
+// Pointer travel (px) below which a press on the handle counts as a click
+// (collapse) rather than a resize drag.
+const DRAG_THRESHOLD = 4;
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
@@ -72,10 +75,17 @@ export function useResizableSidebar(options: UseResizableSidebarOptions = {}): R
       // Last committed width during this drag, read synchronously on release so
       // the persisted value isn't a render behind the final pointer position.
       let latest = startWidth;
-      setResizing(true);
-      if (typeof document !== 'undefined') document.body.style.userSelect = 'none';
+      // A press that never travels past DRAG_THRESHOLD is a click, not a drag,
+      // and collapses the rail on release instead of resizing it.
+      let moved = false;
 
       const onMove = (ev: PointerEvent) => {
+        if (!moved) {
+          if (Math.abs(ev.clientX - startX) <= DRAG_THRESHOLD) return;
+          moved = true;
+          setResizing(true);
+          if (typeof document !== 'undefined') document.body.style.userSelect = 'none';
+        }
         const desired = startWidth + (ev.clientX - startX);
         if (desired < COLLAPSE_AT) {
           setCollapsed(true);
@@ -87,12 +97,17 @@ export function useResizableSidebar(options: UseResizableSidebarOptions = {}): R
         setWidth(latest);
       };
       const finish = () => {
-        setResizing(false);
-        if (typeof document !== 'undefined') document.body.style.userSelect = '';
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', finish);
         window.removeEventListener('pointercancel', finish);
-        persist(latest);
+        if (moved) {
+          setResizing(false);
+          if (typeof document !== 'undefined') document.body.style.userSelect = '';
+          persist(latest);
+        } else {
+          // Click with no drag: collapse (mirrors the sidebar's own button).
+          setCollapsed(true);
+        }
       };
 
       window.addEventListener('pointermove', onMove);
@@ -104,6 +119,22 @@ export function useResizableSidebar(options: UseResizableSidebarOptions = {}): R
 
   const collapse = React.useCallback(() => setCollapsed(true), []);
   const expand = React.useCallback(() => setCollapsed(false), []);
+
+  // ⌘B / Ctrl+B toggles the rail, except while typing in a field.
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      if (e.key.toLowerCase() !== 'b') return;
+      const el = document.activeElement;
+      const tag = el?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (el as HTMLElement | null)?.isContentEditable) return;
+      e.preventDefault();
+      setCollapsed((c) => !c);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   return { width, collapsed, resizing, beginResize, collapse, expand };
 }
